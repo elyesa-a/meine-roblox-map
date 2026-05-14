@@ -125,7 +125,7 @@ function AuraFrame.create(parent: ScreenGui): Refs
 	closeButton.ZIndex = 8
 	closeButton.Parent = root
 	closeButton.MouseButton1Click:Connect(function()
-		backdrop.Visible = false
+		UIAnimator.framePopOut(backdrop, root)
 	end)
 
 	local infoLabel = Instance.new("TextLabel")
@@ -198,7 +198,7 @@ function AuraFrame.create(parent: ScreenGui): Refs
 end
 
 function AuraFrame.show(refs: Refs)
-	refs.backdrop.Visible = true
+	UIAnimator.framePopIn(refs.backdrop, refs.root)
 end
 
 function AuraFrame.update(refs: Refs, state)

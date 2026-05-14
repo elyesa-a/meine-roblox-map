@@ -90,6 +90,7 @@ function DailyChestService.claim(player: Player)
 		reward.bonusText and (", " .. reward.bonusText) or ""
 	))
 	StatService.broadcastProfile(player)
+	StatService.playSound(player, "Reward")
 end
 
 function DailyChestService.start(deps)

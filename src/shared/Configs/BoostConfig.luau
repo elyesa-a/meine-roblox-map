@@ -15,9 +15,9 @@ export type BoostDef = {
 local BoostConfig = {}
 
 BoostConfig.Boosts = {
-	{ id = "Power2x", displayName = "2x Kraft", multiplier = 2, affects = "Power", durationSec = 600, priceDna = 200, color = Color3.fromRGB(255, 90, 90) },
-	{ id = "Dna2x", displayName = "2x DNA", multiplier = 2, affects = "Dna", durationSec = 600, priceDna = 200, color = Color3.fromRGB(80, 160, 255) },
-	{ id = "Luck2x", displayName = "2x Glueck", multiplier = 2, affects = "Luck", durationSec = 600, priceDna = 200, color = Color3.fromRGB(255, 215, 60) },
+	{ id = "Power2x", displayName = "2x Kraft", multiplier = 2, affects = "Power", durationSec = 600, priceDna = 75, color = Color3.fromRGB(255, 90, 90) },
+	{ id = "Dna2x", displayName = "2x DNA", multiplier = 2, affects = "Dna", durationSec = 600, priceDna = 100, color = Color3.fromRGB(80, 160, 255) },
+	{ id = "Luck2x", displayName = "2x Glueck", multiplier = 2, affects = "Luck", durationSec = 600, priceDna = 75, color = Color3.fromRGB(255, 215, 60) },
 }
 
 function BoostConfig.getById(id: string): BoostDef?

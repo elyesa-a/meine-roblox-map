@@ -75,7 +75,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	closeButton.ZIndex = 8
 	closeButton.Parent = root
 	closeButton.MouseButton1Click:Connect(function()
-		backdrop.Visible = false
+		UIAnimator.framePopOut(backdrop, root)
 	end)
 
 	local streakLabel = Instance.new("TextLabel")
@@ -205,7 +205,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 end
 
 function DailyChestFrame.show(refs: Refs)
-	refs.backdrop.Visible = true
+	UIAnimator.framePopIn(refs.backdrop, refs.root)
 end
 
 -- Wird vom Tick aufgerufen, damit Cooldown live runterzaehlt.
@@ -215,7 +215,7 @@ function DailyChestFrame.tick(refs: Refs, state)
 	end
 	local serverTime = state.ServerTime
 	local chest = state.DailyChest
-	if not serverTime or not chest then
+	if not serverTime or serverTime == 0 or not chest then
 		return
 	end
 	local lastClaim = chest.LastClaim or 0

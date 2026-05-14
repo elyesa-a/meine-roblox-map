@@ -132,7 +132,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	closeButton.ZIndex = 8
 	closeButton.Parent = root
 	closeButton.MouseButton1Click:Connect(function()
-		backdrop.Visible = false
+		UIAnimator.framePopOut(backdrop, root)
 	end)
 
 	-- Info-Zeile: Inventar / Equipped / Pet-Multiplier.
@@ -248,7 +248,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 end
 
 function PetFrame.show(refs: Refs)
-	refs.backdrop.Visible = true
+	UIAnimator.framePopIn(refs.backdrop, refs.root)
 end
 
 local function isEquipped(equippedList: { string }?, instanceId: string): boolean

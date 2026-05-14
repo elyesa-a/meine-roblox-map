@@ -59,6 +59,7 @@ function UpgradeService.buyUpgrade(player: Player, upgradeId: string)
 	profile.DnaCoins -= cost
 	profile.Upgrades[upgradeId] = currentLevel + 1
 	StatService.broadcastProfile(player)
+	StatService.playSound(player, "Purchase")
 end
 
 function UpgradeService.start(deps)

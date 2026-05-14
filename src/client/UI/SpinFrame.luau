@@ -74,7 +74,7 @@ function SpinFrame.create(parent: ScreenGui): Refs
 	closeButton.ZIndex = 8
 	closeButton.Parent = root
 	closeButton.MouseButton1Click:Connect(function()
-		backdrop.Visible = false
+		UIAnimator.framePopOut(backdrop, root)
 	end)
 
 	-- Wheel-Container
@@ -208,11 +208,15 @@ function SpinFrame.create(parent: ScreenGui): Refs
 end
 
 function SpinFrame.show(refs: Refs)
-	refs.backdrop.Visible = true
+	UIAnimator.framePopIn(refs.backdrop, refs.root)
 end
 
 function SpinFrame.tick(refs: Refs, state)
-	if not state or not state.Spin or not state.ServerTime then
+	if not state or not state.Spin then
+		return
+	end
+	-- Vor der ersten Server-Antwort haben wir keine echte ServerTime -> skippen.
+	if not state.ServerTime or state.ServerTime == 0 then
 		return
 	end
 	local extrapolated = state.ServerTime + (os.clock() - (state._clientReceivedAt or os.clock()))

@@ -4,6 +4,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -21,9 +22,17 @@ local RebirthFrame = require(UI:WaitForChild("RebirthFrame"))
 local SettingsFrame = require(UI:WaitForChild("SettingsFrame"))
 local PetFrame = require(UI:WaitForChild("PetFrame"))
 local AuraFrame = require(UI:WaitForChild("AuraFrame"))
+local UpgradeFrame = require(UI:WaitForChild("UpgradeFrame"))
+local SpinFrame = require(UI:WaitForChild("SpinFrame"))
+local DailyChestFrame = require(UI:WaitForChild("DailyChestFrame"))
+local GamepassFrame = require(UI:WaitForChild("GamepassFrame"))
 local StubFrame = require(UI:WaitForChild("StubFrame"))
 local PopupHandler = require(UI:WaitForChild("PopupHandler"))
 local ClickHandler = require(UI:WaitForChild("ClickHandler"))
+local SoundController = require(UI:WaitForChild("SoundController"))
+local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
+
+SoundController.start()
 
 -- ScreenGui anlegen.
 local screen = Instance.new("ScreenGui")
@@ -35,16 +44,34 @@ screen.Parent = playerGui
 
 -- Layout-Elemente.
 local bottomRefs = BottomStats.create(screen)
-local topRefs = TopBar.create(screen)
-RightBoosts.create(screen)
 
--- Fenster (zunaechst unsichtbar).
+-- Fenster (zunaechst unsichtbar) -- vorab anlegen, damit Top/Left-Buttons sie
+-- referenzieren koennen.
 local rebirthRefs = RebirthFrame.create(screen)
 local settingsRefs = SettingsFrame.create(screen)
 local petRefs = PetFrame.create(screen)
 local auraRefs = AuraFrame.create(screen)
-local upgradeRefs = StubFrame.create(screen, "UpgradeFrame", Theme.Colors.Green, "SCHUB")
+local upgradeRefs = UpgradeFrame.create(screen)
+local spinRefs = SpinFrame.create(screen)
+local dailyRefs = DailyChestFrame.create(screen)
+local gamepassRefs = GamepassFrame.create(screen)
 local titleRefs = StubFrame.create(screen, "TitleFrame", Theme.Colors.Yellow, "TITEL")
+
+-- TopBar mit Spin-Button-Klick.
+local topRefs = TopBar.create(screen, function()
+	SpinFrame.show(spinRefs)
+end)
+
+-- Rechte Boost-Leiste: kauft DNA-Boosts oder oeffnet Gamepass-Popup.
+local rightRefs = RightBoosts.create(screen, function(gamepassId, robux)
+	UIAnimator.floatText(
+		screen,
+		string.format("%s -- NUR %d R$", gamepassId, robux),
+		UDim2.fromScale(0.5, 0.5),
+		Theme.Colors.Yellow
+	)
+	GamepassFrame.show(gamepassRefs)
+end)
 
 -- Linke Button-Leiste mit Klick-Handlern.
 LeftButtons.create(screen, function(id)
@@ -55,9 +82,13 @@ LeftButtons.create(screen, function(id)
 	elseif id == "Pets" then
 		PetFrame.show(petRefs)
 	elseif id == "Upgrades" then
-		StubFrame.show(upgradeRefs)
+		UpgradeFrame.show(upgradeRefs)
 	elseif id == "Auras" then
 		AuraFrame.show(auraRefs)
+	elseif id == "Daily" then
+		DailyChestFrame.show(dailyRefs)
+	elseif id == "Shop" then
+		GamepassFrame.show(gamepassRefs)
 	elseif id == "Title" then
 		StubFrame.show(titleRefs)
 	end
@@ -81,6 +112,12 @@ local state: { [string]: any } = {
 	NextMultiplier = 1.5,
 	MaxRebirth = 100,
 	Settings = { Music = true, SFX = true, VFX = true, Haptik = true },
+	Upgrades = {},
+	ActiveBoosts = {},
+	DailyChest = { LastClaim = 0, Streak = 0 },
+	Spin = { LastFreeSpin = 0 },
+	ServerTime = 0,
+	_clientReceivedAt = os.clock(),
 }
 
 local function applyState()
@@ -90,6 +127,7 @@ local function applyState()
 	SettingsFrame.update(settingsRefs, state)
 	PetFrame.update(petRefs, state)
 	AuraFrame.update(auraRefs, state)
+	UpgradeFrame.update(upgradeRefs, state)
 end
 
 UpdateClientData.OnClientEvent:Connect(function(payload)
@@ -99,10 +137,27 @@ UpdateClientData.OnClientEvent:Connect(function(payload)
 	for k, v in pairs(payload) do
 		state[k] = v
 	end
+	state._clientReceivedAt = os.clock()
 	applyState()
+	-- Settings koennen sich aendern (Toggle Music/SFX) -> Sound-Groups syncen.
+	SoundController.applySettings(state.Settings)
 end)
 
 -- Initial-Render mit Default-State.
 applyState()
+
+-- Tick-Loop fuer Cooldown-/Timer-basierte UI (Spin, DailyChest, Boost-Timer).
+-- Heartbeat ist sparsam, wir drosseln auf 4 Hz.
+local accum = 0
+RunService.Heartbeat:Connect(function(dt)
+	accum += dt
+	if accum < 0.25 then
+		return
+	end
+	accum = 0
+	SpinFrame.tick(spinRefs, state)
+	DailyChestFrame.tick(dailyRefs, state)
+	RightBoosts.tick(rightRefs, state)
+end)
 
 print("[UIController] UI bereit.")

@@ -13,12 +13,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Configs = ReplicatedStorage:WaitForChild("Configs")
 local ZoneConfig = require(Configs:WaitForChild("ZoneConfig"))
 
+local Modules = ReplicatedStorage:WaitForChild("Modules")
+local VFX = require(Modules:WaitForChild("VFX"))
+
 local TrainingZoneService = {}
 
 local DataService
 local StatService
 local AntiExploitService
 local UpgradeService
+
+local trainingPulseCounter: { [Player]: number } = {}
 
 local function isInsidePart(part: BasePart, pos: Vector3): boolean
 	local relative = part.CFrame:PointToObjectSpace(pos)
@@ -85,7 +90,12 @@ local function tick()
 						then UpgradeService.getMultiplier(player, "TrainingSpeed")
 						else 1
 					StatService.addPower(player, rate * speedMult)
-					-- Nur ein Bett pro Tick anrechnen.
+					-- VFX-Pulse alle 3 Ticks, sofern VFX nicht im Setting deaktiviert.
+					local counter = (trainingPulseCounter[player] or 0) + 1
+					trainingPulseCounter[player] = counter
+					if counter % 3 == 0 and profile.Settings.VFX ~= false then
+						VFX.spawnTrainingPulse(hitbox, Color3.fromRGB(120, 255, 160))
+					end
 					break
 				end
 			end
@@ -98,6 +108,10 @@ function TrainingZoneService.start(deps)
 	StatService = deps.StatService
 	AntiExploitService = deps.AntiExploitService
 	UpgradeService = deps.UpgradeService
+
+	game:GetService("Players").PlayerRemoving:Connect(function(player)
+		trainingPulseCounter[player] = nil
+	end)
 
 	task.spawn(function()
 		while true do

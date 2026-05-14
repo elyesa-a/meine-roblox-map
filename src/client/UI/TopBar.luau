@@ -1,9 +1,10 @@
 --!strict
--- Obere Leiste: DNA-Coin-Anzeige + Spin-Wheel-Platzhalter.
+-- Obere Leiste: DNA-Coin-Anzeige + Spin-Wheel-Button.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Theme = require(script.Parent:WaitForChild("Theme"))
+local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
 local NumberFormatter = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("NumberFormatter"))
 
 local TopBar = {}
@@ -11,9 +12,10 @@ local TopBar = {}
 type Refs = {
 	root: Frame,
 	dnaLabel: TextLabel,
+	spinButton: TextButton,
 }
 
-function TopBar.create(parent: ScreenGui): Refs
+function TopBar.create(parent: ScreenGui, onSpinClick: (() -> ())?): Refs
 	local root = Instance.new("Frame")
 	root.Name = "TopBar"
 	root.AnchorPoint = Vector2.new(0.5, 0)
@@ -37,7 +39,7 @@ function TopBar.create(parent: ScreenGui): Refs
 	dnaLabel.Text = "DNA: 0"
 	dnaLabel.Parent = dnaCard
 
-	-- Spin-Wheel-Platzhalter.
+	-- Spin-Wheel-Button.
 	local spinBtn = Instance.new("TextButton")
 	spinBtn.Name = "SpinButton"
 	spinBtn.Size = UDim2.new(0, 130, 1, 0)
@@ -46,11 +48,16 @@ function TopBar.create(parent: ScreenGui): Refs
 	Theme.applyButtonStyle(spinBtn, Theme.Colors.Yellow)
 	spinBtn.TextSize = 18
 	spinBtn.TextScaled = false
-	spinBtn.AutoButtonColor = false
-	spinBtn.Active = false
 	spinBtn.Parent = root
 
-	return { root = root, dnaLabel = dnaLabel }
+	if onSpinClick then
+		spinBtn.MouseButton1Click:Connect(function()
+			UIAnimator.buttonPunch(spinBtn)
+			onSpinClick()
+		end)
+	end
+
+	return { root = root, dnaLabel = dnaLabel, spinButton = spinBtn }
 end
 
 function TopBar.update(refs: Refs, state)

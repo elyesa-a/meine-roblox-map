@@ -48,7 +48,7 @@ local TrainingBedConfig: { [number]: BedDef } = {
 		powerPerSecond = 5000,
 		localPosition = Vector3.new(0, 1.5, -20),
 		color = Color3.fromRGB(255, 200, 80),
-		enabled = false,
+		enabled = true,
 	},
 	{
 		id = "GlitchBed",
@@ -57,7 +57,7 @@ local TrainingBedConfig: { [number]: BedDef } = {
 		powerPerSecond = 50000,
 		localPosition = Vector3.new(0, 1.5, -20),
 		color = Color3.fromRGB(255, 80, 200),
-		enabled = false,
+		enabled = true,
 	},
 	{
 		id = "EndgameBed",
@@ -66,7 +66,7 @@ local TrainingBedConfig: { [number]: BedDef } = {
 		powerPerSecond = 500000,
 		localPosition = Vector3.new(0, 1.5, -20),
 		color = Color3.fromRGB(255, 60, 60),
-		enabled = false,
+		enabled = true,
 	},
 }
 

@@ -4,6 +4,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Theme = require(script.Parent:WaitForChild("Theme"))
+local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestSettingsChange = Remotes:WaitForChild("RequestSettingsChange") :: RemoteEvent
@@ -70,7 +71,7 @@ function SettingsFrame.create(parent: ScreenGui): Refs
 	closeButton.ZIndex = 8
 	closeButton.Parent = root
 	closeButton.MouseButton1Click:Connect(function()
-		backdrop.Visible = false
+		UIAnimator.framePopOut(backdrop, root)
 	end)
 
 	local toggles: { [string]: TextButton } = {}
@@ -116,7 +117,7 @@ function SettingsFrame.create(parent: ScreenGui): Refs
 end
 
 function SettingsFrame.show(refs: Refs)
-	refs.backdrop.Visible = true
+	UIAnimator.framePopIn(refs.backdrop, refs.root)
 end
 
 function SettingsFrame.update(refs: Refs, state)

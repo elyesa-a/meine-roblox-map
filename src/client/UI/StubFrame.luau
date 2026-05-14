@@ -2,7 +2,10 @@
 -- Generisches Stub-Fenster fuer Pet/Aura/Upgrade in Phase 1.
 -- Zeigt nur Header + "Kommt bald" + Close-Button.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local Theme = require(script.Parent:WaitForChild("Theme"))
+local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
 
 local StubFrame = {}
 
@@ -64,14 +67,14 @@ function StubFrame.create(parent: ScreenGui, name: string, headerColor: Color3, 
 	closeButton.ZIndex = 8
 	closeButton.Parent = root
 	closeButton.MouseButton1Click:Connect(function()
-		backdrop.Visible = false
+		UIAnimator.framePopOut(backdrop, root)
 	end)
 
 	return { backdrop = backdrop, root = root }
 end
 
 function StubFrame.show(refs: Refs)
-	refs.backdrop.Visible = true
+	UIAnimator.framePopIn(refs.backdrop, refs.root)
 end
 
 return StubFrame

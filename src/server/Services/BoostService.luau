@@ -86,6 +86,7 @@ function BoostService.buyBoost(player: Player, boostId: string)
 	end
 	ShowPopup:FireClient(player, string.format("%s aktiviert!", def.displayName))
 	StatService.broadcastProfile(player)
+	StatService.playSound(player, "Purchase")
 end
 
 function BoostService.start(deps)

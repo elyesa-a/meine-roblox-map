@@ -11,8 +11,12 @@ local Configs = ReplicatedStorage:WaitForChild("Configs")
 local RebirthConfig = require(Configs:WaitForChild("RebirthConfig"))
 local LevelConfig = require(Configs:WaitForChild("LevelConfig"))
 
+local Modules = ReplicatedStorage:WaitForChild("Modules")
+local VFX = require(Modules:WaitForChild("VFX"))
+
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local UpdateClientData = Remotes:WaitForChild("UpdateClientData") :: RemoteEvent
+local PlaySound = Remotes:WaitForChild("PlaySound") :: RemoteEvent
 
 local DataService -- gesetzt in start()
 local PetService -- optional, gesetzt in start()
@@ -25,6 +29,7 @@ local StatService = {}
 -- Pro-Spieler Zustand fuer Zone-Multiplikator und gedrosselte Updates.
 local zoneMultByPlayer: { [Player]: number } = {}
 local lastUpdateAt: { [Player]: number } = {}
+local lastClickVfxAt: { [Player]: number } = {}
 
 function StatService.setZoneMultiplier(player: Player, mult: number)
 	zoneMultByPlayer[player] = mult
@@ -97,6 +102,42 @@ function StatService.broadcastProfile(player: Player)
 	sendUpdate(player)
 end
 
+function StatService.playSound(player: Player, soundName: string)
+	PlaySound:FireClient(player, soundName)
+end
+
+-- Wird bei Klick aufgerufen, gedrosselt auf 4/s damit Partikel-Bursts nicht
+-- ueberbordern. VFX wird nicht ausgespielt, wenn der Spieler "VFX" aus hat.
+function StatService.spawnClickVfx(player: Player)
+	local profile = DataService.getProfile(player)
+	if not profile or profile.Settings.VFX == false then
+		return
+	end
+	local char = player.Character
+	if not char then
+		return
+	end
+	local now = os.clock()
+	local last = lastClickVfxAt[player] or 0
+	if now - last < 0.25 then
+		return
+	end
+	lastClickVfxAt[player] = now
+	VFX.spawnClickBurst(char, Color3.fromRGB(255, 220, 80))
+end
+
+function StatService.spawnRebirthVfx(player: Player)
+	local profile = DataService.getProfile(player)
+	if not profile or profile.Settings.VFX == false then
+		return
+	end
+	local char = player.Character
+	if not char then
+		return
+	end
+	VFX.spawnRebirthBurst(char)
+end
+
 local function checkLevelUp(profile)
 	-- Loop, falls genug Kraft fuer mehrere Level vorhanden ist.
 	while profile.Power >= LevelConfig.getCost(profile.Level) do
@@ -113,9 +154,12 @@ function StatService.addPower(player: Player, baseAmount: number)
 		return
 	end
 	local total = baseAmount * StatService.computeMultiplier(player)
-	-- Floor, um die gespeicherte Zahl sauber zu halten.
 	profile.Power = math.floor(profile.Power + total)
+	local levelBefore = profile.Level
 	checkLevelUp(profile)
+	if profile.Level > levelBefore then
+		PlaySound:FireClient(player, "LevelUp")
+	end
 	sendUpdate(player)
 end
 
@@ -150,6 +194,7 @@ function StatService.start(deps: {
 	Players.PlayerRemoving:Connect(function(player)
 		zoneMultByPlayer[player] = nil
 		lastUpdateAt[player] = nil
+		lastClickVfxAt[player] = nil
 	end)
 end
 

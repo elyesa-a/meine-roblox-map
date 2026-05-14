@@ -170,16 +170,13 @@ function RebirthFrame.create(parent: ScreenGui): Refs
 		RequestRebirth:FireServer()
 	end)
 	closeButton.MouseButton1Click:Connect(function()
-		backdrop.Visible = false
+		UIAnimator.framePopOut(backdrop, root)
 	end)
 	-- Klick auf Backdrop schliesst ebenfalls.
 	backdrop.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch then
-			-- Klicke auf root (Karte) sollen NICHT schliessen. Da der Backdrop
-			-- selbst aber das Hover-Element ist und root child ist, kommt das
-			-- Event nur bei Klick neben das Panel.
-			backdrop.Visible = false
+			UIAnimator.framePopOut(backdrop, root)
 		end
 	end)
 	root.InputBegan:Connect(function() end) -- Stopper, damit Klicks aufs Panel den Backdrop nicht schliessen
@@ -198,7 +195,7 @@ function RebirthFrame.create(parent: ScreenGui): Refs
 end
 
 function RebirthFrame.show(refs: Refs)
-	refs.backdrop.Visible = true
+	UIAnimator.framePopIn(refs.backdrop, refs.root)
 end
 
 function RebirthFrame.update(refs: Refs, state)

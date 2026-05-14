@@ -20,6 +20,7 @@ local StatService
 local AntiExploitService
 local UpgradeService
 local BoostService
+local GamepassService
 
 function RebirthService.handleRequest(player: Player)
 	local profile = DataService.getProfile(player)
@@ -47,14 +48,18 @@ function RebirthService.handleRequest(player: Player)
 	if BoostService then
 		dnaMult *= BoostService.getMultiplier(player, "Dna")
 	end
+	if GamepassService then
+		dnaMult *= GamepassService.getDnaMultiplier(player)
+	end
 	local reward = math.floor(baseReward * dnaMult)
 	profile.Rebirths = oldRebirth + 1
 	profile.Power = 0
 	profile.Level = 1
 	profile.DnaCoins = profile.DnaCoins + reward
 
-	-- Initial-Update direkt nach Rebirth.
 	StatService.broadcastProfile(player)
+	StatService.playSound(player, "Rebirth")
+	StatService.spawnRebirthVfx(player)
 	ShowPopup:FireClient(player, string.format("Wiedergeburt %d! +%d DNA", profile.Rebirths, reward))
 end
 
@@ -64,6 +69,7 @@ function RebirthService.start(deps)
 	AntiExploitService = deps.AntiExploitService
 	UpgradeService = deps.UpgradeService
 	BoostService = deps.BoostService
+	GamepassService = deps.GamepassService
 
 	AntiExploitService.safeBind(RequestRebirth, 2, RebirthService.handleRequest)
 end

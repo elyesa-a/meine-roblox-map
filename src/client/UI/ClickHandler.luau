@@ -5,6 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
+local SoundController = require(script.Parent:WaitForChild("SoundController"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestClick = Remotes:WaitForChild("RequestClick") :: RemoteEvent
@@ -32,6 +33,7 @@ function ClickHandler.bind(screen: ScreenGui, button: TextButton, color: Color3)
 			return
 		end
 		UIAnimator.buttonPunch(button)
+		SoundController.play("Click")
 		RequestClick:FireServer()
 		-- Optimistischer Floating-Text (Server berechnet das echte Plus).
 		local absPos = button.AbsolutePosition + button.AbsoluteSize / 2

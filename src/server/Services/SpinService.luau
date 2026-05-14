@@ -85,10 +85,12 @@ function SpinService.spin(player: Player)
 		return
 	end
 	profile.Spin.LastFreeSpin = os.time()
+	StatService.playSound(player, "Spin")
 	local reward = rollReward()
 	grantReward(player, reward)
 	ShowPopup:FireClient(player, string.format("Spin: %s", reward.displayName))
 	StatService.broadcastProfile(player)
+	StatService.playSound(player, "Reward")
 end
 
 function SpinService.start(deps)

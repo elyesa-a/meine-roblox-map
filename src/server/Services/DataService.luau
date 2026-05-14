@@ -17,7 +17,20 @@ local RunService = game:GetService("RunService")
 local STORE_NAME = "VirusEvo_v1"
 local AUTOSAVE_INTERVAL = 60
 
-local store = DataStoreService:GetDataStore(STORE_NAME)
+-- DataStore-Zugriff ist in nicht-veroeffentlichten Studio-Spielen blockiert.
+-- Wir holen den Store deshalb defensiv: pcall + nil-Fallback. Wenn store == nil,
+-- laufen Profile rein im Speicher (NotPersistent).
+local store: DataStore? = nil
+do
+	local ok, result = pcall(function()
+		return DataStoreService:GetDataStore(STORE_NAME)
+	end)
+	if ok then
+		store = result
+	else
+		warn("[DataService] DataStore nicht verfuegbar (vermutlich Studio ohne Publish). Profile laufen nur im Speicher. Grund: " .. tostring(result))
+	end
+end
 
 export type Settings = {
 	Music: boolean,
@@ -48,6 +61,7 @@ export type Profile = {
 	ActiveBoosts: { [string]: number }, -- boostId -> expiration timestamp (os.time)
 	DailyChest: DailyChestState,
 	Spin: SpinState,
+	OwnedGamepasses: { [string]: boolean },
 	Settings: Settings,
 	-- Internes Flag, wird NICHT gespeichert (filtern wir vor dem Speichern).
 	NotPersistent: boolean?,
@@ -71,6 +85,7 @@ local function getDefaultProfile(): Profile
 		ActiveBoosts = {},
 		DailyChest = { LastClaim = 0, Streak = 0 },
 		Spin = { LastFreeSpin = 0 },
+		OwnedGamepasses = {},
 		Settings = {
 			Music = true,
 			SFX = true,
@@ -98,12 +113,21 @@ local function keyFor(player: Player): string
 end
 
 local function loadProfile(player: Player)
+	-- Kein DataStore verfuegbar (Studio ohne Publish) -> Default-Profil in-memory.
+	if store == nil then
+		local profile = getDefaultProfile()
+		profile.NotPersistent = true
+		profiles[player] = profile
+		print(string.format("[DataService] Studio-Modus: Default-Profil fuer %s im Speicher.", player.Name))
+		return
+	end
+
 	local key = keyFor(player)
 	local data
 	local lastErr
 	for attempt = 1, 3 do
 		local ok, result = pcall(function()
-			return store:GetAsync(key)
+			return (store :: DataStore):GetAsync(key)
 		end)
 		if ok then
 			data = result
@@ -139,8 +163,7 @@ local function saveProfile(player: Player)
 	if not profile then
 		return
 	end
-	if profile.NotPersistent then
-		warn(string.format("[DataService] Skip Speichern fuer %s (NotPersistent).", player.Name))
+	if profile.NotPersistent or store == nil then
 		return
 	end
 
@@ -154,7 +177,7 @@ local function saveProfile(player: Player)
 
 	local key = keyFor(player)
 	local ok, err = pcall(function()
-		store:UpdateAsync(key, function()
+		(store :: DataStore):UpdateAsync(key, function()
 			return toSave
 		end)
 	end)

@@ -114,6 +114,7 @@ function AuraService.buyAura(player: Player, auraId: string)
 	profile.Auras[auraId] = true
 	ShowPopup:FireClient(player, string.format("%s gekauft!", def.displayName))
 	StatService.broadcastProfile(player)
+	StatService.playSound(player, "Purchase")
 end
 
 function AuraService.equipAura(player: Player, auraId: string?)

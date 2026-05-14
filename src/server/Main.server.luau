@@ -25,6 +25,7 @@ local UpgradeService = require(Services:WaitForChild("UpgradeService"))
 local BoostService = require(Services:WaitForChild("BoostService"))
 local DailyChestService = require(Services:WaitForChild("DailyChestService"))
 local SpinService = require(Services:WaitForChild("SpinService"))
+local GamepassService = require(Services:WaitForChild("GamepassService"))
 local WorldBuilder = require(Services:WaitForChild("WorldBuilder"))
 local ZoneLockService = require(Services:WaitForChild("ZoneLockService"))
 local TrainingZoneService = require(Services:WaitForChild("TrainingZoneService"))
@@ -81,6 +82,7 @@ RebirthService.start({
 	AntiExploitService = AntiExploitService,
 	UpgradeService = UpgradeService,
 	BoostService = BoostService,
+	GamepassService = GamepassService,
 })
 ZoneLockService.start({ DataService = DataService })
 TrainingZoneService.start({
@@ -101,6 +103,12 @@ SpinService.start({
 	PetService = PetService,
 	AntiExploitService = AntiExploitService,
 })
+GamepassService.start({
+	DataService = DataService,
+	StatService = StatService,
+	SpinService = SpinService,
+	AntiExploitService = AntiExploitService,
+})
 
 -- 6a. Pet-Egg ClickDetector.
 if WorldBuilder.PetEgg then
@@ -115,6 +123,7 @@ end
 -- 6b. Click-Remote (+1 Kraft pro Klick, 10/s Cap).
 AntiExploitService.safeBind(RequestClick, 10, function(player)
 	StatService.addPower(player, 1)
+	StatService.spawnClickVfx(player)
 end)
 
 -- 6c. Settings-Remote.
@@ -134,4 +143,4 @@ AntiExploitService.safeBind(RequestSettingsChange, 5, function(player, key, valu
 	StatService.broadcastProfile(player)
 end)
 
-print("[Main] Virus Evolution Simulator -- Phase 4 bereit.")
+print("[Main] Virus Evolution Simulator -- Phase 5 bereit.")

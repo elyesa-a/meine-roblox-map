@@ -5,6 +5,57 @@ local TweenService = game:GetService("TweenService")
 
 local UIAnimator = {}
 
+-- Oeffnet ein Fenster mit Scale-Bounce: Backdrop fade-in, Root von 0.7 auf 1.
+function UIAnimator.framePopIn(backdrop: GuiObject, root: GuiObject)
+	backdrop.Visible = true
+	backdrop.BackgroundTransparency = 1
+	TweenService:Create(
+		backdrop,
+		TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ BackgroundTransparency = 0.5 }
+	):Play()
+
+	local targetSize = root.Size
+	root.Size = UDim2.new(
+		targetSize.X.Scale,
+		math.floor(targetSize.X.Offset * 0.7),
+		targetSize.Y.Scale,
+		math.floor(targetSize.Y.Offset * 0.7)
+	)
+	TweenService:Create(
+		root,
+		TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+		{ Size = targetSize }
+	):Play()
+end
+
+-- Schliesst ein Fenster mit Scale-Down + Fade-Out.
+function UIAnimator.framePopOut(backdrop: GuiObject, root: GuiObject)
+	local startSize = root.Size
+	local shrunk = UDim2.new(
+		startSize.X.Scale,
+		math.floor(startSize.X.Offset * 0.85),
+		startSize.Y.Scale,
+		math.floor(startSize.Y.Offset * 0.85)
+	)
+	TweenService:Create(
+		root,
+		TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ Size = shrunk }
+	):Play()
+
+	local fade = TweenService:Create(
+		backdrop,
+		TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ BackgroundTransparency = 1 }
+	)
+	fade:Play()
+	fade.Completed:Connect(function()
+		backdrop.Visible = false
+		root.Size = startSize -- Original wiederherstellen, damit naechstes Oeffnen sauber laeuft.
+	end)
+end
+
 function UIAnimator.buttonPunch(gui: GuiObject)
 	local original = gui.Size
 	-- Wenn schon einmal getweened: keine kumulierten Effekte.

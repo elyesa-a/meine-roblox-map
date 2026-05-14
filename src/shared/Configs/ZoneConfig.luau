@@ -54,7 +54,7 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		color = Color3.fromRGB(255, 200, 80),
 		center = Vector3.new(360, 0, 0),
 		size = Vector3.new(80, 1, 80),
-		enabled = false,
+		enabled = true,
 	},
 	{
 		id = "GlitchZone",
@@ -64,7 +64,7 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		color = Color3.fromRGB(255, 80, 200),
 		center = Vector3.new(480, 0, 0),
 		size = Vector3.new(80, 1, 80),
-		enabled = false,
+		enabled = true,
 	},
 	{
 		id = "EndgameZone",
@@ -74,7 +74,7 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		color = Color3.fromRGB(255, 60, 60),
 		center = Vector3.new(600, 0, 0),
 		size = Vector3.new(80, 1, 80),
-		enabled = false,
+		enabled = true,
 	},
 }
 
