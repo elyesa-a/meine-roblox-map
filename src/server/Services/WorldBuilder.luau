@@ -33,6 +33,8 @@ local EGG_AREA_CENTER = Vector3.new(-420, 0, 130)
 local LABEL_DISTANCE_ZONE = 45
 local LABEL_DISTANCE_TRAINING = 34
 local LABEL_DISTANCE_INSTRUCTION = 24
+local LABEL_DISTANCE_MAIN_SIGN = 80
+local LABEL_DISTANCE_PORTAL_SIGN = 60
 
 local function makeFolder(name: string, parent: Instance): Folder
 	local existing = parent:FindFirstChild(name)
@@ -85,11 +87,18 @@ local function applyLighting()
 	cc.Parent = Lighting
 end
 
-local function addBillboardLabel(adornee: BasePart, text: string, color: Color3, maxDistance: number?)
+local function addBillboardLabel(
+	adornee: BasePart,
+	text: string,
+	color: Color3,
+	maxDistance: number?,
+	size: UDim2?,
+	studsOffset: Vector3?
+)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "Label"
-	billboard.Size = UDim2.fromOffset(220, 60)
-	billboard.StudsOffset = Vector3.new(0, 6, 0)
+	billboard.Size = size or UDim2.fromOffset(220, 60)
+	billboard.StudsOffset = studsOffset or Vector3.new(0, 6, 0)
 	billboard.AlwaysOnTop = true
 	billboard.MaxDistance = maxDistance or LABEL_DISTANCE_TRAINING
 	billboard.Adornee = adornee
@@ -167,6 +176,106 @@ local function makeRoomPart(parent: Instance, name: string, size: Vector3, posit
 	return part
 end
 
+local function addPanel(parent: Instance, name: string, size: Vector3, position: Vector3, color: Color3): Part
+	local panel = makeRoomPart(parent, name, size, position, color, Enum.Material.SmoothPlastic)
+	panel.CanCollide = false
+	return panel
+end
+
+local function addPanelFrame(parent: Instance, center: Vector3, width: number, height: number, color: Color3, orientation: string)
+	local thick = 0.35
+	local depth = 0.35
+	if orientation == "X" then
+		for _, y in ipairs({ -1, 1 }) do
+			local part = makeRoomPart(parent, "PanelBorder", Vector3.new(width, thick, depth), center + Vector3.new(0, y * height / 2, 0), color, Enum.Material.Neon)
+			part.CanCollide = false
+			part.Transparency = 0.2
+		end
+		for _, x in ipairs({ -1, 1 }) do
+			local part = makeRoomPart(parent, "PanelBorder", Vector3.new(thick, height, depth), center + Vector3.new(x * width / 2, 0, 0), color, Enum.Material.Neon)
+			part.CanCollide = false
+			part.Transparency = 0.2
+		end
+	else
+		for _, y in ipairs({ -1, 1 }) do
+			local part = makeRoomPart(parent, "PanelBorder", Vector3.new(depth, thick, width), center + Vector3.new(0, y * height / 2, 0), color, Enum.Material.Neon)
+			part.CanCollide = false
+			part.Transparency = 0.2
+		end
+		for _, z in ipairs({ -1, 1 }) do
+			local part = makeRoomPart(parent, "PanelBorder", Vector3.new(depth, height, thick), center + Vector3.new(0, 0, z * width / 2), color, Enum.Material.Neon)
+			part.CanCollide = false
+			part.Transparency = 0.2
+		end
+	end
+end
+
+local function addWallTextPanel(
+	parent: Instance,
+	name: string,
+	position: Vector3,
+	size: Vector3,
+	color: Color3,
+	title: string,
+	subtitle: string,
+	maxDistance: number?,
+	orientation: string
+)
+	local panel = addPanel(parent, name, size, position, Color3.fromRGB(28, 34, 46))
+	panel.Transparency = 0.05
+	addPanelFrame(parent, position, if orientation == "X" then size.X else size.Z, size.Y, color, orientation)
+	addBillboardLabel(
+		panel,
+		title .. "\n" .. subtitle,
+		Color3.fromRGB(255, 255, 255),
+		maxDistance or LABEL_DISTANCE_MAIN_SIGN,
+		UDim2.fromOffset(360, 100),
+		Vector3.new(0, 0, 0)
+	)
+	return panel
+end
+
+local function addCartoonVirus(parent: Instance, center: Vector3, color: Color3, scale: number)
+	local core = makeRoomPart(parent, "CartoonVirusCore", Vector3.new(scale, scale, scale), center, color, Enum.Material.Neon)
+	core.Shape = Enum.PartType.Ball
+	core.CanCollide = false
+	core.Transparency = 0.24
+
+	for _, offset in ipairs({
+		Vector3.new(scale * 0.75, 0, 0),
+		Vector3.new(-scale * 0.75, 0, 0),
+		Vector3.new(0, scale * 0.75, 0),
+		Vector3.new(0, -scale * 0.75, 0),
+		Vector3.new(scale * 0.52, scale * 0.52, 0),
+		Vector3.new(-scale * 0.52, scale * 0.52, 0),
+		Vector3.new(scale * 0.52, -scale * 0.52, 0),
+		Vector3.new(-scale * 0.52, -scale * 0.52, 0),
+	}) do
+		local spike = makeRoomPart(parent, "CartoonVirusSpike", Vector3.new(scale * 0.25, scale * 0.25, scale * 0.25), center + offset, color, Enum.Material.Neon)
+		spike.Shape = Enum.PartType.Ball
+		spike.CanCollide = false
+		spike.Transparency = 0.18
+	end
+end
+
+local function addDnaDecoration(parent: Instance, center: Vector3, colorA: Color3, colorB: Color3)
+	for i = 1, 8 do
+		local y = (i - 4.5) * 2.4
+		local x = if i % 2 == 0 then -5 else 5
+		local a = makeRoomPart(parent, "DnaNode", Vector3.new(1.4, 1.4, 1.4), center + Vector3.new(x, y, 0), if i % 2 == 0 then colorA else colorB, Enum.Material.Neon)
+		a.Shape = Enum.PartType.Ball
+		a.CanCollide = false
+		a.Transparency = 0.2
+		local b = makeRoomPart(parent, "DnaNode", Vector3.new(1.4, 1.4, 1.4), center + Vector3.new(-x, y, 0), if i % 2 == 0 then colorB else colorA, Enum.Material.Neon)
+		b.Shape = Enum.PartType.Ball
+		b.CanCollide = false
+		b.Transparency = 0.2
+		local rung = makeRoomPart(parent, "DnaRung", Vector3.new(10, 0.25, 0.25), center + Vector3.new(0, y, 0), Color3.fromRGB(210, 255, 250), Enum.Material.Neon)
+		rung.CanCollide = false
+		rung.Transparency = 0.35
+	end
+end
+
 local function addCeilingLight(parent: Instance, x: number, z: number)
 	local topY = ROOM_FLOOR_Y + ROOM_SIZE.Y / 2 + ROOM_WALL_HEIGHT
 	local lightPanel = makeRoomPart(
@@ -190,8 +299,83 @@ local function addCeilingLight(parent: Instance, x: number, z: number)
 	light.Parent = lightPanel
 end
 
-local function buildLabRoom(roomFolder: Folder)
+local function addArrowStrip(parent: Instance, center: Vector3, color: Color3)
+	local shaft = makeRoomPart(parent, "DirectionArrow", Vector3.new(18, 0.25, 1.1), center, color, Enum.Material.Neon)
+	shaft.CanCollide = false
+	shaft.Transparency = 0.25
+	local headA = makeRoomPart(parent, "DirectionArrowHead", Vector3.new(4, 0.25, 1.1), center + Vector3.new(9, 0, 2.2), color, Enum.Material.Neon)
+	headA.CanCollide = false
+	headA.Transparency = 0.25
+	local headB = makeRoomPart(parent, "DirectionArrowHead", Vector3.new(4, 0.25, 1.1), center + Vector3.new(9, 0, -2.2), color, Enum.Material.Neon)
+	headB.CanCollide = false
+	headB.Transparency = 0.25
+end
+
+local function addWallArt(wallArtFolder: Folder)
+	for _, child in ipairs(wallArtFolder:GetChildren()) do
+		child:Destroy()
+	end
+
+	local halfX = ROOM_SIZE.X / 2
+	local halfZ = ROOM_SIZE.Z / 2
+	local frontZ = ROOM_CENTER.Z - halfZ + 1.2
+	local backZ = ROOM_CENTER.Z + halfZ - 1.2
+	local leftX = ROOM_CENTER.X - halfX + 1.2
+	local rightX = ROOM_CENTER.X + halfX - 1.2
+
+	addWallTextPanel(
+		wallArtFolder,
+		"MainBrandSign",
+		Vector3.new(0, 40, frontZ),
+		Vector3.new(250, 38, 0.6),
+		Color3.fromRGB(80, 245, 210),
+		"VIRUS LAB",
+		"TRAIN • EVOLVE • REBIRTH",
+		LABEL_DISTANCE_MAIN_SIGN,
+		"X"
+	)
+	addCartoonVirus(wallArtFolder, Vector3.new(-170, 40, frontZ + 1.2), Color3.fromRGB(90, 245, 170), 14)
+	addDnaDecoration(wallArtFolder, Vector3.new(170, 40, frontZ + 1.2), Color3.fromRGB(100, 245, 230), Color3.fromRGB(180, 120, 255))
+	for _, x in ipairs({ -55, 0, 55 }) do
+		addArrowStrip(wallArtFolder, Vector3.new(x, 0.25, START_AREA_CENTER.Z + 58), Color3.fromRGB(120, 245, 225))
+	end
+
+	addWallTextPanel(wallArtFolder, "TrainingSectorSign", Vector3.new(leftX, 45, -130), Vector3.new(0.6, 24, 98), Color3.fromRGB(255, 210, 80), "TRAINING SECTOR", "GAIN POWER", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "LevelProgressSign", Vector3.new(leftX, 45, 0), Vector3.new(0.6, 24, 98), Color3.fromRGB(120, 220, 255), "LVL 1 -> LVL 100", "NOOB TO PRO", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "DnaBoostAreaSign", Vector3.new(leftX, 45, 130), Vector3.new(0.6, 24, 98), Color3.fromRGB(120, 255, 150), "DNA BOOST AREA", "COLLECT • UPGRADE • EVOLVE", LABEL_DISTANCE_MAIN_SIGN, "Z")
+
+	local zoneSigns = {
+		{ x = -234, title = "HOSPITAL ZONE", subtitle = "REQUIRES REBIRTH 3", color = Color3.fromRGB(120, 255, 210) },
+		{ x = -78, title = "MUTATION LAB", subtitle = "REQUIRES REBIRTH 10", color = Color3.fromRGB(220, 120, 255) },
+		{ x = 78, title = "QUARANTINE", subtitle = "REQUIRES REBIRTH 25", color = Color3.fromRGB(255, 210, 80) },
+		{ x = 234, title = "GLITCH SECTOR", subtitle = "REQUIRES REBIRTH 50", color = Color3.fromRGB(255, 90, 220) },
+		{ x = 390, title = "ENDGAME CORE", subtitle = "REQUIRES REBIRTH 100", color = Color3.fromRGB(255, 80, 110) },
+	}
+	for _, sign in ipairs(zoneSigns) do
+		addWallTextPanel(
+			wallArtFolder,
+			sign.title:gsub(" ", "") .. "WallSign",
+			Vector3.new(sign.x, 43, backZ),
+			Vector3.new(110, 24, 0.6),
+			sign.color,
+			sign.title,
+			sign.subtitle,
+			LABEL_DISTANCE_PORTAL_SIGN,
+			"X"
+		)
+	end
+
+	addWallTextPanel(wallArtFolder, "PetEggLabSign", Vector3.new(rightX, 44, -150), Vector3.new(0.6, 24, 95), Color3.fromRGB(100, 230, 255), "PET EGG LAB", "COLLECT VIRUS PETS", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "AuraVaultSign", Vector3.new(rightX, 44, -50), Vector3.new(0.6, 24, 95), Color3.fromRGB(220, 120, 255), "AURA VAULT", "EQUIP EPIC BOOSTS", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "UpgradeChamberSign", Vector3.new(rightX, 44, 50), Vector3.new(0.6, 24, 95), Color3.fromRGB(120, 255, 140), "UPGRADE CHAMBER", "BECOME UNSTOPPABLE", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "BoostShopSign", Vector3.new(rightX, 44, 150), Vector3.new(0.6, 24, 95), Color3.fromRGB(255, 140, 80), "BOOST SHOP", "POWER • DNA • LUCK", LABEL_DISTANCE_MAIN_SIGN, "Z")
+end
+
+local function buildLabRoom(roomFolder: Folder, wallsFolder: Folder)
 	for _, child in ipairs(roomFolder:GetChildren()) do
+		child:Destroy()
+	end
+	for _, child in ipairs(wallsFolder:GetChildren()) do
 		child:Destroy()
 	end
 
@@ -225,7 +409,7 @@ local function buildLabRoom(roomFolder: Folder)
 	local wallT = ROOM_WALL_THICKNESS
 
 	makeRoomPart(
-		roomFolder,
+		wallsFolder,
 		"LeftWall",
 		Vector3.new(wallT, ROOM_WALL_HEIGHT, ROOM_SIZE.Z + wallT * 2),
 		Vector3.new(ROOM_CENTER.X - halfX - wallT / 2, wallCenterY, ROOM_CENTER.Z),
@@ -233,7 +417,7 @@ local function buildLabRoom(roomFolder: Folder)
 		Enum.Material.SmoothPlastic
 	)
 	makeRoomPart(
-		roomFolder,
+		wallsFolder,
 		"RightWall",
 		Vector3.new(wallT, ROOM_WALL_HEIGHT, ROOM_SIZE.Z + wallT * 2),
 		Vector3.new(ROOM_CENTER.X + halfX + wallT / 2, wallCenterY, ROOM_CENTER.Z),
@@ -241,7 +425,7 @@ local function buildLabRoom(roomFolder: Folder)
 		Enum.Material.SmoothPlastic
 	)
 	makeRoomPart(
-		roomFolder,
+		wallsFolder,
 		"FrontWall",
 		Vector3.new(ROOM_SIZE.X + wallT * 2, ROOM_WALL_HEIGHT, wallT),
 		Vector3.new(ROOM_CENTER.X, wallCenterY, ROOM_CENTER.Z - halfZ - wallT / 2),
@@ -249,7 +433,7 @@ local function buildLabRoom(roomFolder: Folder)
 		Enum.Material.SmoothPlastic
 	)
 	makeRoomPart(
-		roomFolder,
+		wallsFolder,
 		"BackWall",
 		Vector3.new(ROOM_SIZE.X + wallT * 2, ROOM_WALL_HEIGHT, wallT),
 		Vector3.new(ROOM_CENTER.X, wallCenterY, ROOM_CENTER.Z + halfZ + wallT / 2),
@@ -401,6 +585,70 @@ local function addTrainingDecor(model: Model, bed, worldPos: Vector3)
 	end
 end
 
+local function addTrainingSectionWalls(model: Model, bed, worldPos: Vector3, zone)
+	local folder = Instance.new("Folder")
+	folder.Name = "TransparentSectionWalls"
+	folder.Parent = model
+
+	local width = zone.size.X - 12
+	local depth = zone.size.Z - 14
+	local height = 12
+	local y = worldPos.Y + height / 2 + 0.6
+	local color = bed.color
+	local panelColor = Color3.fromRGB(
+		math.floor((color.R * 255 + 170) / 2),
+		math.floor((color.G * 255 + 190) / 2),
+		math.floor((color.B * 255 + 210) / 2)
+	)
+
+	local function glassPanel(name: string, size: Vector3, pos: Vector3)
+		local panel = makeRoomPart(folder, name, size, pos, panelColor, Enum.Material.Glass)
+		panel.CanCollide = false
+		panel.Transparency = 0.72
+		return panel
+	end
+
+	glassPanel("LeftGlassWall", Vector3.new(0.6, height, depth), worldPos + Vector3.new(-width / 2, y, 0))
+	glassPanel("RightGlassWall", Vector3.new(0.6, height, depth), worldPos + Vector3.new(width / 2, y, 0))
+	glassPanel("BackGlassWall", Vector3.new(width, height, 0.6), worldPos + Vector3.new(0, y, depth / 2))
+	glassPanel("FrontLeftGlassWall", Vector3.new(width * 0.28, height, 0.6), worldPos + Vector3.new(-width * 0.36, y, -depth / 2))
+	glassPanel("FrontRightGlassWall", Vector3.new(width * 0.28, height, 0.6), worldPos + Vector3.new(width * 0.36, y, -depth / 2))
+
+	local borderY = worldPos.Y + 0.9
+	addGlowStrip(folder, worldPos + Vector3.new(0, borderY, depth / 2), width, "X", color)
+	addGlowStrip(folder, worldPos + Vector3.new(-width / 2, borderY, 0), depth, "Z", color)
+	addGlowStrip(folder, worldPos + Vector3.new(width / 2, borderY, 0), depth, "Z", color)
+	addGlowStrip(folder, worldPos + Vector3.new(-width * 0.36, borderY, -depth / 2), width * 0.28, "X", color)
+	addGlowStrip(folder, worldPos + Vector3.new(width * 0.36, borderY, -depth / 2), width * 0.28, "X", color)
+
+	local signTextByBed = {
+		StandardBed = "BASIC TRAINING",
+		InfectionBed = "INFECTION TRAINING",
+		MutationBed = "MUTATION TRAINING",
+		QuarantineBed = "QUARANTINE TRAINING",
+		GlitchBed = "GLITCH TRAINING",
+		EndgameBed = "ENDGAME TRAINING",
+	}
+	local sign = makeRoomPart(
+		folder,
+		"EntranceSign",
+		Vector3.new(22, 5, 0.6),
+		worldPos + Vector3.new(0, 7, -depth / 2 - 1.6),
+		Color3.fromRGB(34, 40, 52),
+		Enum.Material.SmoothPlastic
+	)
+	sign.CanCollide = false
+	addBillboardLabel(sign, signTextByBed[bed.id] or "TRAINING", Color3.fromRGB(255, 255, 255), LABEL_DISTANCE_TRAINING)
+
+	if bed.id == "GlitchBed" then
+		for i, x in ipairs({ -28, -12, 14, 32 }) do
+			local block = makeRoomPart(folder, "GlitchPanel" .. tostring(i), Vector3.new(5, 5, 0.5), worldPos + Vector3.new(x, 9 + (i % 2) * 4, depth / 2 + 0.4), color, Enum.Material.Neon)
+			block.CanCollide = false
+			block.Transparency = 0.35
+		end
+	end
+end
+
 local function buildZone(zone, zonesFolder: Folder)
 	if not zone.enabled then
 		return
@@ -523,7 +771,7 @@ local function buildPortal(zone, portalsFolder: Folder)
 
 	addBillboardLabel(
 		portal,
-		string.format("%s\nRebirth %d benoetigt", zone.displayName, zone.requiredRebirth),
+		string.format("%s\nRequires Rebirth %d", zone.displayName, zone.requiredRebirth),
 		Color3.fromRGB(255, 255, 255),
 		LABEL_DISTANCE_ZONE
 	)
@@ -623,12 +871,13 @@ local function buildBed(bed, bedsFolder: Folder)
 
 	addBillboardLabel(
 		frame,
-		string.format("%s\n+%d Kraft/s", bed.id, bed.powerPerSecond),
+		string.format("%s\n+%d Power/s", bed.id, bed.powerPerSecond),
 		Color3.fromRGB(255, 255, 255),
 		LABEL_DISTANCE_TRAINING
 	)
 
 	addTrainingDecor(model, bed, worldPos)
+	addTrainingSectionWalls(model, bed, worldPos, zone)
 end
 
 local function buildClickerHub(_startZone, parent: Instance)
@@ -661,7 +910,7 @@ local function buildClickerHub(_startZone, parent: Instance)
 	light.Color = Color3.fromRGB(255, 120, 120)
 	light.Parent = pad
 
-	addBillboardLabel(pad, "KLICK-PAD\n(Knopf unten auf dem Bildschirm)", Color3.fromRGB(255, 255, 255), LABEL_DISTANCE_INSTRUCTION)
+	addBillboardLabel(pad, "CLICK PAD\nUse the button below", Color3.fromRGB(255, 255, 255), LABEL_DISTANCE_INSTRUCTION)
 end
 
 local function buildPetEgg(_startZone, parent: Instance): BasePart
@@ -710,13 +959,17 @@ end
 function WorldBuilder.build()
 	applyLighting()
 
+	local mapFolder = makeFolder("Map", Workspace)
+	local wallsFolder = makeFolder("Walls", mapFolder)
+	local wallArtFolder = makeFolder("WallArt", mapFolder)
 	local roomFolder = makeFolder("LabRoom", Workspace)
 	local zonesFolder = makeFolder("Zones", Workspace)
 	local portalsFolder = makeFolder("Portals", Workspace)
 	local bedsFolder = makeFolder("TrainingBeds", Workspace)
 	local eggAreaFolder = makeFolder("EggCatchArea", Workspace)
 
-	buildLabRoom(roomFolder)
+	buildLabRoom(roomFolder, wallsFolder)
+	addWallArt(wallArtFolder)
 	buildEggCatchArea(eggAreaFolder)
 
 	for _, zone in ipairs(ZoneConfig) do

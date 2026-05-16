@@ -18,7 +18,7 @@ export type ZoneDef = {
 local ZoneConfig: { [number]: ZoneDef } = {
 	{
 		id = "StartZone",
-		displayName = "Startzone",
+		displayName = "Start Zone",
 		requiredRebirth = 0,
 		zoneMultiplier = 1,
 		color = Color3.fromRGB(120, 200, 255),
@@ -28,7 +28,7 @@ local ZoneConfig: { [number]: ZoneDef } = {
 	},
 	{
 		id = "HospitalZone",
-		displayName = "Krankenhaus",
+		displayName = "Hospital Zone",
 		requiredRebirth = 3,
 		zoneMultiplier = 2,
 		color = Color3.fromRGB(120, 255, 170),
@@ -38,7 +38,7 @@ local ZoneConfig: { [number]: ZoneDef } = {
 	},
 	{
 		id = "MutationLabZone",
-		displayName = "Mutationslabor",
+		displayName = "Mutation Lab",
 		requiredRebirth = 10,
 		zoneMultiplier = 5,
 		color = Color3.fromRGB(200, 120, 255),
@@ -48,7 +48,7 @@ local ZoneConfig: { [number]: ZoneDef } = {
 	},
 	{
 		id = "QuarantineZone",
-		displayName = "Quarantaene",
+		displayName = "Quarantine",
 		requiredRebirth = 25,
 		zoneMultiplier = 12,
 		color = Color3.fromRGB(255, 200, 80),
@@ -58,7 +58,7 @@ local ZoneConfig: { [number]: ZoneDef } = {
 	},
 	{
 		id = "GlitchZone",
-		displayName = "Glitch-Virus-Dimension",
+		displayName = "Glitch Sector",
 		requiredRebirth = 50,
 		zoneMultiplier = 30,
 		color = Color3.fromRGB(255, 80, 200),
