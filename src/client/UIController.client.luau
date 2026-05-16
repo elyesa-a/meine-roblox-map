@@ -30,7 +30,6 @@ local StubFrame = require(UI:WaitForChild("StubFrame"))
 local PopupHandler = require(UI:WaitForChild("PopupHandler"))
 local ClickHandler = require(UI:WaitForChild("ClickHandler"))
 local SoundController = require(UI:WaitForChild("SoundController"))
-local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
 
 SoundController.start()
 
@@ -62,16 +61,8 @@ local topRefs = TopBar.create(screen, function()
 	SpinFrame.show(spinRefs)
 end)
 
--- Rechte Boost-Leiste: kauft DNA-Boosts oder oeffnet Gamepass-Popup.
-local rightRefs = RightBoosts.create(screen, function(gamepassId, robux)
-	UIAnimator.floatText(
-		screen,
-		string.format("%s -- NUR %d R$", gamepassId, robux),
-		UDim2.fromScale(0.5, 0.5),
-		Theme.Colors.Yellow
-	)
-	GamepassFrame.show(gamepassRefs)
-end)
+-- Rechte Boost-Leiste: kauft DNA-Boosts. (Gamepasses liegen nur im Shop.)
+local rightRefs = RightBoosts.create(screen)
 
 -- Linke Button-Leiste mit Klick-Handlern.
 LeftButtons.create(screen, function(id)
