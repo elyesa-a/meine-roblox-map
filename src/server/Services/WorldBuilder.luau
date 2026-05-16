@@ -23,15 +23,15 @@ local EnemyConfig = require(Configs:WaitForChild("EnemyConfig"))
 local WorldBuilder = {}
 
 local ROOM_CENTER = Vector3.new(0, 0, 0)
-local ROOM_SIZE = Vector3.new(1080, 1, 430)
+local ROOM_SIZE = Vector3.new(1320, 1, 760)
 local ROOM_WALL_HEIGHT = 74
 local ROOM_WALL_THICKNESS = 6
 local ROOM_CEILING_THICKNESS = 3
 local ROOM_FLOOR_Y = -0.55
 local START_AREA_CENTER = Vector3.new(0, 0, -165)
-local EGG_AREA_CENTER = Vector3.new(-420, 0, 130)
-local ENEMY_ROW_Z = 108
-local BOSS_ROW_Z = 172
+local EGG_AREA_CENTER = Vector3.new(540, 0, -210)
+local ENEMY_ROW_Z = 205
+local BOSS_ROW_Z = 318
 
 local LABEL_DISTANCE_ZONE = 45
 local LABEL_DISTANCE_TRAINING = 34
@@ -343,16 +343,16 @@ local function addWallArt(wallArtFolder: Folder)
 		addArrowStrip(wallArtFolder, Vector3.new(x, 0.25, START_AREA_CENTER.Z + 58), Color3.fromRGB(120, 245, 225))
 	end
 
-	addWallTextPanel(wallArtFolder, "TrainingSectorSign", Vector3.new(leftX, 45, -130), Vector3.new(0.6, 24, 98), Color3.fromRGB(255, 210, 80), "TRAINING SECTOR", "GAIN POWER", LABEL_DISTANCE_MAIN_SIGN, "Z")
-	addWallTextPanel(wallArtFolder, "LevelProgressSign", Vector3.new(leftX, 45, 0), Vector3.new(0.6, 24, 98), Color3.fromRGB(120, 220, 255), "LVL 1 -> LVL 100", "NOOB TO PRO", LABEL_DISTANCE_MAIN_SIGN, "Z")
-	addWallTextPanel(wallArtFolder, "DnaBoostAreaSign", Vector3.new(leftX, 45, 130), Vector3.new(0.6, 24, 98), Color3.fromRGB(120, 255, 150), "DNA BOOST AREA", "COLLECT • UPGRADE • EVOLVE", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "TrainingSectorSign", Vector3.new(leftX, 45, -250), Vector3.new(0.6, 24, 118), Color3.fromRGB(255, 210, 80), "TRAINING SECTOR", "GAIN POWER", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "LevelProgressSign", Vector3.new(leftX, 45, -15), Vector3.new(0.6, 24, 118), Color3.fromRGB(120, 220, 255), "LVL 1 -> LVL 100", "NOOB TO PRO", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "DnaBoostAreaSign", Vector3.new(leftX, 45, 235), Vector3.new(0.6, 24, 118), Color3.fromRGB(120, 255, 150), "DNA BOOST AREA", "COLLECT • UPGRADE • EVOLVE", LABEL_DISTANCE_MAIN_SIGN, "Z")
 
 	local zoneSigns = {
-		{ x = -234, title = "HOSPITAL ZONE", subtitle = "REQUIRES REBIRTH 3", color = Color3.fromRGB(120, 255, 210) },
-		{ x = -78, title = "MUTATION LAB", subtitle = "REQUIRES REBIRTH 10", color = Color3.fromRGB(220, 120, 255) },
-		{ x = 78, title = "QUARANTINE", subtitle = "REQUIRES REBIRTH 25", color = Color3.fromRGB(255, 210, 80) },
-		{ x = 234, title = "GLITCH SECTOR", subtitle = "REQUIRES REBIRTH 50", color = Color3.fromRGB(255, 90, 220) },
-		{ x = 390, title = "ENDGAME CORE", subtitle = "REQUIRES REBIRTH 100", color = Color3.fromRGB(255, 80, 110) },
+		{ x = -306, title = "HOSPITAL ZONE", subtitle = "REQUIRES REBIRTH 3", color = Color3.fromRGB(120, 255, 210) },
+		{ x = -102, title = "MUTATION LAB", subtitle = "REQUIRES REBIRTH 10", color = Color3.fromRGB(220, 120, 255) },
+		{ x = 102, title = "QUARANTINE", subtitle = "REQUIRES REBIRTH 25", color = Color3.fromRGB(255, 210, 80) },
+		{ x = 306, title = "GLITCH SECTOR", subtitle = "REQUIRES REBIRTH 50", color = Color3.fromRGB(255, 90, 220) },
+		{ x = 510, title = "ENDGAME CORE", subtitle = "REQUIRES REBIRTH 100", color = Color3.fromRGB(255, 80, 110) },
 	}
 	for _, sign in ipairs(zoneSigns) do
 		addWallTextPanel(
@@ -368,10 +368,14 @@ local function addWallArt(wallArtFolder: Folder)
 		)
 	end
 
-	addWallTextPanel(wallArtFolder, "PetEggLabSign", Vector3.new(rightX, 44, -150), Vector3.new(0.6, 24, 95), Color3.fromRGB(100, 230, 255), "PET EGG LAB", "COLLECT VIRUS PETS", LABEL_DISTANCE_MAIN_SIGN, "Z")
-	addWallTextPanel(wallArtFolder, "AuraVaultSign", Vector3.new(rightX, 44, -50), Vector3.new(0.6, 24, 95), Color3.fromRGB(220, 120, 255), "AURA VAULT", "EQUIP EPIC BOOSTS", LABEL_DISTANCE_MAIN_SIGN, "Z")
-	addWallTextPanel(wallArtFolder, "UpgradeChamberSign", Vector3.new(rightX, 44, 50), Vector3.new(0.6, 24, 95), Color3.fromRGB(120, 255, 140), "UPGRADE CHAMBER", "BECOME UNSTOPPABLE", LABEL_DISTANCE_MAIN_SIGN, "Z")
-	addWallTextPanel(wallArtFolder, "BoostShopSign", Vector3.new(rightX, 44, 150), Vector3.new(0.6, 24, 95), Color3.fromRGB(255, 140, 80), "BOOST SHOP", "POWER • DNA • LUCK", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "PetEggLabSign", Vector3.new(rightX, 44, -255), Vector3.new(0.6, 24, 108), Color3.fromRGB(100, 230, 255), "PET EGG LAB", "COLLECT VIRUS PETS", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "AuraVaultSign", Vector3.new(rightX, 44, -85), Vector3.new(0.6, 24, 108), Color3.fromRGB(220, 120, 255), "AURA VAULT", "EQUIP EPIC BOOSTS", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "UpgradeChamberSign", Vector3.new(rightX, 44, 95), Vector3.new(0.6, 24, 108), Color3.fromRGB(120, 255, 140), "UPGRADE CHAMBER", "BECOME UNSTOPPABLE", LABEL_DISTANCE_MAIN_SIGN, "Z")
+	addWallTextPanel(wallArtFolder, "BoostShopSign", Vector3.new(rightX, 44, 265), Vector3.new(0.6, 24, 108), Color3.fromRGB(255, 140, 80), "BOOST SHOP", "POWER • DNA • LUCK", LABEL_DISTANCE_MAIN_SIGN, "Z")
+
+	addGlowStrip(wallArtFolder, Vector3.new(0, 0.28, 78), 445, "Z", Color3.fromRGB(90, 225, 245))
+	addGlowStrip(wallArtFolder, Vector3.new(0, 0.3, ENEMY_ROW_Z - 42), 980, "X", Color3.fromRGB(110, 245, 190))
+	addGlowStrip(wallArtFolder, Vector3.new(0, 0.3, BOSS_ROW_Z - 48), 980, "X", Color3.fromRGB(255, 120, 210))
 end
 
 local function buildLabRoom(roomFolder: Folder, wallsFolder: Folder)
@@ -454,11 +458,10 @@ local function buildLabRoom(roomFolder: Folder, wallsFolder: Folder)
 	)
 	ceiling.Locked = true
 
-	for _, x in ipairs({ -390, -234, -78, 78, 234, 390 }) do
-		addCeilingLight(roomFolder, x, -35)
-	end
-	for _, x in ipairs({ -260, 0, 260 }) do
-		addCeilingLight(roomFolder, x, 120)
+	for _, z in ipairs({ -250, -95, 60, 215, 330 }) do
+		for _, x in ipairs({ -540, -324, -108, 108, 324, 540 }) do
+			addCeilingLight(roomFolder, x, z)
+		end
 	end
 end
 
@@ -657,6 +660,172 @@ local function getZoneColorById(zoneId: string): Color3
 	return if zone then zone.color else Color3.fromRGB(120, 220, 255)
 end
 
+type EnemyGroupDisplay = {
+	title: string,
+	subtitle: string,
+	lines: { string },
+	bottom: string,
+	symbol: string,
+}
+
+local ENEMY_GROUP_DISPLAYS: { [string]: EnemyGroupDisplay } = {
+	StartEnemies = {
+		title = "NANO SPORE VIRUS",
+		subtitle = "COMBAT POWER: 80 - 1K",
+		lines = {
+			"Tiny Antibody - 80 Power",
+			"Lab Germ - 150 Power",
+			"Mini Cell Guard - 300 Power",
+			"Weak Cure Bot - 700 Power",
+		},
+		bottom = "Defeat enemies to earn DNA",
+		symbol = "Nano",
+	},
+	HospitalEnemies = {
+		title = "MEDI-MITE STRAIN",
+		subtitle = "COMBAT POWER: 1.5K - 15K",
+		lines = {
+			"Antibody Soldier - 1.5K Power",
+			"White Cell Guard - 3K Power",
+			"Cleanse Drone - 7K Power",
+			"Hospital Defender - 15K Power",
+		},
+		bottom = "Stronger enemies give more DNA",
+		symbol = "Medi",
+	},
+	MutationEnemies = {
+		title = "MUTAGEN-X VIRUS",
+		subtitle = "COMBAT POWER: 30K - 300K",
+		lines = {
+			"DNA Mutant - 30K Power",
+			"Mutation Beast - 70K Power",
+			"Toxic Cell - 150K Power",
+			"DNA Guardian - 300K Power",
+		},
+		bottom = "Mutate your power and fight stronger",
+		symbol = "Mutation",
+	},
+	QuarantineEnemies = {
+		title = "LOCKDOWN STRAIN",
+		subtitle = "COMBAT POWER: 700K - 6M",
+		lines = {
+			"Quarantine Bot - 700K Power",
+			"Red Alert Guard - 1.5M Power",
+			"Sterile Titan - 3M Power",
+			"Lockdown Boss - 6M Power",
+		},
+		bottom = "Hold E near bosses to start fights",
+		symbol = "Lockdown",
+	},
+	GlitchEnemies = {
+		title = "CYBER PLAGUE VIRUS",
+		subtitle = "COMBAT POWER: 15M - 60M",
+		lines = {
+			"Glitch Hunter - 15M Power",
+			"Firewall Beast - 30M Power",
+			"Anti-Virus Core - 60M Power",
+		},
+		bottom = "Glitch enemies drop high DNA",
+		symbol = "Glitch",
+	},
+	EndgameEnemies = {
+		title = "OMEGA CORE VIRUS",
+		subtitle = "COMBAT POWER: 250M+",
+		lines = {
+			"Omega Immune Boss - 250M Power",
+		},
+		bottom = "Final boss challenge",
+		symbol = "Omega",
+	},
+}
+
+local function addEnemyGroupSymbol(parent: Instance, symbol: string, center: Vector3, color: Color3)
+	if symbol == "Medi" then
+		addCartoonVirus(parent, center + Vector3.new(-5, 0, 0), color, 4.8)
+		local crossColor = Color3.fromRGB(235, 255, 245)
+		local barA = makeRoomPart(parent, "MedicalCross", Vector3.new(2.2, 12, 0.4), center + Vector3.new(8, 0, 0), crossColor, Enum.Material.Neon)
+		barA.CanCollide = false
+		barA.Transparency = 0.18
+		local barB = makeRoomPart(parent, "MedicalCross", Vector3.new(10, 2.2, 0.4), center + Vector3.new(8, 0, 0), crossColor, Enum.Material.Neon)
+		barB.CanCollide = false
+		barB.Transparency = 0.18
+	elseif symbol == "Mutation" then
+		addDnaDecoration(parent, center, Color3.fromRGB(230, 120, 255), Color3.fromRGB(120, 255, 170))
+		for _, offset in ipairs({ -11, 11 }) do
+			local arrow = makeRoomPart(parent, "MutationArrow", Vector3.new(8, 0.45, 0.45), center + Vector3.new(offset, 12, 0), color, Enum.Material.Neon)
+			arrow.CanCollide = false
+			arrow.Transparency = 0.28
+		end
+	elseif symbol == "Lockdown" then
+		local shield = makeRoomPart(parent, "ShieldIcon", Vector3.new(14, 14, 0.45), center, Color3.fromRGB(42, 45, 55), Enum.Material.SmoothPlastic)
+		shield.CanCollide = false
+		for i, y in ipairs({ -5, 0, 5 }) do
+			local stripe = makeRoomPart(parent, "WarningStripe" .. tostring(i), Vector3.new(14, 1.1, 0.55), center + Vector3.new(0, y, -0.05), color, Enum.Material.Neon)
+			stripe.CanCollide = false
+			stripe.Transparency = 0.25
+		end
+	elseif symbol == "Glitch" then
+		for i, offset in ipairs({
+			Vector3.new(-9, 5, 0),
+			Vector3.new(-2, -4, 0),
+			Vector3.new(6, 7, 0),
+			Vector3.new(11, -6, 0),
+			Vector3.new(0, 2, 0),
+		}) do
+			local square = makeRoomPart(parent, "GlitchPixel" .. tostring(i), Vector3.new(5, 5, 0.45), center + offset, color, Enum.Material.Neon)
+			square.CanCollide = false
+			square.Transparency = 0.22 + (i % 2) * 0.18
+		end
+	elseif symbol == "Omega" then
+		local core = makeRoomPart(parent, "OmegaCoreIcon", Vector3.new(9, 9, 9), center, Color3.fromRGB(255, 70, 90), Enum.Material.Neon)
+		core.Shape = Enum.PartType.Ball
+		core.CanCollide = false
+		core.Transparency = 0.2
+		for _, angle in ipairs({ 0, 45, 90, 135 }) do
+			local ray = makeRoomPart(parent, "CoreRay", Vector3.new(19, 0.75, 0.45), center, Color3.fromRGB(255, 215, 90), Enum.Material.Neon)
+			ray.Orientation = Vector3.new(0, 0, angle)
+			ray.CanCollide = false
+			ray.Transparency = 0.3
+		end
+	else
+		addCartoonVirus(parent, center, color, 5.4)
+		for i, offset in ipairs({ -11, -5, 5, 11 }) do
+			local dot = makeRoomPart(parent, "DnaDot" .. tostring(i), Vector3.new(1.7, 1.7, 1.7), center + Vector3.new(offset, -12, 0), Color3.fromRGB(190, 255, 250), Enum.Material.Neon)
+			dot.Shape = Enum.PartType.Ball
+			dot.CanCollide = false
+			dot.Transparency = 0.25
+		end
+	end
+end
+
+local function addEnemyGroupWallDisplay(parent: Instance, areaName: string, center: Vector3, color: Color3)
+	local display = ENEMY_GROUP_DISPLAYS[areaName]
+	if not display then
+		return
+	end
+
+	local panelCenter = center + Vector3.new(0, 20, 48)
+	local panel = addPanel(parent, "EnemyGroupWallDisplay", Vector3.new(136, 36, 0.8), panelCenter, Color3.fromRGB(22, 27, 36))
+	panel.Transparency = 0.02
+	addPanelFrame(parent, panelCenter, 136, 36, color, "X")
+
+	local textLines = {
+		display.title,
+		display.subtitle,
+		table.concat(display.lines, "\n"),
+		display.bottom,
+	}
+	addBillboardLabel(
+		panel,
+		table.concat(textLines, "\n"),
+		Color3.fromRGB(255, 255, 255),
+		68,
+		UDim2.fromOffset(520, 250),
+		Vector3.new(0, 0, 0)
+	)
+	addEnemyGroupSymbol(parent, display.symbol, panelCenter + Vector3.new(-54, 4, 0.7), color)
+end
+
 local function buildEnemyModel(parent: Instance, def, position: Vector3, color: Color3)
 	local model = Instance.new("Model")
 	model.Name = def.Id
@@ -756,7 +925,7 @@ local function buildEnemyArea(parent: Instance, areaName: string, folderName: st
 	area:SetAttribute("AreaName", areaName)
 	area.Parent = parent
 
-	local pad = makeRoomPart(area, "AreaPad", Vector3.new(118, 0.45, 52), center + Vector3.new(0, 0.12, 0), Color3.fromRGB(38, 48, 60), Enum.Material.SmoothPlastic)
+	local pad = makeRoomPart(area, "AreaPad", Vector3.new(138, 0.45, 64), center + Vector3.new(0, 0.12, 0), Color3.fromRGB(38, 48, 60), Enum.Material.SmoothPlastic)
 	pad.CanCollide = true
 	local halfX = pad.Size.X / 2
 	local halfZ = pad.Size.Z / 2
@@ -769,8 +938,9 @@ local function buildEnemyArea(parent: Instance, areaName: string, folderName: st
 	local sign = makeRoomPart(area, "AreaSign", Vector3.new(34, 6, 0.6), center + Vector3.new(0, 7, -halfZ - 2), Color3.fromRGB(32, 38, 50), Enum.Material.SmoothPlastic)
 	sign.CanCollide = false
 	addBillboardLabel(sign, displayName .. "\nFight for DNA", Color3.fromRGB(255, 255, 255), 45)
+	addEnemyGroupWallDisplay(area, areaName, center, color)
 
-	local spacing = 28
+	local spacing = 32
 	local startX = center.X - spacing * (#defs - 1) / 2
 	for i, def in ipairs(defs) do
 		buildEnemyModel(area, def, Vector3.new(startX + spacing * (i - 1), center.Y, center.Z + 2), color)
@@ -790,7 +960,7 @@ local function buildBossField(parent: Instance, areaName: string, folderName: st
 	field:SetAttribute("AreaName", areaName)
 	field.Parent = parent
 
-	local pad = makeRoomPart(field, "BossPad", Vector3.new(95, 0.55, 46), center + Vector3.new(0, 0.16, 0), Color3.fromRGB(42, 42, 56), Enum.Material.SmoothPlastic)
+	local pad = makeRoomPart(field, "BossPad", Vector3.new(112, 0.55, 58), center + Vector3.new(0, 0.16, 0), Color3.fromRGB(42, 42, 56), Enum.Material.SmoothPlastic)
 	pad.CanCollide = true
 	local halfX = pad.Size.X / 2
 	local halfZ = pad.Size.Z / 2
@@ -822,24 +992,24 @@ local function buildEnemyAndBossAreas(enemyFolder: Folder, bossFolder: Folder)
 	end
 
 	local areas = {
-		{ area = "StartEnemies", folder = "StartEnemyArea", title = "START ENEMIES", zoneId = "StartZone", x = -390 },
-		{ area = "HospitalEnemies", folder = "HospitalEnemyArea", title = "HOSPITAL ENEMIES", zoneId = "HospitalZone", x = -234 },
-		{ area = "MutationEnemies", folder = "MutationEnemyArea", title = "MUTATION ENEMIES", zoneId = "MutationLabZone", x = -78 },
-		{ area = "QuarantineEnemies", folder = "QuarantineEnemyArea", title = "QUARANTINE ENEMIES", zoneId = "QuarantineZone", x = 78 },
-		{ area = "GlitchEnemies", folder = "GlitchEnemyArea", title = "GLITCH ENEMIES", zoneId = "GlitchZone", x = 234 },
-		{ area = "EndgameEnemies", folder = "EndgameEnemyArea", title = "ENDGAME ENEMIES", zoneId = "EndgameZone", x = 390 },
+		{ area = "StartEnemies", folder = "StartEnemyArea", title = "START ENEMIES", zoneId = "StartZone", x = -510 },
+		{ area = "HospitalEnemies", folder = "HospitalEnemyArea", title = "HOSPITAL ENEMIES", zoneId = "HospitalZone", x = -306 },
+		{ area = "MutationEnemies", folder = "MutationEnemyArea", title = "MUTATION ENEMIES", zoneId = "MutationLabZone", x = -102 },
+		{ area = "QuarantineEnemies", folder = "QuarantineEnemyArea", title = "QUARANTINE ENEMIES", zoneId = "QuarantineZone", x = 102 },
+		{ area = "GlitchEnemies", folder = "GlitchEnemyArea", title = "GLITCH ENEMIES", zoneId = "GlitchZone", x = 306 },
+		{ area = "EndgameEnemies", folder = "EndgameEnemyArea", title = "ENDGAME ENEMIES", zoneId = "EndgameZone", x = 510 },
 	}
 	for _, area in ipairs(areas) do
 		buildEnemyArea(enemyFolder, area.area, area.folder, area.title, area.zoneId, Vector3.new(area.x, 0, ENEMY_ROW_Z))
 	end
 
 	local bossFields = {
-		{ area = "StartBoss", folder = "StartBossField", zoneId = "StartZone", x = -390 },
-		{ area = "HospitalBoss", folder = "HospitalBossField", zoneId = "HospitalZone", x = -234 },
-		{ area = "MutationBoss", folder = "MutationBossField", zoneId = "MutationLabZone", x = -78 },
-		{ area = "QuarantineBoss", folder = "QuarantineBossField", zoneId = "QuarantineZone", x = 78 },
-		{ area = "GlitchBoss", folder = "GlitchBossField", zoneId = "GlitchZone", x = 234 },
-		{ area = "EndgameBoss", folder = "EndgameBossField", zoneId = "EndgameZone", x = 390 },
+		{ area = "StartBoss", folder = "StartBossField", zoneId = "StartZone", x = -510 },
+		{ area = "HospitalBoss", folder = "HospitalBossField", zoneId = "HospitalZone", x = -306 },
+		{ area = "MutationBoss", folder = "MutationBossField", zoneId = "MutationLabZone", x = -102 },
+		{ area = "QuarantineBoss", folder = "QuarantineBossField", zoneId = "QuarantineZone", x = 102 },
+		{ area = "GlitchBoss", folder = "GlitchBossField", zoneId = "GlitchZone", x = 306 },
+		{ area = "EndgameBoss", folder = "EndgameBossField", zoneId = "EndgameZone", x = 510 },
 	}
 	for _, boss in ipairs(bossFields) do
 		buildBossField(bossFolder, boss.area, boss.folder, boss.zoneId, Vector3.new(boss.x, 0, BOSS_ROW_Z))
