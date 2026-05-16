@@ -100,6 +100,11 @@ function PetService.openEgg(player: Player)
 		ShowPopup:FireClient(player, "Pet-Inventar voll!")
 		return
 	end
+	if profile.DnaCoins < PetConfig.EggCost then
+		ShowPopup:FireClient(player, "Nicht genug DNA-Coins!")
+		return
+	end
+	profile.DnaCoins -= PetConfig.EggCost
 	lastEggOpenAt[player] = now
 	-- Luck-Multiplikator: bessere Chancen auf hohe Raritaeten. Wir rollen
 	-- mehrfach und behalten den seltensten Treffer.
