@@ -14,6 +14,7 @@ local PetConfig = {}
 
 PetConfig.MaxInventorySize = 50
 PetConfig.MaxEquipped = 3
+PetConfig.EggCooldownSec = 3
 
 PetConfig.RarityColor = {
 	Common = Color3.fromRGB(180, 180, 180),
