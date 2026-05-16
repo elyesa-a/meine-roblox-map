@@ -1,7 +1,7 @@
 --!strict
--- Zonen-Definition. Phase 1: StartZone, HospitalZone, MutationLabZone.
--- Weitere Zonen sind als enabled=false vorbereitet und werden erst in
--- spaeteren Phasen aktiviert (WorldBuilder beruecksichtigt enabled).
+-- Zonen-Definition.
+-- Layout: alle Progressions-Zonen liegen als klare horizontale Reihe im
+-- geschlossenen Laborraum. Die Reihenfolge entspricht der Training-Progression.
 
 export type ZoneDef = {
 	id: string,
@@ -9,7 +9,7 @@ export type ZoneDef = {
 	requiredRebirth: number,
 	zoneMultiplier: number,
 	color: Color3,
-	-- Position des Zonen-Bodens (Mittelpunkt). Spawn-Position wird hieraus abgeleitet.
+	-- Position des Zonen-Bodens (Mittelpunkt).
 	center: Vector3,
 	size: Vector3,
 	enabled: boolean,
@@ -22,8 +22,8 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredRebirth = 0,
 		zoneMultiplier = 1,
 		color = Color3.fromRGB(120, 200, 255),
-		center = Vector3.new(0, 0, 0),
-		size = Vector3.new(80, 1, 80),
+		center = Vector3.new(-300, 0, 0),
+		size = Vector3.new(96, 1, 92),
 		enabled = true,
 	},
 	{
@@ -32,8 +32,8 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredRebirth = 3,
 		zoneMultiplier = 2,
 		color = Color3.fromRGB(120, 255, 170),
-		center = Vector3.new(120, 0, 0),
-		size = Vector3.new(80, 1, 80),
+		center = Vector3.new(-180, 0, 0),
+		size = Vector3.new(96, 1, 92),
 		enabled = true,
 	},
 	{
@@ -42,8 +42,8 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredRebirth = 10,
 		zoneMultiplier = 5,
 		color = Color3.fromRGB(200, 120, 255),
-		center = Vector3.new(240, 0, 0),
-		size = Vector3.new(80, 1, 80),
+		center = Vector3.new(-60, 0, 0),
+		size = Vector3.new(96, 1, 92),
 		enabled = true,
 	},
 	{
@@ -52,8 +52,8 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredRebirth = 25,
 		zoneMultiplier = 12,
 		color = Color3.fromRGB(255, 200, 80),
-		center = Vector3.new(360, 0, 0),
-		size = Vector3.new(80, 1, 80),
+		center = Vector3.new(60, 0, 0),
+		size = Vector3.new(96, 1, 92),
 		enabled = true,
 	},
 	{
@@ -62,8 +62,8 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredRebirth = 50,
 		zoneMultiplier = 30,
 		color = Color3.fromRGB(255, 80, 200),
-		center = Vector3.new(480, 0, 0),
-		size = Vector3.new(80, 1, 80),
+		center = Vector3.new(180, 0, 0),
+		size = Vector3.new(96, 1, 92),
 		enabled = true,
 	},
 	{
@@ -72,8 +72,8 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredRebirth = 100,
 		zoneMultiplier = 100,
 		color = Color3.fromRGB(255, 60, 60),
-		center = Vector3.new(600, 0, 0),
-		size = Vector3.new(80, 1, 80),
+		center = Vector3.new(300, 0, 0),
+		size = Vector3.new(96, 1, 92),
 		enabled = true,
 	},
 }

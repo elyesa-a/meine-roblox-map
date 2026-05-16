@@ -8,6 +8,7 @@
 --  * Dekoration: Pillars an den Ecken
 --  * Trainingsbetten mit Bett-Geometrie + permanenten Partikeln
 --  * Portale mit Atmospheric SurfaceLight
+--  * Geschlossener Laborraum mit zentraler Training-Reihe
 
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
@@ -18,6 +19,14 @@ local ZoneConfig = require(Configs:WaitForChild("ZoneConfig"))
 local TrainingBedConfig = require(Configs:WaitForChild("TrainingBedConfig"))
 
 local WorldBuilder = {}
+
+local ROOM_CENTER = Vector3.new(0, 0, 0)
+local ROOM_SIZE = Vector3.new(840, 1, 300)
+local ROOM_WALL_HEIGHT = 68
+local ROOM_WALL_THICKNESS = 6
+local ROOM_CEILING_THICKNESS = 3
+local ROOM_FLOOR_Y = -0.55
+local START_AREA_CENTER = Vector3.new(0, 0, -105)
 
 local function makeFolder(name: string, parent: Instance): Folder
 	local existing = parent:FindFirstChild(name)
@@ -134,6 +143,125 @@ local function addPillar(parent: Instance, pos: Vector3, color: Color3)
 	light.Parent = cap
 end
 
+local function makeRoomPart(parent: Instance, name: string, size: Vector3, position: Vector3, color: Color3, material: Enum.Material): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Anchored = true
+	part.CanCollide = true
+	part.Size = size
+	part.Position = position
+	part.Color = color
+	part.Material = material
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Parent = parent
+	return part
+end
+
+local function addCeilingLight(parent: Instance, x: number)
+	local topY = ROOM_FLOOR_Y + ROOM_SIZE.Y / 2 + ROOM_WALL_HEIGHT
+	local lightPanel = makeRoomPart(
+		parent,
+		"CeilingLight",
+		Vector3.new(54, 0.35, 12),
+		Vector3.new(x, topY - 1.2, -26),
+		Color3.fromRGB(180, 240, 255),
+		Enum.Material.Neon
+	)
+	lightPanel.CanCollide = false
+
+	local light = Instance.new("SurfaceLight")
+	light.Name = "DownLight"
+	light.Face = Enum.NormalId.Bottom
+	light.Brightness = 2.2
+	light.Range = 48
+	light.Angle = 110
+	light.Color = Color3.fromRGB(210, 245, 255)
+	light.Parent = lightPanel
+end
+
+local function buildLabRoom(roomFolder: Folder)
+	for _, child in ipairs(roomFolder:GetChildren()) do
+		child:Destroy()
+	end
+
+	local floorTopY = ROOM_FLOOR_Y + ROOM_SIZE.Y / 2
+	local wallCenterY = floorTopY + ROOM_WALL_HEIGHT / 2
+	local wallColor = Color3.fromRGB(24, 28, 38)
+	local floorColor = Color3.fromRGB(42, 48, 58)
+
+	local floor = makeRoomPart(
+		roomFolder,
+		"MainLabFloor",
+		ROOM_SIZE,
+		Vector3.new(ROOM_CENTER.X, ROOM_FLOOR_Y, ROOM_CENTER.Z),
+		floorColor,
+		Enum.Material.SmoothPlastic
+	)
+	floor.Locked = true
+
+	local startPad = makeRoomPart(
+		roomFolder,
+		"StartAreaPad",
+		Vector3.new(130, 0.45, 58),
+		START_AREA_CENTER + Vector3.new(0, 0.1, 0),
+		Color3.fromRGB(42, 85, 96),
+		Enum.Material.SmoothPlastic
+	)
+	startPad.CanCollide = true
+
+	local halfX = ROOM_SIZE.X / 2
+	local halfZ = ROOM_SIZE.Z / 2
+	local wallT = ROOM_WALL_THICKNESS
+
+	makeRoomPart(
+		roomFolder,
+		"LeftWall",
+		Vector3.new(wallT, ROOM_WALL_HEIGHT, ROOM_SIZE.Z + wallT * 2),
+		Vector3.new(ROOM_CENTER.X - halfX - wallT / 2, wallCenterY, ROOM_CENTER.Z),
+		wallColor,
+		Enum.Material.SmoothPlastic
+	)
+	makeRoomPart(
+		roomFolder,
+		"RightWall",
+		Vector3.new(wallT, ROOM_WALL_HEIGHT, ROOM_SIZE.Z + wallT * 2),
+		Vector3.new(ROOM_CENTER.X + halfX + wallT / 2, wallCenterY, ROOM_CENTER.Z),
+		wallColor,
+		Enum.Material.SmoothPlastic
+	)
+	makeRoomPart(
+		roomFolder,
+		"FrontWall",
+		Vector3.new(ROOM_SIZE.X + wallT * 2, ROOM_WALL_HEIGHT, wallT),
+		Vector3.new(ROOM_CENTER.X, wallCenterY, ROOM_CENTER.Z - halfZ - wallT / 2),
+		wallColor,
+		Enum.Material.SmoothPlastic
+	)
+	makeRoomPart(
+		roomFolder,
+		"BackWall",
+		Vector3.new(ROOM_SIZE.X + wallT * 2, ROOM_WALL_HEIGHT, wallT),
+		Vector3.new(ROOM_CENTER.X, wallCenterY, ROOM_CENTER.Z + halfZ + wallT / 2),
+		wallColor,
+		Enum.Material.SmoothPlastic
+	)
+
+	local ceiling = makeRoomPart(
+		roomFolder,
+		"Ceiling",
+		Vector3.new(ROOM_SIZE.X + wallT * 2, ROOM_CEILING_THICKNESS, ROOM_SIZE.Z + wallT * 2),
+		Vector3.new(ROOM_CENTER.X, floorTopY + ROOM_WALL_HEIGHT + ROOM_CEILING_THICKNESS / 2, ROOM_CENTER.Z),
+		Color3.fromRGB(30, 35, 46),
+		Enum.Material.SmoothPlastic
+	)
+	ceiling.Locked = true
+
+	for _, x in ipairs({ -300, -180, -60, 60, 180, 300 }) do
+		addCeilingLight(roomFolder, x)
+	end
+end
+
 local function buildZone(zone, zonesFolder: Folder)
 	if not zone.enabled then
 		return
@@ -192,7 +320,7 @@ local function buildZone(zone, zonesFolder: Folder)
 		spawn.Anchored = true
 		spawn.CanCollide = false
 		spawn.Size = Vector3.new(8, 1, 8)
-		spawn.Position = zone.center + Vector3.new(0, 1.5, 0)
+		spawn.Position = START_AREA_CENTER + Vector3.new(0, 1, 0)
 		spawn.Color = Color3.fromRGB(60, 220, 100)
 		spawn.Material = Enum.Material.Neon
 		spawn.Transparency = 0.2
@@ -359,13 +487,13 @@ local function buildBed(bed, bedsFolder: Folder)
 	)
 end
 
-local function buildClickerHub(startZone, parent: Instance)
+local function buildClickerHub(_startZone, parent: Instance)
 	local pad = Instance.new("Part")
 	pad.Name = "ClickerHub"
 	pad.Anchored = true
 	pad.CanCollide = false
 	pad.Size = Vector3.new(14, 1, 14)
-	pad.Position = startZone.center + Vector3.new(0, 0.6, 20)
+	pad.Position = START_AREA_CENTER + Vector3.new(34, 0.85, 20)
 	pad.Color = Color3.fromRGB(255, 90, 90)
 	pad.Material = Enum.Material.Neon
 	pad.Transparency = 0.1
@@ -392,14 +520,14 @@ local function buildClickerHub(startZone, parent: Instance)
 	addBillboardLabel(pad, "KLICK-PAD\n(Knopf unten auf dem Bildschirm)", Color3.fromRGB(255, 255, 255))
 end
 
-local function buildPetEgg(startZone, parent: Instance): BasePart
+local function buildPetEgg(_startZone, parent: Instance): BasePart
 	local egg = Instance.new("Part")
 	egg.Name = "PetEgg"
 	egg.Anchored = true
 	egg.CanCollide = false
 	egg.Shape = Enum.PartType.Ball
 	egg.Size = Vector3.new(6, 6, 6)
-	egg.Position = startZone.center + Vector3.new(-20, 4, 10)
+	egg.Position = START_AREA_CENTER + Vector3.new(-34, 4, 20)
 	egg.Color = Color3.fromRGB(255, 220, 90)
 	egg.Material = Enum.Material.Neon
 	egg.Parent = parent
@@ -437,9 +565,12 @@ end
 function WorldBuilder.build()
 	applyLighting()
 
+	local roomFolder = makeFolder("LabRoom", Workspace)
 	local zonesFolder = makeFolder("Zones", Workspace)
 	local portalsFolder = makeFolder("Portals", Workspace)
 	local bedsFolder = makeFolder("TrainingBeds", Workspace)
+
+	buildLabRoom(roomFolder)
 
 	for _, zone in ipairs(ZoneConfig) do
 		buildZone(zone, zonesFolder)
