@@ -26,6 +26,7 @@ local BoostService = require(Services:WaitForChild("BoostService"))
 local DailyChestService = require(Services:WaitForChild("DailyChestService"))
 local SpinService = require(Services:WaitForChild("SpinService"))
 local GamepassService = require(Services:WaitForChild("GamepassService"))
+local EnemyService = require(Services:WaitForChild("EnemyService"))
 local WorldBuilder = require(Services:WaitForChild("WorldBuilder"))
 local ZoneLockService = require(Services:WaitForChild("ZoneLockService"))
 local TrainingZoneService = require(Services:WaitForChild("TrainingZoneService"))
@@ -108,6 +109,14 @@ GamepassService.start({
 	StatService = StatService,
 	SpinService = SpinService,
 	AntiExploitService = AntiExploitService,
+})
+EnemyService.start({
+	DataService = DataService,
+	StatService = StatService,
+	AntiExploitService = AntiExploitService,
+	PetService = PetService,
+	AuraService = AuraService,
+	BoostService = BoostService,
 })
 
 -- 6a. Pet-Egg ClickDetector.

@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Configs = ReplicatedStorage:WaitForChild("Configs")
 local ZoneConfig = require(Configs:WaitForChild("ZoneConfig"))
 local TrainingBedConfig = require(Configs:WaitForChild("TrainingBedConfig"))
+local EnemyConfig = require(Configs:WaitForChild("EnemyConfig"))
 
 local WorldBuilder = {}
 
@@ -29,6 +30,8 @@ local ROOM_CEILING_THICKNESS = 3
 local ROOM_FLOOR_Y = -0.55
 local START_AREA_CENTER = Vector3.new(0, 0, -165)
 local EGG_AREA_CENTER = Vector3.new(-420, 0, 130)
+local ENEMY_ROW_Z = 108
+local BOSS_ROW_Z = 172
 
 local LABEL_DISTANCE_ZONE = 45
 local LABEL_DISTANCE_TRAINING = 34
@@ -649,6 +652,200 @@ local function addTrainingSectionWalls(model: Model, bed, worldPos: Vector3, zon
 	end
 end
 
+local function getZoneColorById(zoneId: string): Color3
+	local zone = ZoneConfig.getById(zoneId)
+	return if zone then zone.color else Color3.fromRGB(120, 220, 255)
+end
+
+local function buildEnemyModel(parent: Instance, def, position: Vector3, color: Color3)
+	local model = Instance.new("Model")
+	model.Name = def.Id
+	model.Parent = parent
+	model:SetAttribute("EnemyId", def.Id)
+	model:SetAttribute("AreaName", def.AreaName)
+	model:SetAttribute("IsBoss", def.IsBoss)
+
+	local scale = if def.IsBoss then 1.8 else 1
+	local root = makeRoomPart(
+		model,
+		"EnemyCore",
+		Vector3.new(5 * scale, 5 * scale, 5 * scale),
+		position + Vector3.new(0, 4 * scale, 0),
+		color,
+		Enum.Material.Neon
+	)
+	root.Shape = Enum.PartType.Ball
+	root.CanCollide = false
+	root.Transparency = if def.IsBoss then 0.14 else 0.24
+	model.PrimaryPart = root
+
+	for _, offset in ipairs({
+		Vector3.new(4, 0, 0),
+		Vector3.new(-4, 0, 0),
+		Vector3.new(0, 4, 0),
+		Vector3.new(0, -4, 0),
+		Vector3.new(2.8, 2.8, 0),
+		Vector3.new(-2.8, 2.8, 0),
+		Vector3.new(2.8, -2.8, 0),
+		Vector3.new(-2.8, -2.8, 0),
+	}) do
+		local spike = makeRoomPart(model, "VirusSpike", Vector3.new(1.1 * scale, 1.1 * scale, 1.1 * scale), root.Position + offset * scale, color, Enum.Material.Neon)
+		spike.Shape = Enum.PartType.Ball
+		spike.CanCollide = false
+		spike.Transparency = 0.2
+	end
+
+	local barBack = makeRoomPart(
+		model,
+		"HealthBarBack",
+		Vector3.new(14 * scale, 0.8, 0.45),
+		root.Position + Vector3.new(0, 7.2 * scale, 0),
+		Color3.fromRGB(18, 22, 28),
+		Enum.Material.SmoothPlastic
+	)
+	barBack.CanCollide = false
+	local barFill = makeRoomPart(
+		model,
+		"HealthBarFill",
+		Vector3.new(13.2 * scale, 0.45, 0.65),
+		barBack.Position + Vector3.new(0, 0.02, -0.05),
+		Color3.fromRGB(95, 255, 125),
+		Enum.Material.Neon
+	)
+	barFill.CanCollide = false
+	barFill.Transparency = 0.12
+	barFill:SetAttribute("MaxWidth", 13.2 * scale)
+	barFill:SetAttribute("FullCenterX", barFill.Position.X)
+
+	local clicker = Instance.new("ClickDetector")
+	clicker.Name = "AttackClick"
+	clicker.MaxActivationDistance = EnemyConfig.AttackDistance
+	clicker.Parent = root
+
+	if def.IsBoss then
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "StartBossFight"
+		prompt.KeyboardKeyCode = Enum.KeyCode.E
+		prompt.HoldDuration = 1
+		prompt.ActionText = "Start Fight"
+		prompt.ObjectText = def.DisplayName
+		prompt.MaxActivationDistance = EnemyConfig.BossPromptDistance
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = root
+	end
+
+	addBillboardLabel(
+		root,
+		string.format("%s\nHP: %s\nNeed %s Power\nReward %s DNA", def.DisplayName, tostring(def.MaxHealth), tostring(def.RequiredPower), tostring(def.DNAReward)),
+		Color3.fromRGB(255, 255, 255),
+		if def.IsBoss then 50 else 35,
+		UDim2.fromOffset(if def.IsBoss then 280 else 230, if def.IsBoss then 100 else 82),
+		Vector3.new(0, 8 * scale, 0)
+	)
+end
+
+local function buildEnemyArea(parent: Instance, areaName: string, folderName: string, displayName: string, zoneId: string, center: Vector3)
+	local defs = EnemyConfig.getByArea(areaName)
+	if #defs == 0 then
+		return
+	end
+
+	local color = getZoneColorById(zoneId)
+	local area = Instance.new("Folder")
+	area.Name = folderName
+	area:SetAttribute("AreaName", areaName)
+	area.Parent = parent
+
+	local pad = makeRoomPart(area, "AreaPad", Vector3.new(118, 0.45, 52), center + Vector3.new(0, 0.12, 0), Color3.fromRGB(38, 48, 60), Enum.Material.SmoothPlastic)
+	pad.CanCollide = true
+	local halfX = pad.Size.X / 2
+	local halfZ = pad.Size.Z / 2
+	local stripY = pad.Position.Y + 0.45
+	addGlowStrip(area, Vector3.new(center.X, stripY, center.Z - halfZ), pad.Size.X, "X", color)
+	addGlowStrip(area, Vector3.new(center.X, stripY, center.Z + halfZ), pad.Size.X, "X", color)
+	addGlowStrip(area, Vector3.new(center.X - halfX, stripY, center.Z), pad.Size.Z, "Z", color)
+	addGlowStrip(area, Vector3.new(center.X + halfX, stripY, center.Z), pad.Size.Z, "Z", color)
+
+	local sign = makeRoomPart(area, "AreaSign", Vector3.new(34, 6, 0.6), center + Vector3.new(0, 7, -halfZ - 2), Color3.fromRGB(32, 38, 50), Enum.Material.SmoothPlastic)
+	sign.CanCollide = false
+	addBillboardLabel(sign, displayName .. "\nFight for DNA", Color3.fromRGB(255, 255, 255), 45)
+
+	local spacing = 28
+	local startX = center.X - spacing * (#defs - 1) / 2
+	for i, def in ipairs(defs) do
+		buildEnemyModel(area, def, Vector3.new(startX + spacing * (i - 1), center.Y, center.Z + 2), color)
+	end
+end
+
+local function buildBossField(parent: Instance, areaName: string, folderName: string, zoneId: string, center: Vector3)
+	local defs = EnemyConfig.getByArea(areaName)
+	local def = defs[1]
+	if not def then
+		return
+	end
+
+	local color = getZoneColorById(zoneId)
+	local field = Instance.new("Folder")
+	field.Name = folderName
+	field:SetAttribute("AreaName", areaName)
+	field.Parent = parent
+
+	local pad = makeRoomPart(field, "BossPad", Vector3.new(95, 0.55, 46), center + Vector3.new(0, 0.16, 0), Color3.fromRGB(42, 42, 56), Enum.Material.SmoothPlastic)
+	pad.CanCollide = true
+	local halfX = pad.Size.X / 2
+	local halfZ = pad.Size.Z / 2
+	local stripY = pad.Position.Y + 0.5
+	addGlowStrip(field, Vector3.new(center.X, stripY, center.Z - halfZ), pad.Size.X * 0.32, "X", color)
+	addGlowStrip(field, Vector3.new(center.X, stripY, center.Z + halfZ), pad.Size.X, "X", color)
+	addGlowStrip(field, Vector3.new(center.X - halfX, stripY, center.Z), pad.Size.Z, "Z", color)
+	addGlowStrip(field, Vector3.new(center.X + halfX, stripY, center.Z), pad.Size.Z, "Z", color)
+
+	local sign = makeRoomPart(field, "BossSign", Vector3.new(42, 7, 0.6), center + Vector3.new(0, 9, -halfZ - 2), Color3.fromRGB(32, 38, 50), Enum.Material.SmoothPlastic)
+	sign.CanCollide = false
+	addBillboardLabel(
+		sign,
+		string.format("%s\nNeed %s Power\nReward %s DNA", def.DisplayName, tostring(def.RequiredPower), tostring(def.DNAReward)),
+		Color3.fromRGB(255, 255, 255),
+		50,
+		UDim2.fromOffset(290, 92)
+	)
+
+	buildEnemyModel(field, def, center + Vector3.new(0, 0, 8), color)
+end
+
+local function buildEnemyAndBossAreas(enemyFolder: Folder, bossFolder: Folder)
+	for _, child in ipairs(enemyFolder:GetChildren()) do
+		child:Destroy()
+	end
+	for _, child in ipairs(bossFolder:GetChildren()) do
+		child:Destroy()
+	end
+
+	local areas = {
+		{ area = "StartEnemies", folder = "StartEnemyArea", title = "START ENEMIES", zoneId = "StartZone", x = -390 },
+		{ area = "HospitalEnemies", folder = "HospitalEnemyArea", title = "HOSPITAL ENEMIES", zoneId = "HospitalZone", x = -234 },
+		{ area = "MutationEnemies", folder = "MutationEnemyArea", title = "MUTATION ENEMIES", zoneId = "MutationLabZone", x = -78 },
+		{ area = "QuarantineEnemies", folder = "QuarantineEnemyArea", title = "QUARANTINE ENEMIES", zoneId = "QuarantineZone", x = 78 },
+		{ area = "GlitchEnemies", folder = "GlitchEnemyArea", title = "GLITCH ENEMIES", zoneId = "GlitchZone", x = 234 },
+		{ area = "EndgameEnemies", folder = "EndgameEnemyArea", title = "ENDGAME ENEMIES", zoneId = "EndgameZone", x = 390 },
+	}
+	for _, area in ipairs(areas) do
+		buildEnemyArea(enemyFolder, area.area, area.folder, area.title, area.zoneId, Vector3.new(area.x, 0, ENEMY_ROW_Z))
+	end
+
+	local bossFields = {
+		{ area = "StartBoss", folder = "StartBossField", zoneId = "StartZone", x = -390 },
+		{ area = "HospitalBoss", folder = "HospitalBossField", zoneId = "HospitalZone", x = -234 },
+		{ area = "MutationBoss", folder = "MutationBossField", zoneId = "MutationLabZone", x = -78 },
+		{ area = "QuarantineBoss", folder = "QuarantineBossField", zoneId = "QuarantineZone", x = 78 },
+		{ area = "GlitchBoss", folder = "GlitchBossField", zoneId = "GlitchZone", x = 234 },
+		{ area = "EndgameBoss", folder = "EndgameBossField", zoneId = "EndgameZone", x = 390 },
+	}
+	for _, boss in ipairs(bossFields) do
+		buildBossField(bossFolder, boss.area, boss.folder, boss.zoneId, Vector3.new(boss.x, 0, BOSS_ROW_Z))
+	end
+end
+
 local function buildZone(zone, zonesFolder: Folder)
 	if not zone.enabled then
 		return
@@ -967,6 +1164,8 @@ function WorldBuilder.build()
 	local portalsFolder = makeFolder("Portals", Workspace)
 	local bedsFolder = makeFolder("TrainingBeds", Workspace)
 	local eggAreaFolder = makeFolder("EggCatchArea", Workspace)
+	local enemyFolder = makeFolder("EnemyAreas", Workspace)
+	local bossFolder = makeFolder("BossFields", Workspace)
 
 	buildLabRoom(roomFolder, wallsFolder)
 	addWallArt(wallArtFolder)
@@ -980,6 +1179,7 @@ function WorldBuilder.build()
 	for _, bed in ipairs(TrainingBedConfig) do
 		buildBed(bed, bedsFolder)
 	end
+	buildEnemyAndBossAreas(enemyFolder, bossFolder)
 
 	local startZone = ZoneConfig.getById("StartZone")
 	if startZone then
