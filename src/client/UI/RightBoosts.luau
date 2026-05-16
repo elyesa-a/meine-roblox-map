@@ -1,8 +1,8 @@
 --!strict
--- Rechte Seite: Boost-/Gamepass-Buttons.
+-- Rechte Seite: DNA-Boost-Buttons.
 --  * DNA-Boosts: kaufbar via RequestBuyBoost (Phase 4), zeigen Restzeit, wenn
 --    aktiv.
---  * Gamepass-Eintraege: oeffnen einen Robux-Platzhalter-Popup.
+-- (Gamepasses gibt es nur noch im Shop, daher hier entfernt.)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,26 +14,14 @@ local BoostConfig = require(Configs:WaitForChild("BoostConfig"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestBuyBoost = Remotes:WaitForChild("RequestBuyBoost") :: RemoteEvent
-local RequestPromptPurchase = Remotes:WaitForChild("RequestPromptPurchase") :: RemoteEvent
 
 local RightBoosts = {}
 
-type BoostEntry = {
-	kind: "Boost",
+type Entry = {
 	boostId: string,
 	label: string,
 	color: Color3,
 }
-
-type GamepassEntry = {
-	kind: "Gamepass",
-	gamepassId: string,
-	label: string,
-	color: Color3,
-	robux: number,
-}
-
-type Entry = BoostEntry | GamepassEntry
 
 type ButtonRefs = {
 	frame: Frame,
@@ -50,12 +38,9 @@ type Refs = {
 }
 
 local ENTRIES: { Entry } = {
-	{ kind = "Boost",   boostId = "Power2x", label = "2X KRAFT",    color = Theme.Colors.Red },
-	{ kind = "Boost",   boostId = "Dna2x",   label = "2X DNA",      color = Theme.Colors.Blue },
-	{ kind = "Boost",   boostId = "Luck2x",  label = "2X GLUECK",   color = Theme.Colors.Yellow },
-	{ kind = "Gamepass", gamepassId = "AutoClicker", label = "AUTO-KLICK", color = Theme.Colors.Pink,   robux = 99 },
-	{ kind = "Gamepass", gamepassId = "VipZone",     label = "VIP-ZONE",   color = Theme.Colors.Orange, robux = 39 },
-	{ kind = "Gamepass", gamepassId = "GlitchPet",   label = "GLITCH-PET", color = Theme.Colors.Purple, robux = 279 },
+	{ boostId = "Power2x", label = "2X KRAFT",  color = Theme.Colors.Red },
+	{ boostId = "Dna2x",   label = "2X DNA",    color = Theme.Colors.Blue },
+	{ boostId = "Luck2x",  label = "2X GLUECK", color = Theme.Colors.Yellow },
 }
 
 local function formatTime(sec: number): string
@@ -94,12 +79,8 @@ local function makeButton(parent: Frame, entry: Entry, onClick: (Entry) -> ()): 
 	subLabel.Size = UDim2.new(1, -6, 0, 22)
 	subLabel.Position = UDim2.new(0, 3, 0, 30)
 	Theme.applyLabelStyle(subLabel)
-	if entry.kind == "Gamepass" then
-		subLabel.Text = string.format("NUR %d R$", entry.robux)
-	else
-		local def = BoostConfig.getById(entry.boostId)
-		subLabel.Text = if def then string.format("%d DNA", def.priceDna) else "?"
-	end
+	local def = BoostConfig.getById(entry.boostId)
+	subLabel.Text = if def then string.format("%d DNA", def.priceDna) else "?"
 	subLabel.TextSize = 12
 	subLabel.TextScaled = false
 	subLabel.Parent = button
@@ -128,7 +109,7 @@ local function makeButton(parent: Frame, entry: Entry, onClick: (Entry) -> ()): 
 	}
 end
 
-function RightBoosts.create(parent: ScreenGui, onGamepass: ((string, number) -> ())?): Refs
+function RightBoosts.create(parent: ScreenGui): Refs
 	local holder = Instance.new("Frame")
 	holder.Name = "RightBoosts"
 	holder.AnchorPoint = Vector2.new(1, 0.5)
@@ -145,20 +126,11 @@ function RightBoosts.create(parent: ScreenGui, onGamepass: ((string, number) -> 
 	local buttonRefs: { [string]: ButtonRefs } = {}
 
 	local function handleClick(entry: Entry)
-		if entry.kind == "Boost" then
-			RequestBuyBoost:FireServer(entry.boostId)
-		else
-			-- Direkter Prompt-Kauf. Wenn assetId noch 0 ist, zeigt Server "bald verfuegbar".
-			RequestPromptPurchase:FireServer(entry.gamepassId)
-			if onGamepass then
-				onGamepass(entry.gamepassId, entry.robux)
-			end
-		end
+		RequestBuyBoost:FireServer(entry.boostId)
 	end
 
 	for _, entry in ipairs(ENTRIES) do
-		local key = if entry.kind == "Boost" then entry.boostId else entry.gamepassId
-		buttonRefs[key] = makeButton(holder, entry, handleClick)
+		buttonRefs[entry.boostId] = makeButton(holder, entry, handleClick)
 	end
 
 	return {
@@ -181,9 +153,6 @@ function RightBoosts.tick(refs: Refs, state)
 	local extrapolated = serverTime + (os.clock() - (state._clientReceivedAt or os.clock()))
 
 	for _, entry in ipairs(refs.entries) do
-		if entry.kind ~= "Boost" then
-			continue
-		end
 		local btnRefs = refs.buttonRefs[entry.boostId]
 		if not btnRefs then
 			continue
