@@ -57,8 +57,22 @@ function UIAnimator.framePopOut(backdrop: GuiObject, root: GuiObject)
 end
 
 function UIAnimator.buttonPunch(gui: GuiObject)
-	local original = gui.Size
-	-- Wenn schon einmal getweened: keine kumulierten Effekte.
+	-- Ausgangsgroesse EINMALIG merken. Sonst liest ein schneller Folgeklick die
+	-- bereits vergroesserte Groesse eines noch laufenden Tweens als "Original"
+	-- und der Button waechst bei jedem Druck weiter.
+	local original = gui:GetAttribute("PunchBaseSize") :: UDim2?
+	if original == nil then
+		original = gui.Size
+		gui:SetAttribute("PunchBaseSize", original)
+	end
+
+	-- Laeuft schon ein Punch? Dann nicht stapeln -- der Klick zaehlt trotzdem,
+	-- nur die Animation wird nicht neu ausgeloest.
+	if gui:GetAttribute("Punching") then
+		return
+	end
+	gui:SetAttribute("Punching", true)
+
 	-- Wir skalieren BEIDE Komponenten (Scale + Offset), damit der Effekt auch
 	-- bei reinen Pixel-Buttons sichtbar ist.
 	local enlarged = UDim2.new(
@@ -80,6 +94,10 @@ function UIAnimator.buttonPunch(gui: GuiObject)
 	upTween:Play()
 	upTween.Completed:Connect(function()
 		downTween:Play()
+	end)
+	downTween.Completed:Connect(function()
+		gui.Size = original -- exakt auf Ausgangsgroesse zuruecksetzen
+		gui:SetAttribute("Punching", false)
 	end)
 end
 
