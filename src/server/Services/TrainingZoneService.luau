@@ -62,18 +62,21 @@ local function tick()
 			continue
 		end
 
-		-- Zone-Multiplikator basierend auf Standzone setzen.
-		local zone = getActiveZone(hrp.Position)
-		if zone then
-			StatService.setZoneMultiplier(player, zone.zoneMultiplier)
-		end
-
 		-- Position-Sanity (warnt nur, blockiert nicht).
 		AntiExploitService.isPositionSane(player, hrp.Position)
 
 		local profile = DataService.getProfile(player)
 		if not profile then
 			continue
+		end
+
+		-- Zone-Multiplikator nur fuer Zonen gewaehren, die der Spieler
+		-- serverseitig per Rebirth-Anforderung freigeschaltet hat.
+		local zone = getActiveZone(hrp.Position)
+		if zone and profile.Rebirths >= zone.requiredRebirth then
+			StatService.setZoneMultiplier(player, zone.zoneMultiplier)
+		else
+			StatService.setZoneMultiplier(player, 1)
 		end
 
 		-- Pruefen, ob Spieler in irgendeiner Bett-Hitbox steht.

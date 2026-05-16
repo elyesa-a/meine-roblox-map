@@ -9,6 +9,7 @@
 --   product(equippedPets.multiplier), 1 wenn keine ausgeruestet.
 
 local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Configs = ReplicatedStorage:WaitForChild("Configs")
@@ -28,6 +29,7 @@ local UpgradeService
 local BoostService
 
 local rng = Random.new()
+local lastEggOpenAt: { [Player]: number } = {}
 
 local function generateInstanceId(): string
 	-- GenerateGUID gibt z.B. "{xxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}" zurueck.
@@ -88,10 +90,22 @@ function PetService.openEgg(player: Player)
 	if not profile then
 		return
 	end
+	local now = os.clock()
+	local lastOpen = lastEggOpenAt[player]
+	if lastOpen and now - lastOpen < PetConfig.EggCooldownSec then
+		ShowPopup:FireClient(player, "Bitte kurz warten!")
+		return
+	end
 	if countDict(profile.Pets) >= PetConfig.MaxInventorySize then
 		ShowPopup:FireClient(player, "Pet-Inventar voll!")
 		return
 	end
+	if profile.DnaCoins < PetConfig.EggCost then
+		ShowPopup:FireClient(player, "Nicht genug DNA-Coins!")
+		return
+	end
+	profile.DnaCoins -= PetConfig.EggCost
+	lastEggOpenAt[player] = now
 	-- Luck-Multiplikator: bessere Chancen auf hohe Raritaeten. Wir rollen
 	-- mehrfach und behalten den seltensten Treffer.
 	local luckMult = 1
@@ -227,6 +241,10 @@ function PetService.start(deps)
 
 	AntiExploitService.safeBind(RequestEquipPet, 8, handleEquipRequest)
 	AntiExploitService.safeBind(RequestUnequipPet, 8, handleUnequipRequest)
+
+	Players.PlayerRemoving:Connect(function(player)
+		lastEggOpenAt[player] = nil
+	end)
 end
 
 return PetService
