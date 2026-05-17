@@ -40,6 +40,7 @@ local statesByModel: { [Model]: EnemyState } = {}
 local statesByRoot: { [BasePart]: EnemyState } = {}
 local statesById: { [string]: EnemyState } = {}
 local lastAttackAt: { [Player]: number } = {}
+local rng = Random.new()
 
 local function getCharacterRoot(player: Player): BasePart?
 	local char = player.Character
@@ -205,6 +206,29 @@ local function grantDna(player: Player, amount: number)
 	ShowPopup:FireClient(player, "+" .. tostring(reward) .. " DNA")
 end
 
+local function grantBossBonus(player: Player, state: EnemyState)
+	if not state.def.IsBoss then
+		return
+	end
+	local profile = DataService.getProfile(player)
+	if not profile then
+		return
+	end
+	local powerBonus = math.max(100, math.floor(state.def.RequiredPower * 0.025))
+	profile.Power = math.floor(profile.Power + powerBonus)
+	if DailyQuestService then
+		DailyQuestService.recordSet(player, "ReachPower", profile.Power)
+	end
+	ShowPopup:FireClient(player, "+" .. tostring(powerBonus) .. " Power")
+	if rng:NextNumber() <= 0.18 then
+		local now = os.time()
+		local existing = profile.ActiveBoosts.Luck2x
+		profile.ActiveBoosts.Luck2x = if existing and existing > now then existing + 180 else now + 180
+		ShowPopup:FireClient(player, "+3 min Luck Boost")
+	end
+	StatService.broadcastProfile(player)
+end
+
 local function respawnEnemy(state: EnemyState)
 	task.delay(state.def.RespawnTime, function()
 		if not state.model.Parent then
@@ -228,6 +252,7 @@ local function defeatEnemy(player: Player, state: EnemyState)
 	state.health = 0
 	updateEnemy(state)
 	grantDna(player, state.def.DNAReward)
+	grantBossBonus(player, state)
 	if DailyQuestService then
 		DailyQuestService.record(player, if state.def.IsBoss then "DefeatBoss" else "DefeatEnemy", 1, state.def.AreaName)
 	end

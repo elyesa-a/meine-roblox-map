@@ -38,7 +38,9 @@ EnemyConfig.Enemies = {
 	{ Id = "QuarantineBot", DisplayName = "Quarantine Bot", MaxHealth = 1000000, RequiredPower = 700000, DNAReward = 3500, RespawnTime = 35, AreaName = "QuarantineEnemies", IsBoss = false },
 	{ Id = "RedAlertGuard", DisplayName = "Red Alert Guard", MaxHealth = 2500000, RequiredPower = 1500000, DNAReward = 6000, RespawnTime = 40, AreaName = "QuarantineEnemies", IsBoss = false },
 	{ Id = "SterileTitan", DisplayName = "Sterile Titan", MaxHealth = 5000000, RequiredPower = 3000000, DNAReward = 10000, RespawnTime = 45, AreaName = "QuarantineEnemies", IsBoss = false },
-	{ Id = "LockdownBoss", DisplayName = "Magma Beast", MaxHealth = 10000000, RequiredPower = 6000000, DNAReward = 18000, RespawnTime = 60, AreaName = "QuarantineBoss", IsBoss = true },
+	{ Id = "LockdownBoss", DisplayName = "Toxic Mutant", MaxHealth = 10000000, RequiredPower = 6000000, DNAReward = 18000, RespawnTime = 60, AreaName = "QuarantineBoss", IsBoss = true },
+	{ Id = "FrozenExperiment", DisplayName = "Frozen Experiment", MaxHealth = 18000000, RequiredPower = 100000, DNAReward = 12000, RespawnTime = 70, AreaName = "FrostBoss", IsBoss = true },
+	{ Id = "MagmaBeast", DisplayName = "Magma Beast", MaxHealth = 30000000, RequiredPower = 500000, DNAReward = 28000, RespawnTime = 80, AreaName = "MagmaBoss", IsBoss = true },
 
 	{ Id = "GlitchHunter", DisplayName = "Glitch Hunter", MaxHealth = 25000000, RequiredPower = 15000000, DNAReward = 35000, RespawnTime = 60, AreaName = "GlitchEnemies", IsBoss = false },
 	{ Id = "FirewallBeast", DisplayName = "Firewall Beast", MaxHealth = 50000000, RequiredPower = 30000000, DNAReward = 60000, RespawnTime = 75, AreaName = "GlitchEnemies", IsBoss = false },

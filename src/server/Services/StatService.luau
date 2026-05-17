@@ -76,6 +76,7 @@ local function sendUpdate(player: Player)
 	UpdateClientData:FireClient(player, {
 		Power = profile.Power,
 		Rebirths = profile.Rebirths,
+		RebirthShards = profile.RebirthShards,
 		DnaCoins = profile.DnaCoins,
 		Level = profile.Level,
 		LevelCost = LevelConfig.getCost(profile.Level),

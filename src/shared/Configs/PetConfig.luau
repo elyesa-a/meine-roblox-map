@@ -42,8 +42,10 @@ PetConfig.Pets = {
 	{ id = "PoisonVirus", displayName = "Poison Virus", rarity = "Epic", multiplier = 3.0 },
 	{ id = "PlasmaWorm", displayName = "Plasma Worm", rarity = "Epic", multiplier = 4.0 },
 	{ id = "GlitchVirus", displayName = "Glitch Virus", rarity = "Legendary", multiplier = 8.0 },
-	{ id = "NeonHorror", displayName = "Neon Phantom", rarity = "Legendary", multiplier = 6.0 },
+	{ id = "FrostCell", displayName = "Frost Cell", rarity = "Legendary", multiplier = 6.0 },
+	{ id = "MagmaCell", displayName = "Magma Cell", rarity = "Legendary", multiplier = 7.0 },
 	{ id = "MegaMutant", displayName = "Mega Mutant", rarity = "Mythic", multiplier = 15.0 },
+	{ id = "DnaDragon", displayName = "DNA Dragon", rarity = "Mythic", multiplier = 18.0 },
 }
 
 function PetConfig.getById(id: string): PetDef?

@@ -29,6 +29,7 @@ local GamepassService = require(Services:WaitForChild("GamepassService"))
 local EnemyService = require(Services:WaitForChild("EnemyService"))
 local TitleService = require(Services:WaitForChild("TitleService"))
 local DailyQuestService = require(Services:WaitForChild("DailyQuestService"))
+local CollectibleService = require(Services:WaitForChild("CollectibleService"))
 local WorldBuilder = require(Services:WaitForChild("WorldBuilder"))
 local ZoneLockService = require(Services:WaitForChild("ZoneLockService"))
 local TrainingZoneService = require(Services:WaitForChild("TrainingZoneService"))
@@ -143,6 +144,12 @@ DailyQuestService.start({
 	DataService = DataService,
 	StatService = StatService,
 	AntiExploitService = AntiExploitService,
+	TitleService = TitleService,
+})
+CollectibleService.start({
+	DataService = DataService,
+	StatService = StatService,
+	DailyQuestService = DailyQuestService,
 	TitleService = TitleService,
 })
 

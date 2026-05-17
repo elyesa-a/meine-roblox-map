@@ -1,7 +1,8 @@
 --!strict
 -- Zonen-Definition.
--- Layout: alle Progressions-Zonen liegen als klare horizontale Reihe im
--- geschlossenen Laborraum. Die Reihenfolge entspricht der Training-Progression.
+-- Layout: Progressions-Zonen liegen als klare Sektor-Reihe im Laborraum.
+-- Nicht jede Zone braucht ein Trainingsbett; einige sind Boss-/Atmosphaeren-
+-- Sektoren fuer die groessere DNA Mutation Facility.
 
 export type ZoneDef = {
 	id: string,
@@ -24,8 +25,8 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredPower = 0,
 		zoneMultiplier = 1,
 		color = Color3.fromRGB(120, 200, 255),
-		center = Vector3.new(-510, 0, -8),
-		size = Vector3.new(140, 1, 126),
+		center = Vector3.new(-595, 0, -8),
+		size = Vector3.new(126, 1, 126),
 		enabled = true,
 	},
 	{
@@ -35,8 +36,8 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredPower = 500,
 		zoneMultiplier = 2,
 		color = Color3.fromRGB(120, 255, 170),
-		center = Vector3.new(-306, 0, -8),
-		size = Vector3.new(140, 1, 126),
+		center = Vector3.new(-425, 0, -8),
+		size = Vector3.new(126, 1, 126),
 		enabled = true,
 	},
 	{
@@ -45,9 +46,9 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredRebirth = 10,
 		requiredPower = 5000,
 		zoneMultiplier = 5,
-		color = Color3.fromRGB(200, 120, 255),
-		center = Vector3.new(-102, 0, -8),
-		size = Vector3.new(140, 1, 126),
+		color = Color3.fromRGB(230, 70, 90),
+		center = Vector3.new(-255, 0, -8),
+		size = Vector3.new(126, 1, 126),
 		enabled = true,
 	},
 	{
@@ -56,9 +57,31 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredRebirth = 25,
 		requiredPower = 25000,
 		zoneMultiplier = 12,
-		color = Color3.fromRGB(255, 200, 80),
-		center = Vector3.new(102, 0, -8),
-		size = Vector3.new(140, 1, 126),
+		color = Color3.fromRGB(150, 255, 70),
+		center = Vector3.new(-85, 0, -8),
+		size = Vector3.new(126, 1, 126),
+		enabled = true,
+	},
+	{
+		id = "FrostLabZone",
+		displayName = "Frost Lab",
+		requiredRebirth = 30,
+		requiredPower = 100000,
+		zoneMultiplier = 16,
+		color = Color3.fromRGB(160, 235, 255),
+		center = Vector3.new(85, 0, -8),
+		size = Vector3.new(126, 1, 126),
+		enabled = true,
+	},
+	{
+		id = "MagmaReactorZone",
+		displayName = "Magma Reactor",
+		requiredRebirth = 40,
+		requiredPower = 500000,
+		zoneMultiplier = 22,
+		color = Color3.fromRGB(255, 105, 45),
+		center = Vector3.new(255, 0, -8),
+		size = Vector3.new(126, 1, 126),
 		enabled = true,
 	},
 	{
@@ -68,8 +91,8 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredPower = 2000000,
 		zoneMultiplier = 30,
 		color = Color3.fromRGB(255, 80, 200),
-		center = Vector3.new(306, 0, -8),
-		size = Vector3.new(140, 1, 126),
+		center = Vector3.new(425, 0, -8),
+		size = Vector3.new(126, 1, 126),
 		enabled = true,
 	},
 	{
@@ -79,8 +102,8 @@ local ZoneConfig: { [number]: ZoneDef } = {
 		requiredPower = 10000000,
 		zoneMultiplier = 100,
 		color = Color3.fromRGB(255, 60, 60),
-		center = Vector3.new(510, 0, -8),
-		size = Vector3.new(140, 1, 126),
+		center = Vector3.new(595, 0, -8),
+		size = Vector3.new(126, 1, 126),
 		enabled = true,
 	},
 }

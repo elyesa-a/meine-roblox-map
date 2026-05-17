@@ -65,6 +65,7 @@ export type DailyQuestState = {
 export type Profile = {
 	Power: number,
 	Rebirths: number,
+	RebirthShards: number,
 	DnaCoins: number,
 	Level: number,
 	Pets: { [string]: any },
@@ -95,6 +96,7 @@ local function getDefaultProfile(): Profile
 	return {
 		Power = 0,
 		Rebirths = 0,
+		RebirthShards = 0,
 		DnaCoins = 0,
 		Level = 1,
 		Pets = {},
