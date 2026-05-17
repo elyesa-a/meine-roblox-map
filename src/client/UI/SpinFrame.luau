@@ -36,6 +36,10 @@ local SEGMENT_COLORS = {
 	Color3.fromRGB(65, 145, 255),
 	Color3.fromRGB(245, 70, 82),
 }
+local WHEEL_DIAMETER = 360
+local WHEEL_RADIUS = WHEEL_DIAMETER / 2
+local SEGMENT_STRIPS = 9
+local LABEL_RADIUS = 124
 
 local function formatCooldown(sec: number): string
 	sec = math.max(0, math.floor(sec))
@@ -100,35 +104,33 @@ end
 local function addSegment(wheel: Frame, reward, index: number, count: number)
 	local segmentAngle = 360 / count
 	local color = SEGMENT_COLORS[((index - 1) % #SEGMENT_COLORS) + 1]
-	local rotation = (index - 1) * segmentAngle - 90
+	local stripAngle = segmentAngle / SEGMENT_STRIPS
+	local startAngle = -90 + (index - 1) * segmentAngle
 
-	local segment = Instance.new("Frame")
-	segment.Name = "Segment_" .. tostring(index)
-	segment.AnchorPoint = Vector2.new(0, 0.5)
-	segment.Size = UDim2.new(0, 158, 0, 50)
-	segment.Position = UDim2.fromScale(0.5, 0.5)
-	segment.Rotation = rotation
-	segment.BackgroundColor3 = color
-	segment.BorderSizePixel = 0
-	segment.ZIndex = 9
-	segment.Parent = wheel
-	segment:SetAttribute("RewardId", reward.id)
+	for stripIndex = 1, SEGMENT_STRIPS do
+		local strip = Instance.new("Frame")
+		strip.Name = "Segment_" .. tostring(index) .. "_Strip_" .. tostring(stripIndex)
+		strip.AnchorPoint = Vector2.new(0, 0.5)
+		strip.Size = UDim2.new(0, WHEEL_RADIUS + 10, 0, 17)
+		strip.Position = UDim2.fromScale(0.5, 0.5)
+		strip.Rotation = startAngle + (stripIndex - 0.5) * stripAngle
+		strip.BackgroundColor3 = color
+		strip.BorderSizePixel = 0
+		strip.ZIndex = 9
+		strip.Parent = wheel
+		strip:SetAttribute("RewardId", reward.id)
+	end
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 12)
-	corner.Parent = segment
-
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(18, 24, 36)
-	stroke.Thickness = 2
-	stroke.Transparency = 0.08
-	stroke.Parent = segment
+	local midAngle = startAngle + segmentAngle / 2
+	local radians = math.rad(midAngle)
+	local labelX = WHEEL_DIAMETER / 2 + math.cos(radians) * LABEL_RADIUS
+	local labelY = WHEEL_DIAMETER / 2 + math.sin(radians) * LABEL_RADIUS
 
 	local rewardLabel = Instance.new("TextLabel")
 	rewardLabel.Name = "RewardLabel"
 	rewardLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-	rewardLabel.Size = UDim2.new(0, 82, 0, 34)
-	rewardLabel.Position = UDim2.new(0, 116, 0.5, 0)
+	rewardLabel.Size = UDim2.new(0, 74, 0, 32)
+	rewardLabel.Position = UDim2.fromOffset(labelX, labelY)
 	rewardLabel.BackgroundTransparency = 1
 	rewardLabel.Font = Enum.Font.GothamBold
 	rewardLabel.Text = reward.displayName
@@ -137,15 +139,14 @@ local function addSegment(wheel: Frame, reward, index: number, count: number)
 	rewardLabel.TextColor3 = textColorFor(color)
 	rewardLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 	rewardLabel.TextStrokeTransparency = if color == SEGMENT_COLORS[1] then 0.75 else 0.15
-	rewardLabel.Rotation = -rotation
-	rewardLabel.ZIndex = 10
-	rewardLabel.Parent = segment
+	rewardLabel.ZIndex = 12
+	rewardLabel.Parent = wheel
 end
 
 local function animateToReward(refs: Refs, rewardId: string, displayName: string, rarity: string?)
 	local rewardIndex = getRewardIndex(rewardId)
 	local segmentAngle = 360 / #SpinConfig.Rewards
-	local targetMod = normalizeDegrees(-((rewardIndex - 1) * segmentAngle))
+	local targetMod = normalizeDegrees(-((rewardIndex - 0.5) * segmentAngle))
 	local currentMod = normalizeDegrees(refs.currentRotation)
 	local relative = targetMod - currentMod
 	if relative < 0 then
@@ -193,7 +194,7 @@ function SpinFrame.create(parent: ScreenGui): Refs
 	root.Name = "SpinFrame"
 	root.AnchorPoint = Vector2.new(0.5, 0.5)
 	root.Position = UDim2.fromScale(0.5, 0.5)
-	root.Size = UDim2.new(0, 620, 0, 610)
+	root.Size = UDim2.new(0, 620, 0, 660)
 	Theme.applyPanelStyle(root, Theme.Colors.Yellow)
 	root.ZIndex = 6
 	root.Parent = backdrop
@@ -216,7 +217,7 @@ function SpinFrame.create(parent: ScreenGui): Refs
 		UIAnimator.framePopOut(backdrop, root)
 	end)
 
-	local wheelHolder = makeCircle(root, "WheelHolder", UDim2.new(0, 392, 0, 392), UDim2.new(0.5, 0, 0, 256), Color3.fromRGB(20, 25, 38), 7)
+	local wheelHolder = makeCircle(root, "WheelHolder", UDim2.new(0, WHEEL_DIAMETER + 26, 0, WHEEL_DIAMETER + 26), UDim2.new(0.5, 0, 0, 256), Color3.fromRGB(20, 25, 38), 7)
 	wheelHolder.ClipsDescendants = false
 	local holderStroke = Instance.new("UIStroke")
 	holderStroke.Color = Color3.fromRGB(255, 235, 120)
@@ -224,7 +225,7 @@ function SpinFrame.create(parent: ScreenGui): Refs
 	holderStroke.Transparency = 0.05
 	holderStroke.Parent = wheelHolder
 
-	local wheel = makeCircle(wheelHolder, "Wheel", UDim2.new(1, -22, 1, -22), UDim2.fromScale(0.5, 0.5), Color3.fromRGB(32, 39, 56), 8)
+	local wheel = makeCircle(wheelHolder, "Wheel", UDim2.fromOffset(WHEEL_DIAMETER, WHEEL_DIAMETER), UDim2.fromScale(0.5, 0.5), Color3.fromRGB(32, 39, 56), 8)
 	wheel.ClipsDescendants = true
 
 	for i, reward in ipairs(SpinConfig.Rewards) do
@@ -235,7 +236,7 @@ function SpinFrame.create(parent: ScreenGui): Refs
 		local spoke = Instance.new("Frame")
 		spoke.Name = "Spoke_" .. tostring(i)
 		spoke.AnchorPoint = Vector2.new(0, 0.5)
-		spoke.Size = UDim2.new(0, 180, 0, 2)
+		spoke.Size = UDim2.new(0, WHEEL_RADIUS, 0, 2)
 		spoke.Position = UDim2.fromScale(0.5, 0.5)
 		spoke.Rotation = (i - 1) * (360 / #SpinConfig.Rewards) - 90
 		spoke.BackgroundColor3 = Color3.fromRGB(18, 24, 36)
@@ -244,15 +245,12 @@ function SpinFrame.create(parent: ScreenGui): Refs
 		spoke.Parent = wheel
 	end
 
-	local center = makeCircle(wheelHolder, "CenterCircle", UDim2.new(0, 116, 0, 116), UDim2.fromScale(0.5, 0.5), Color3.fromRGB(32, 39, 56), 14)
+	local center = makeCircle(wheelHolder, "CenterCircle", UDim2.new(0, 62, 0, 62), UDim2.fromScale(0.5, 0.5), Color3.fromRGB(32, 39, 56), 14)
 	local centerStroke = Instance.new("UIStroke")
 	centerStroke.Color = Color3.fromRGB(255, 255, 255)
 	centerStroke.Thickness = 3
 	centerStroke.Transparency = 0.08
 	centerStroke.Parent = center
-	local centerLabel = makeLabel(center, "LUCKY\nWHEEL", UDim2.new(1, -12, 1, -18), UDim2.new(0, 6, 0, 9), 15)
-	centerLabel.TextSize = 18
-	centerLabel.TextScaled = true
 
 	local pointer = Instance.new("Frame")
 	pointer.Name = "Pointer"
@@ -269,15 +267,15 @@ function SpinFrame.create(parent: ScreenGui): Refs
 	pointerStroke.Thickness = 2
 	pointerStroke.Parent = pointer
 
-	local statusLabel = makeLabel(root, "FREE SPIN READY!", UDim2.new(1, -32, 0, 28), UDim2.new(0, 16, 0, 462), 7)
+	local statusLabel = makeLabel(root, "FREE SPIN READY!", UDim2.new(1, -32, 0, 28), UDim2.new(0, 16, 0, 466), 7)
 	statusLabel.TextSize = 18
 	statusLabel.TextScaled = false
 
-	local cooldownLabel = makeLabel(root, "", UDim2.new(1, -32, 0, 22), UDim2.new(0, 16, 0, 490), 7)
+	local cooldownLabel = makeLabel(root, "", UDim2.new(1, -32, 0, 22), UDim2.new(0, 16, 0, 496), 7)
 	cooldownLabel.TextSize = 14
 	cooldownLabel.TextScaled = false
 
-	local resultLabel = makeLabel(root, "REWARD: -", UDim2.new(1, -32, 0, 30), UDim2.new(0, 16, 0, 518), 7)
+	local resultLabel = makeLabel(root, "REWARD: -", UDim2.new(1, -32, 0, 32), UDim2.new(0, 16, 0, 526), 7)
 	resultLabel.TextSize = 18
 	resultLabel.TextScaled = false
 	resultLabel.TextColor3 = Theme.Colors.Yellow
@@ -286,7 +284,7 @@ function SpinFrame.create(parent: ScreenGui): Refs
 	spinButton.Name = "SpinButton"
 	spinButton.AnchorPoint = Vector2.new(0.5, 1)
 	spinButton.Size = UDim2.new(1, -42, 0, 58)
-	spinButton.Position = UDim2.new(0.5, 0, 1, -16)
+	spinButton.Position = UDim2.new(0.5, 0, 1, -18)
 	Theme.applyButtonStyle(spinButton, Theme.Colors.Green)
 	spinButton.Text = "SPIN"
 	spinButton.TextSize = 24
