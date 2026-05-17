@@ -1,21 +1,21 @@
 --!strict
--- SpinService: Glücksrad mit gewichteten Belohnungen. Free-Spin alle 30 Min.
+-- SpinService: weighted Lucky Wheel rewards. Free spin every 30 minutes.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Configs = ReplicatedStorage:WaitForChild("Configs")
 local SpinConfig = require(Configs:WaitForChild("SpinConfig"))
-local PetConfig = require(Configs:WaitForChild("PetConfig"))
+local RebirthConfig = require(Configs:WaitForChild("RebirthConfig"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestSpin = Remotes:WaitForChild("RequestSpin") :: RemoteEvent
+local SpinResult = Remotes:WaitForChild("SpinResult") :: RemoteEvent
 local ShowPopup = Remotes:WaitForChild("ShowPopup") :: RemoteEvent
 
 local SpinService = {}
 
 local DataService
 local StatService
-local PetService
 local AntiExploitService
 
 local rng = Random.new()
@@ -50,29 +50,32 @@ end
 local function grantReward(player: Player, reward)
 	local profile = DataService.getProfile(player)
 	if not profile then
-		return
+		return reward.displayName
 	end
 	if reward.type == "Dna" then
 		profile.DnaCoins += reward.amount
 	elseif reward.type == "Power" then
 		profile.Power = math.floor(profile.Power + reward.amount)
-	elseif reward.type == "Pet" and PetService then
-		-- "PetCommon" -> rolle nochmal random (Common+), "PetEpic" -> rare+
-		local minRarityOrder = if reward.id == "PetEpic" then 3 else 1
-		local rarityOrder = { Common = 1, Rare = 2, Epic = 3, Legendary = 4, Mythic = 5 }
-		for _ = 1, 8 do
-			local def = PetConfig.rollRandomPet(rng)
-			if def and (rarityOrder[def.rarity] or 0) >= minRarityOrder then
-				PetService.grantPet(player, def.id)
-				return
-			end
+	elseif reward.type == "Luck" then
+		local now = os.time()
+		local boostSeconds = reward.boostSeconds or 300
+		local existing = profile.ActiveBoosts.Luck2x
+		if existing and existing > now then
+			profile.ActiveBoosts.Luck2x = existing + boostSeconds
+		else
+			profile.ActiveBoosts.Luck2x = now + boostSeconds
 		end
-		-- Fallback: einfach irgendein Pet.
-		local fallback = PetConfig.rollRandomPet(rng)
-		if fallback then
-			PetService.grantPet(player, fallback.id)
+	elseif reward.type == "Rebirth" then
+		local before = profile.Rebirths
+		profile.Rebirths = math.min(RebirthConfig.MaxRebirth, before + reward.amount)
+		local granted = profile.Rebirths - before
+		if granted <= 0 then
+			return "Max Rebirth reached"
 		end
+		return string.format("+%d %s", granted, if granted == 1 then "Rebirth" else "Rebirths")
 	end
+
+	return reward.displayName
 end
 
 function SpinService.spin(player: Player)
@@ -87,8 +90,16 @@ function SpinService.spin(player: Player)
 	profile.Spin.LastFreeSpin = os.time()
 	StatService.playSound(player, "Spin")
 	local reward = rollReward()
-	grantReward(player, reward)
-	ShowPopup:FireClient(player, string.format("Spin: %s", reward.displayName))
+	local grantedDisplay = grantReward(player, reward)
+	SpinResult:FireClient(player, {
+		id = reward.id,
+		displayName = reward.displayName,
+		grantedDisplayName = grantedDisplay,
+		type = reward.type,
+		amount = reward.amount,
+		rarity = reward.rarity,
+	})
+	ShowPopup:FireClient(player, "You won " .. tostring(grantedDisplay) .. "!")
 	StatService.broadcastProfile(player)
 	StatService.playSound(player, "Reward")
 end
@@ -96,7 +107,6 @@ end
 function SpinService.start(deps)
 	DataService = deps.DataService
 	StatService = deps.StatService
-	PetService = deps.PetService
 	AntiExploitService = deps.AntiExploitService
 
 	AntiExploitService.safeBind(RequestSpin, 1, function(player)
