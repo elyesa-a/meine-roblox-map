@@ -38,9 +38,9 @@ type Refs = {
 }
 
 local ENTRIES: { Entry } = {
-	{ boostId = "Power2x", label = "2X KRAFT",  color = Theme.Colors.Red },
+	{ boostId = "Power2x", label = "2X POWER",  color = Theme.Colors.Red },
 	{ boostId = "Dna2x",   label = "2X DNA",    color = Theme.Colors.Blue },
-	{ boostId = "Luck2x",  label = "2X GLUECK", color = Theme.Colors.Yellow },
+	{ boostId = "Luck2x",  label = "2X LUCK", color = Theme.Colors.Yellow },
 }
 
 local function formatTime(sec: number): string

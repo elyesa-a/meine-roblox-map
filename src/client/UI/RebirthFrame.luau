@@ -51,7 +51,7 @@ function RebirthFrame.create(parent: ScreenGui): Refs
 	header.Size = UDim2.new(1, -16, 0, 48)
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
-	header.Text = "WIEDERGEBURT"
+	header.Text = "REBIRTH"
 	header.TextSize = 32
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -61,7 +61,7 @@ function RebirthFrame.create(parent: ScreenGui): Refs
 	subHeader.Size = UDim2.new(1, -16, 0, 24)
 	subHeader.Position = UDim2.new(0, 8, 0, 60)
 	Theme.applyLabelStyle(subHeader)
-	subHeader.Text = "Deine Kraft wird zurueckgesetzt!"
+	subHeader.Text = "Your Power resets!"
 	subHeader.TextSize = 16
 	subHeader.TextScaled = false
 	subHeader.ZIndex = 7
@@ -111,7 +111,7 @@ function RebirthFrame.create(parent: ScreenGui): Refs
 	costLabel.Size = UDim2.new(1, -32, 0, 24)
 	costLabel.Position = UDim2.new(0.5, 0, 0, 210)
 	Theme.applyLabelStyle(costLabel)
-	costLabel.Text = "Benoetigte Kraft: 0"
+	costLabel.Text = "Required Power: 0"
 	costLabel.TextSize = 18
 	costLabel.TextScaled = false
 	costLabel.ZIndex = 7
@@ -145,7 +145,7 @@ function RebirthFrame.create(parent: ScreenGui): Refs
 	confirmButton.AnchorPoint = Vector2.new(0.5, 1)
 	confirmButton.Size = UDim2.new(1, -32, 0, 56)
 	confirmButton.Position = UDim2.new(0.5, 0, 1, -16)
-	confirmButton.Text = "WIEDERGEBURT"
+	confirmButton.Text = "REBIRTH"
 	Theme.applyButtonStyle(confirmButton, Theme.Colors.Green)
 	confirmButton.TextSize = 22
 	confirmButton.TextScaled = false
@@ -205,21 +205,21 @@ function RebirthFrame.update(refs: Refs, state)
 	refs.currentMultLabel.Text = string.format("%.2gx", state.CurrentMultiplier or 1)
 
 	if r >= max then
-		refs.nextLabel.Text = "Max erreicht"
+		refs.nextLabel.Text = "Max reached"
 		refs.nextMultLabel.Text = "-"
-		refs.costLabel.Text = "Max Rebirth erreicht"
+		refs.costLabel.Text = "Max Rebirth reached"
 		refs.progressFill.Size = UDim2.new(1, 0, 1, 0)
-		refs.confirmButton.Text = "MAX REBIRTH ERREICHT"
+		refs.confirmButton.Text = "MAX REBIRTH REACHED"
 		refs.confirmButton.AutoButtonColor = false
 		refs.confirmButton.Active = false
 	else
 		refs.nextLabel.Text = "Rebirth " .. (r + 1)
 		refs.nextMultLabel.Text = string.format("%.2gx", state.NextMultiplier or 1)
 		local cost = state.RebirthCost or 0
-		refs.costLabel.Text = "Benoetigte Kraft: " .. NumberFormatter.format(cost)
+		refs.costLabel.Text = "Required Power: " .. NumberFormatter.format(cost)
 		local frac = if cost > 0 then math.clamp((state.Power or 0) / cost, 0, 1) else 0
 		refs.progressFill.Size = UDim2.new(frac, 0, 1, 0)
-		refs.confirmButton.Text = "WIEDERGEBURT"
+		refs.confirmButton.Text = "REBIRTH"
 		refs.confirmButton.Active = true
 	end
 end

@@ -48,12 +48,12 @@ function UpgradeService.buyUpgrade(player: Player, upgradeId: string)
 	end
 	local currentLevel = profile.Upgrades[upgradeId] or 0
 	if currentLevel >= UpgradeConfig.MaxLevel then
-		ShowPopup:FireClient(player, "Max Level erreicht!")
+		ShowPopup:FireClient(player, "Max Level reached!")
 		return
 	end
 	local cost = UpgradeConfig.getCost(currentLevel)
 	if profile.DnaCoins < cost then
-		ShowPopup:FireClient(player, "Nicht genug DNA-Coins!")
+		ShowPopup:FireClient(player, "Not enough DNA!")
 		return
 	end
 	profile.DnaCoins -= cost

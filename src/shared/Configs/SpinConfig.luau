@@ -1,15 +1,14 @@
 --!strict
--- Spin-Wheel-Belohnungen. weight = relative Wahrscheinlichkeit.
--- type kann sein: "Dna", "Power", "Pet"
--- Bei "Pet": id im SpinReward verweist auf PetConfig.id; nil = zufaelliges Pet.
+-- Spin-Wheel rewards. weight = relative chance.
+-- type can be "Dna", "Power", "Luck", or "Rebirth".
 
 export type SpinReward = {
 	id: string,
 	displayName: string,
 	type: string,
 	amount: number,
-	-- Optional, fuer Pet-Belohnungen
-	petId: string?,
+	rarity: string,
+	boostSeconds: number?,
 	weight: number,
 	color: Color3,
 }
@@ -19,14 +18,16 @@ local SpinConfig = {}
 SpinConfig.CooldownSec = 1800 -- 30 Minuten zwischen Free-Spins
 
 SpinConfig.Rewards = {
-	{ id = "DnaSmall", displayName = "+25 DNA", type = "Dna", amount = 25, weight = 40, color = Color3.fromRGB(80, 160, 255) },
-	{ id = "DnaMedium", displayName = "+100 DNA", type = "Dna", amount = 100, weight = 20, color = Color3.fromRGB(80, 160, 255) },
-	{ id = "DnaBig", displayName = "+500 DNA", type = "Dna", amount = 500, weight = 5, color = Color3.fromRGB(60, 120, 255) },
-	{ id = "PowerSmall", displayName = "+250 Kraft", type = "Power", amount = 250, weight = 15, color = Color3.fromRGB(255, 100, 100) },
-	{ id = "PowerMedium", displayName = "+1.5K Kraft", type = "Power", amount = 1500, weight = 10, color = Color3.fromRGB(255, 100, 100) },
-	{ id = "PowerBig", displayName = "+10K Kraft", type = "Power", amount = 10000, weight = 4, color = Color3.fromRGB(255, 60, 60) },
-	{ id = "PetCommon", displayName = "Pet (Common+)", type = "Pet", amount = 1, weight = 5, color = Color3.fromRGB(200, 120, 255) },
-	{ id = "PetEpic", displayName = "Pet (Epic+)", type = "Pet", amount = 1, weight = 1, color = Color3.fromRGB(255, 80, 200) },
+	{ id = "DnaSmall", displayName = "+100 DNA", type = "Dna", amount = 100, rarity = "Common", weight = 32, color = Color3.fromRGB(245, 248, 255) },
+	{ id = "PowerSmall", displayName = "+250 Power", type = "Power", amount = 250, rarity = "Common", weight = 24, color = Color3.fromRGB(70, 155, 255) },
+	{ id = "LuckSmall", displayName = "+25 Luck", type = "Luck", amount = 25, boostSeconds = 300, rarity = "Common", weight = 18, color = Color3.fromRGB(245, 70, 80) },
+	{ id = "DnaMedium", displayName = "+500 DNA", type = "Dna", amount = 500, rarity = "Rare", weight = 12, color = Color3.fromRGB(245, 248, 255) },
+	{ id = "PowerMedium", displayName = "+2.5K Power", type = "Power", amount = 2500, rarity = "Rare", weight = 8, color = Color3.fromRGB(70, 155, 255) },
+	{ id = "LuckBig", displayName = "+100 Luck", type = "Luck", amount = 100, boostSeconds = 900, rarity = "Rare", weight = 5, color = Color3.fromRGB(245, 70, 80) },
+	{ id = "DnaBig", displayName = "+5K DNA", type = "Dna", amount = 5000, rarity = "Epic", weight = 2.5, color = Color3.fromRGB(245, 248, 255) },
+	{ id = "RebirthOne", displayName = "+1 Rebirth", type = "Rebirth", amount = 1, rarity = "Epic", weight = 1.2, color = Color3.fromRGB(70, 155, 255) },
+	{ id = "RebirthFive", displayName = "+5 Rebirths", type = "Rebirth", amount = 5, rarity = "Legendary", weight = 0.35, color = Color3.fromRGB(245, 70, 80) },
+	{ id = "RebirthTen", displayName = "+10 Rebirths", type = "Rebirth", amount = 10, rarity = "Mythic", weight = 0.08, color = Color3.fromRGB(245, 248, 255) },
 }
 
 function SpinConfig.totalWeight(): number

@@ -19,14 +19,14 @@ type Refs = {
 
 local KEYS = { "Music", "SFX", "VFX", "Haptik" }
 local LABELS: { [string]: string } = {
-	Music = "MUSIK",
+	Music = "MUSIC",
 	SFX = "SFX",
 	VFX = "VFX",
-	Haptik = "HAPTIK",
+	Haptik = "HAPTICS",
 }
 
 local function setToggleVisual(btn: TextButton, on: boolean, key: string)
-	btn.Text = string.format("%s: %s", LABELS[key] or key, on and "EIN" or "AUS")
+	btn.Text = string.format("%s: %s", LABELS[key] or key, on and "ON" or "OFF")
 	btn.BackgroundColor3 = if on then Theme.Colors.Green else Theme.Colors.Red
 end
 
@@ -54,7 +54,7 @@ function SettingsFrame.create(parent: ScreenGui): Refs
 	header.Size = UDim2.new(1, -16, 0, 48)
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
-	header.Text = "EINSTELLUNGEN"
+	header.Text = "SETTINGS"
 	header.TextSize = 28
 	header.TextScaled = false
 	header.ZIndex = 7

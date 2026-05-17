@@ -76,7 +76,7 @@ function PetService.grantPet(player: Player, petId: string): string?
 		return nil
 	end
 	if countDict(profile.Pets) >= PetConfig.MaxInventorySize then
-		ShowPopup:FireClient(player, "Pet-Inventar voll!")
+		ShowPopup:FireClient(player, "Pet inventory full!")
 		return nil
 	end
 	local instanceId = generateInstanceId()
@@ -97,7 +97,7 @@ function PetService.openEgg(player: Player)
 		return
 	end
 	if countDict(profile.Pets) >= PetConfig.MaxInventorySize then
-		ShowPopup:FireClient(player, "Pet-Inventar voll!")
+		ShowPopup:FireClient(player, "Pet inventory full!")
 		return
 	end
 	if profile.DnaCoins < PetConfig.EggCost then
@@ -131,7 +131,7 @@ function PetService.openEgg(player: Player)
 	end
 	local instanceId = PetService.grantPet(player, best.id)
 	if instanceId then
-		ShowPopup:FireClient(player, string.format("Du hast %s (%s) bekommen!", best.displayName, best.rarity))
+		ShowPopup:FireClient(player, string.format("You got %s (%s)!", best.displayName, best.rarity))
 	end
 end
 
@@ -153,7 +153,7 @@ function PetService.equipPet(player: Player, instanceId: string)
 		return -- schon ausgeruestet
 	end
 	if #profile.EquippedPets >= PetConfig.MaxEquipped then
-		ShowPopup:FireClient(player, string.format("Max %d Pets gleichzeitig!", PetConfig.MaxEquipped))
+		ShowPopup:FireClient(player, string.format("Max %d pets equipped!", PetConfig.MaxEquipped))
 		return
 	end
 	table.insert(profile.EquippedPets, instanceId)

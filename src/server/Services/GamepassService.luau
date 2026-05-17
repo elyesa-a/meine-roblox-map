@@ -107,7 +107,7 @@ local function onPurchaseFinished(player: Player, assetId: number, success: bool
 		ownsCache[player][def.id] = true
 	end
 	applyOneShotEffect(player, def)
-	ShowPopup:FireClient(player, string.format("%s freigeschaltet!", def.displayName))
+	ShowPopup:FireClient(player, string.format("%s unlocked!", def.displayName))
 	StatService.broadcastProfile(player)
 end
 
@@ -153,7 +153,7 @@ function GamepassService.start(deps)
 			return
 		end
 		if def.assetId == 0 then
-			ShowPopup:FireClient(player, string.format("%s -- bald verfuegbar!", def.displayName))
+			ShowPopup:FireClient(player, string.format("%s -- coming soon!", def.displayName))
 			return
 		end
 		MarketplaceService:PromptGamePassPurchase(player, def.assetId)

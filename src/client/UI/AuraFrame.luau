@@ -50,7 +50,7 @@ local function makeCard(parent: ScrollingFrame, def): { card: Frame, button: Tex
 	multi.Position = UDim2.new(0, 12, 0, 42)
 	Theme.applyLabelStyle(multi)
 	multi.TextXAlignment = Enum.TextXAlignment.Left
-	multi.Text = string.format("%.2gx Kraft", def.multiplier)
+	multi.Text = string.format("%.2gx Power", def.multiplier)
 	multi.TextSize = 18
 	multi.TextScaled = false
 	multi.ZIndex = 8
@@ -63,7 +63,7 @@ local function makeCard(parent: ScrollingFrame, def): { card: Frame, button: Tex
 	status.Position = UDim2.new(1, -180, 0, 12)
 	Theme.applyLabelStyle(status)
 	status.TextXAlignment = Enum.TextXAlignment.Right
-	status.Text = string.format("Preis: %s DNA", NumberFormatter.format(def.priceDna))
+	status.Text = string.format("Price: %s DNA", NumberFormatter.format(def.priceDna))
 	status.TextSize = 16
 	status.TextScaled = false
 	status.ZIndex = 8
@@ -75,7 +75,7 @@ local function makeCard(parent: ScrollingFrame, def): { card: Frame, button: Tex
 	button.Size = UDim2.new(0, 160, 0, 50)
 	button.Position = UDim2.new(1, -12, 0.5, 0)
 	Theme.applyButtonStyle(button, Theme.Colors.Green)
-	button.Text = "KAUFEN"
+	button.Text = "BUY"
 	button.TextSize = 18
 	button.TextScaled = false
 	button.ZIndex = 9
@@ -108,7 +108,7 @@ function AuraFrame.create(parent: ScreenGui): Refs
 	header.Size = UDim2.new(1, -16, 0, 40)
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
-	header.Text = "AUREN"
+	header.Text = "AURAS"
 	header.TextSize = 28
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -132,7 +132,7 @@ function AuraFrame.create(parent: ScreenGui): Refs
 	infoLabel.Size = UDim2.new(1, -32, 0, 28)
 	infoLabel.Position = UDim2.new(0, 16, 0, 52)
 	Theme.applyLabelStyle(infoLabel)
-	infoLabel.Text = "DNA: 0  |  Aktuelle Aura: -"
+	infoLabel.Text = "DNA: 0  |  Current Aura: -"
 	infoLabel.TextSize = 16
 	infoLabel.TextScaled = false
 	infoLabel.ZIndex = 7
@@ -214,7 +214,7 @@ function AuraFrame.update(refs: Refs, state)
 		end
 	end
 	refs.infoLabel.Text = string.format(
-		"DNA: %s  |  Aktuelle Aura: %s",
+		"DNA: %s  |  Current Aura: %s",
 		NumberFormatter.format(dna),
 		equippedName
 	)
@@ -230,20 +230,20 @@ function AuraFrame.update(refs: Refs, state)
 		local status = cardRefs.status
 
 		if isEquipped then
-			btn.Text = "ABLEGEN"
+			btn.Text = "UNEQUIP"
 			btn.BackgroundColor3 = Theme.Colors.Red
 			btn:SetAttribute("Action", "Unequip")
-			status.Text = "Ausgeruestet"
+			status.Text = "Equipped"
 		elseif owned then
-			btn.Text = "AUSRUESTEN"
+			btn.Text = "EQUIP"
 			btn.BackgroundColor3 = Theme.Colors.Blue
 			btn:SetAttribute("Action", "Equip")
-			status.Text = "Gekauft"
+			status.Text = "Owned"
 		else
-			btn.Text = "KAUFEN"
+			btn.Text = "BUY"
 			btn.BackgroundColor3 = if dna >= def.priceDna then Theme.Colors.Green else Theme.Colors.PanelMedium
 			btn:SetAttribute("Action", "Buy")
-			status.Text = string.format("Preis: %s DNA", NumberFormatter.format(def.priceDna))
+			status.Text = string.format("Price: %s DNA", NumberFormatter.format(def.priceDna))
 		end
 	end
 end

@@ -16,14 +16,14 @@ type Entry = {
 }
 
 local ENTRIES: { Entry } = {
-	{ id = "Rebirth",  label = "WIEDERGEBURT", color = Theme.Colors.Red },
-	{ id = "Title",    label = "TITEL",         color = Theme.Colors.Yellow },
+	{ id = "Rebirth",  label = "REBIRTH",  color = Theme.Colors.Red },
+	{ id = "Title",    label = "TITLES",   color = Theme.Colors.Yellow },
 	{ id = "Pets",     label = "PETS",          color = Theme.Colors.Blue },
-	{ id = "Upgrades", label = "SCHUB",         color = Theme.Colors.Green },
-	{ id = "Auras",    label = "AUREN",         color = Theme.Colors.Purple },
+	{ id = "Upgrades", label = "SKILLS",        color = Theme.Colors.Green },
+	{ id = "Auras",    label = "AURAS",         color = Theme.Colors.Purple },
 	{ id = "Daily",    label = "DAILY",         color = Theme.Colors.Orange },
 	{ id = "Shop",     label = "SHOP",          color = Theme.Colors.Pink },
-	{ id = "Settings", label = "EINSTELLUNGEN", color = Theme.Colors.PanelMedium },
+	{ id = "Settings", label = "SETTINGS", color = Theme.Colors.PanelMedium },
 }
 
 function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())

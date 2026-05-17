@@ -53,7 +53,7 @@ function DailyChestService.claim(player: Player)
 	end
 	local can, _ = DailyChestService.canClaim(player)
 	if not can then
-		ShowPopup:FireClient(player, "Daily Chest noch nicht verfuegbar.")
+		ShowPopup:FireClient(player, "Daily Chest is not ready yet.")
 		return
 	end
 
@@ -83,7 +83,7 @@ function DailyChestService.claim(player: Player)
 	end
 
 	ShowPopup:FireClient(player, string.format(
-		"Tag %d! +%d DNA, +%d Kraft%s",
+		"Day %d! +%d DNA, +%d Power%s",
 		nextStreak,
 		reward.dna,
 		reward.power,

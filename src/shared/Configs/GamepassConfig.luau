@@ -17,9 +17,9 @@ local GamepassConfig = {}
 
 GamepassConfig.Passes = {
 	{ id = "SpinPack",    displayName = "5x SPINS",   robux = 9,   assetId = 0, effect = "SpinPack" },
-	{ id = "VipZone",     displayName = "VIP-ZONE",   robux = 39,  assetId = 0, effect = "VipZone" },
-	{ id = "AutoClicker", displayName = "AUTO-KLICK", robux = 99,  assetId = 0, effect = "AutoClicker" },
-	{ id = "GlitchPet",   displayName = "GLITCH-PET", robux = 279, assetId = 0, effect = "GlitchPet" },
+	{ id = "VipZone",     displayName = "VIP ZONE",   robux = 39,  assetId = 0, effect = "VipZone" },
+	{ id = "AutoClicker", displayName = "AUTO CLICKER", robux = 99,  assetId = 0, effect = "AutoClicker" },
+	{ id = "GlitchPet",   displayName = "GLITCH PET", robux = 279, assetId = 0, effect = "GlitchPet" },
 } :: { GamepassDef }
 
 function GamepassConfig.getById(id: string): GamepassDef?

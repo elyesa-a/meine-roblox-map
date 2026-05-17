@@ -29,13 +29,13 @@ function RebirthService.handleRequest(player: Player)
 	end
 
 	if profile.Rebirths >= RebirthConfig.MaxRebirth then
-		ShowPopup:FireClient(player, "Max Rebirth erreicht")
+		ShowPopup:FireClient(player, "Max Rebirth reached")
 		return
 	end
 
 	local cost = RebirthConfig.getCost(profile.Rebirths)
 	if profile.Power < cost then
-		ShowPopup:FireClient(player, "Nicht genug Kraft fuer Wiedergeburt")
+		ShowPopup:FireClient(player, "Not enough Power for Rebirth")
 		return
 	end
 
@@ -60,7 +60,7 @@ function RebirthService.handleRequest(player: Player)
 	StatService.broadcastProfile(player)
 	StatService.playSound(player, "Rebirth")
 	StatService.spawnRebirthVfx(player)
-	ShowPopup:FireClient(player, string.format("Wiedergeburt %d! +%d DNA", profile.Rebirths, reward))
+	ShowPopup:FireClient(player, string.format("Rebirth %d! +%d DNA", profile.Rebirths, reward))
 end
 
 function RebirthService.start(deps)

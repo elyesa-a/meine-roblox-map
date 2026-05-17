@@ -37,7 +37,7 @@ function ClickHandler.bind(screen: ScreenGui, button: TextButton, color: Color3)
 		RequestClick:FireServer()
 		-- Optimistischer Floating-Text (Server berechnet das echte Plus).
 		local absPos = button.AbsolutePosition + button.AbsoluteSize / 2
-		UIAnimator.floatText(screen, "+1 Kraft", UDim2.fromOffset(absPos.X, absPos.Y - 20), color)
+		UIAnimator.floatText(screen, "+1 Power", UDim2.fromOffset(absPos.X, absPos.Y - 20), color)
 	end)
 end
 
