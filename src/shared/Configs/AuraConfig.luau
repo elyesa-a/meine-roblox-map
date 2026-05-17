@@ -15,15 +15,15 @@ export type AuraDef = {
 local AuraConfig = {}
 
 AuraConfig.Auras = {
-	{ id = "Electric", displayName = "Elektro-Aura", multiplier = 1.25, priceDna = 25, color = Color3.fromRGB(120, 200, 255) },
-	{ id = "Blizzard", displayName = "Blizzard-Aura", multiplier = 1.5, priceDna = 100, color = Color3.fromRGB(180, 230, 255) },
-	{ id = "Purple", displayName = "Purpur-Aura", multiplier = 1.75, priceDna = 250, color = Color3.fromRGB(200, 120, 255) },
-	{ id = "Poison", displayName = "Gift-Aura", multiplier = 2.0, priceDna = 500, color = Color3.fromRGB(120, 255, 120) },
-	{ id = "Magma", displayName = "Magma-Aura", multiplier = 3.0, priceDna = 2500, color = Color3.fromRGB(255, 120, 60) },
-	{ id = "Glitch", displayName = "Glitch-Aura", multiplier = 5.0, priceDna = 10000, color = Color3.fromRGB(255, 80, 200) },
+	{ id = "Electric", displayName = "Electric Aura", multiplier = 1.25, priceDna = 25, color = Color3.fromRGB(120, 200, 255) },
+	{ id = "Blizzard", displayName = "Blizzard Aura", multiplier = 1.5, priceDna = 100, color = Color3.fromRGB(180, 230, 255) },
+	{ id = "Purple", displayName = "Purple Aura", multiplier = 1.75, priceDna = 250, color = Color3.fromRGB(200, 120, 255) },
+	{ id = "Poison", displayName = "Poison Aura", multiplier = 2.0, priceDna = 500, color = Color3.fromRGB(120, 255, 120) },
+	{ id = "Magma", displayName = "Magma Aura", multiplier = 3.0, priceDna = 2500, color = Color3.fromRGB(255, 120, 60) },
+	{ id = "Glitch", displayName = "Glitch Aura", multiplier = 5.0, priceDna = 10000, color = Color3.fromRGB(255, 80, 200) },
 	{
 		id = "Rainbow",
-		displayName = "Regenbogen-Aura",
+		displayName = "Rainbow Aura",
 		multiplier = 9.99,
 		priceDna = 50000,
 		color = Color3.fromRGB(255, 255, 255),

@@ -27,6 +27,7 @@ local SpinFrame = require(UI:WaitForChild("SpinFrame"))
 local DailyChestFrame = require(UI:WaitForChild("DailyChestFrame"))
 local GamepassFrame = require(UI:WaitForChild("GamepassFrame"))
 local StubFrame = require(UI:WaitForChild("StubFrame"))
+local MenuController = require(UI:WaitForChild("MenuController"))
 local PopupHandler = require(UI:WaitForChild("PopupHandler"))
 local ClickHandler = require(UI:WaitForChild("ClickHandler"))
 local SoundController = require(UI:WaitForChild("SoundController"))
@@ -54,11 +55,23 @@ local upgradeRefs = UpgradeFrame.create(screen)
 local spinRefs = SpinFrame.create(screen)
 local dailyRefs = DailyChestFrame.create(screen)
 local gamepassRefs = GamepassFrame.create(screen)
-local titleRefs = StubFrame.create(screen, "TitleFrame", Theme.Colors.Yellow, "TITEL")
+local titleRefs = StubFrame.create(screen, "TitleFrame", Theme.Colors.Yellow, "TITLES")
+
+local menuController = MenuController.new({
+	Auras = { backdrop = auraRefs.backdrop, root = auraRefs.root, show = AuraFrame.show },
+	Daily = { backdrop = dailyRefs.backdrop, root = dailyRefs.root, show = DailyChestFrame.show },
+	Pets = { backdrop = petRefs.backdrop, root = petRefs.root, show = PetFrame.show },
+	Rebirth = { backdrop = rebirthRefs.backdrop, root = rebirthRefs.root, show = RebirthFrame.show },
+	Settings = { backdrop = settingsRefs.backdrop, root = settingsRefs.root, show = SettingsFrame.show },
+	Shop = { backdrop = gamepassRefs.backdrop, root = gamepassRefs.root, show = GamepassFrame.show },
+	Titles = { backdrop = titleRefs.backdrop, root = titleRefs.root, show = StubFrame.show },
+	Skills = { backdrop = upgradeRefs.backdrop, root = upgradeRefs.root, show = UpgradeFrame.show },
+	Spin = { backdrop = spinRefs.backdrop, root = spinRefs.root, show = SpinFrame.show },
+})
 
 -- TopBar mit Spin-Button-Klick.
 local topRefs = TopBar.create(screen, function()
-	SpinFrame.show(spinRefs)
+	menuController:openMenu("Spin")
 end)
 
 -- Rechte Boost-Leiste: kauft DNA-Boosts. (Gamepasses liegen nur im Shop.)
@@ -67,21 +80,21 @@ local rightRefs = RightBoosts.create(screen)
 -- Linke Button-Leiste mit Klick-Handlern.
 LeftButtons.create(screen, function(id)
 	if id == "Rebirth" then
-		RebirthFrame.show(rebirthRefs)
+		menuController:openMenu("Rebirth")
 	elseif id == "Settings" then
-		SettingsFrame.show(settingsRefs)
+		menuController:openMenu("Settings")
 	elseif id == "Pets" then
-		PetFrame.show(petRefs)
+		menuController:openMenu("Pets")
 	elseif id == "Upgrades" then
-		UpgradeFrame.show(upgradeRefs)
+		menuController:openMenu("Skills")
 	elseif id == "Auras" then
-		AuraFrame.show(auraRefs)
+		menuController:openMenu("Auras")
 	elseif id == "Daily" then
-		DailyChestFrame.show(dailyRefs)
+		menuController:openMenu("Daily")
 	elseif id == "Shop" then
-		GamepassFrame.show(gamepassRefs)
+		menuController:openMenu("Shop")
 	elseif id == "Title" then
-		StubFrame.show(titleRefs)
+		menuController:openMenu("Titles")
 	end
 end)
 

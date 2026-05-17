@@ -49,7 +49,7 @@ local function onPortalTouched(portal: BasePart, otherPart: BasePart)
 	end
 
 	if profile.Rebirths < requiredRebirth then
-		ShowPopup:FireClient(player, string.format("Du brauchst Rebirth %d!", requiredRebirth))
+		ShowPopup:FireClient(player, string.format("You need Rebirth %d!", requiredRebirth))
 		-- Spieler zur StartZone zurueckwerfen, damit er nicht durchgehen kann.
 		local startZone = ZoneConfig.getById("StartZone")
 		local char = player.Character

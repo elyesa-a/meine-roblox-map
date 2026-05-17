@@ -29,10 +29,10 @@ type Refs = {
 }
 
 local ENTRIES: { Entry } = {
-	{ id = "SpinPack",    displayName = "5x SPINS",         subText = "Sofort 5 Free-Spins", robux = 9,   color = Theme.Colors.Yellow },
-	{ id = "VipZone",     displayName = "VIP-ZONE",         subText = "Zugang zur VIP-Zone", robux = 39,  color = Theme.Colors.Orange },
-	{ id = "AutoClicker", displayName = "AUTO-KLICK",       subText = "Klickt automatisch",  robux = 99,  color = Theme.Colors.Pink },
-	{ id = "GlitchPet",   displayName = "GLITCH-PET",       subText = "Garantiertes Mythic", robux = 279, color = Theme.Colors.Purple },
+	{ id = "SpinPack",    displayName = "5x SPINS",     subText = "Instant 5 Free Spins", robux = 9,   color = Theme.Colors.Yellow },
+	{ id = "VipZone",     displayName = "VIP ZONE",     subText = "Access to the VIP Zone", robux = 39,  color = Theme.Colors.Orange },
+	{ id = "AutoClicker", displayName = "AUTO CLICKER", subText = "Clicks automatically", robux = 99,  color = Theme.Colors.Pink },
+	{ id = "GlitchPet",   displayName = "GLITCH PET",   subText = "Guaranteed Mythic", robux = 279, color = Theme.Colors.Purple },
 }
 
 local function makeCard(parent: ScrollingFrame, entry: Entry, onPurchase: (Entry) -> ()): Frame
@@ -71,7 +71,7 @@ local function makeCard(parent: ScrollingFrame, entry: Entry, onPurchase: (Entry
 	btn.Size = UDim2.new(0, 170, 0, 68)
 	btn.Position = UDim2.new(1, -12, 0.5, 0)
 	Theme.applyButtonStyle(btn, Theme.Colors.Green)
-	btn.Text = string.format("NUR %d R$", entry.robux)
+	btn.Text = string.format("ONLY %d R$", entry.robux)
 	btn.TextSize = 18
 	btn.TextScaled = false
 	btn.ZIndex = 9
@@ -133,7 +133,7 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 	note.Size = UDim2.new(1, -32, 0, 28)
 	note.Position = UDim2.new(0, 16, 0, 52)
 	Theme.applyLabelStyle(note)
-	note.Text = "Platzhalter -- echte Robux-Kaeufe folgen in Phase 5."
+	note.Text = "Placeholder -- real Robux purchases follow in Phase 5."
 	note.TextSize = 14
 	note.TextScaled = false
 	note.ZIndex = 7

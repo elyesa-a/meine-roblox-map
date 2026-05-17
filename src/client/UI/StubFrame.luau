@@ -50,7 +50,7 @@ function StubFrame.create(parent: ScreenGui, name: string, headerColor: Color3, 
 	body.AnchorPoint = Vector2.new(0, 0.5)
 	body.Position = UDim2.new(0, 8, 0.5, 0)
 	Theme.applyLabelStyle(body)
-	body.Text = "KOMMT BALD\n(Phase 2-4)"
+	body.Text = "COMING SOON\n(Phase 2-4)"
 	body.TextSize = 24
 	body.TextScaled = false
 	body.ZIndex = 7

@@ -33,15 +33,15 @@ PetConfig.RarityWeights = {
 } :: { [string]: number }
 
 PetConfig.Pets = {
-	{ id = "MiniVirus", displayName = "Mini-Virus", rarity = "Common", multiplier = 1.2 },
-	{ id = "BacteriaBuddy", displayName = "Bakterien-Buddy", rarity = "Common", multiplier = 1.3 },
-	{ id = "SporeFly", displayName = "Spore-Fliege", rarity = "Rare", multiplier = 1.5 },
-	{ id = "SlimeMutant", displayName = "Schleim-Mutant", rarity = "Rare", multiplier = 2.0 },
-	{ id = "PoisonVirus", displayName = "Gift-Virus", rarity = "Epic", multiplier = 3.0 },
-	{ id = "PlasmaWorm", displayName = "Plasma-Wurm", rarity = "Epic", multiplier = 4.0 },
-	{ id = "GlitchVirus", displayName = "Glitch-Virus", rarity = "Legendary", multiplier = 8.0 },
-	{ id = "NeonHorror", displayName = "Neon-Schrecken", rarity = "Legendary", multiplier = 6.0 },
-	{ id = "MegaMutant", displayName = "Mega-Mutant", rarity = "Mythic", multiplier = 15.0 },
+	{ id = "MiniVirus", displayName = "Mini Virus", rarity = "Common", multiplier = 1.2 },
+	{ id = "BacteriaBuddy", displayName = "Bacteria Buddy", rarity = "Common", multiplier = 1.3 },
+	{ id = "SporeFly", displayName = "Spore Fly", rarity = "Rare", multiplier = 1.5 },
+	{ id = "SlimeMutant", displayName = "Slime Mutant", rarity = "Rare", multiplier = 2.0 },
+	{ id = "PoisonVirus", displayName = "Poison Virus", rarity = "Epic", multiplier = 3.0 },
+	{ id = "PlasmaWorm", displayName = "Plasma Worm", rarity = "Epic", multiplier = 4.0 },
+	{ id = "GlitchVirus", displayName = "Glitch Virus", rarity = "Legendary", multiplier = 8.0 },
+	{ id = "NeonHorror", displayName = "Neon Phantom", rarity = "Legendary", multiplier = 6.0 },
+	{ id = "MegaMutant", displayName = "Mega Mutant", rarity = "Mythic", multiplier = 15.0 },
 }
 
 function PetConfig.getById(id: string): PetDef?

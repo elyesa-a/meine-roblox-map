@@ -58,7 +58,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	header.Size = UDim2.new(1, -16, 0, 40)
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
-	header.Text = "TAEGLICHE BELOHNUNG"
+	header.Text = "DAILY REWARD"
 	header.TextSize = 26
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -82,7 +82,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	streakLabel.Size = UDim2.new(1, -32, 0, 28)
 	streakLabel.Position = UDim2.new(0, 16, 0, 52)
 	Theme.applyLabelStyle(streakLabel)
-	streakLabel.Text = "Streak: 0 Tage"
+	streakLabel.Text = "Current Streak: 0 Days"
 	streakLabel.TextSize = 18
 	streakLabel.TextScaled = false
 	streakLabel.ZIndex = 7
@@ -114,7 +114,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 		dayLabel.Size = UDim2.new(1, 0, 0, 28)
 		dayLabel.Position = UDim2.new(0, 0, 0, 6)
 		Theme.applyLabelStyle(dayLabel)
-		dayLabel.Text = "Tag " .. rew.streakDay
+		dayLabel.Text = "Day " .. rew.streakDay
 		dayLabel.TextSize = 14
 		dayLabel.TextScaled = false
 		dayLabel.ZIndex = 8
@@ -134,7 +134,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 		powerLabel.Size = UDim2.new(1, 0, 0, 22)
 		powerLabel.Position = UDim2.new(0, 0, 0, 62)
 		Theme.applyLabelStyle(powerLabel)
-		powerLabel.Text = string.format("+%s Kraft", NumberFormatter.format(rew.power))
+		powerLabel.Text = string.format("+%s Power", NumberFormatter.format(rew.power))
 		powerLabel.TextSize = 12
 		powerLabel.TextScaled = false
 		powerLabel.ZIndex = 8
@@ -160,7 +160,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	rewardLabel.Size = UDim2.new(1, -32, 0, 32)
 	rewardLabel.Position = UDim2.new(0, 16, 0, 244)
 	Theme.applyLabelStyle(rewardLabel)
-	rewardLabel.Text = "Naechste Belohnung: ?"
+	rewardLabel.Text = "Next Reward: ?"
 	rewardLabel.TextSize = 18
 	rewardLabel.TextScaled = false
 	rewardLabel.ZIndex = 7
@@ -170,7 +170,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	cooldownLabel.Size = UDim2.new(1, -32, 0, 28)
 	cooldownLabel.Position = UDim2.new(0, 16, 0, 284)
 	Theme.applyLabelStyle(cooldownLabel)
-	cooldownLabel.Text = "Bereit!"
+	cooldownLabel.Text = "Ready!"
 	cooldownLabel.TextSize = 16
 	cooldownLabel.TextScaled = false
 	cooldownLabel.ZIndex = 7
@@ -182,7 +182,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	claimButton.Size = UDim2.new(1, -32, 0, 64)
 	claimButton.Position = UDim2.new(0.5, 0, 1, -16)
 	Theme.applyButtonStyle(claimButton, Theme.Colors.Green)
-	claimButton.Text = "ABHOLEN"
+	claimButton.Text = "CLAIM"
 	claimButton.TextSize = 22
 	claimButton.TextScaled = false
 	claimButton.ZIndex = 7
@@ -236,11 +236,11 @@ function DailyChestFrame.tick(refs: Refs, state)
 	end
 	if nextStreak < 1 then nextStreak = 1 end
 
-	refs.streakLabel.Text = string.format("Aktueller Streak: %d Tage", chest.Streak or 0)
+	refs.streakLabel.Text = string.format("Current Streak: %d Days", chest.Streak or 0)
 
 	local rew = DailyChestConfig.getReward(nextStreak)
 	refs.rewardLabel.Text = string.format(
-		"Tag %d: +%s DNA, +%s Kraft%s",
+		"Day %d: +%s DNA, +%s Power%s",
 		((nextStreak - 1) % #DailyChestConfig.Rewards) + 1,
 		NumberFormatter.format(rew.dna),
 		NumberFormatter.format(rew.power),
@@ -257,13 +257,13 @@ function DailyChestFrame.tick(refs: Refs, state)
 	end
 
 	if elapsed >= cooldown then
-		refs.cooldownLabel.Text = "Bereit!"
-		refs.claimButton.Text = "ABHOLEN"
+		refs.cooldownLabel.Text = "Ready!"
+		refs.claimButton.Text = "CLAIM"
 		refs.claimButton.BackgroundColor3 = Theme.Colors.Green
 		refs.claimButton.Active = true
 	else
-		refs.cooldownLabel.Text = "Naechste Belohnung in " .. formatCooldown(cooldown - elapsed)
-		refs.claimButton.Text = "WARTEN"
+		refs.cooldownLabel.Text = "Next Reward in " .. formatCooldown(cooldown - elapsed)
+		refs.claimButton.Text = "WAIT"
 		refs.claimButton.BackgroundColor3 = Theme.Colors.PanelMedium
 		refs.claimButton.Active = false
 	end

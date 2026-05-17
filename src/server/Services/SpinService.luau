@@ -81,7 +81,7 @@ function SpinService.spin(player: Player)
 		return
 	end
 	if SpinService.getRemainingSec(player) > 0 then
-		ShowPopup:FireClient(player, "Naechster Free-Spin noch nicht verfuegbar.")
+		ShowPopup:FireClient(player, "Next Free Spin is not ready yet.")
 		return
 	end
 	profile.Spin.LastFreeSpin = os.time()

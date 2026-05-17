@@ -73,7 +73,7 @@ local function buildCard(parent: ScrollingFrame, instanceId: string, def, equipp
 	action.Size = UDim2.new(1, -8, 0, 28)
 	action.Position = UDim2.new(0, 4, 1, -32)
 	Theme.applyButtonStyle(action, if equipped then Theme.Colors.Red else Theme.Colors.Green)
-	action.Text = if equipped then "ABLEGEN" else "AUSRUESTEN"
+	action.Text = if equipped then "UNEQUIP" else "EQUIP"
 	action.TextSize = 14
 	action.TextScaled = false
 	action.ZIndex = 9
@@ -115,7 +115,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	header.Size = UDim2.new(1, -16, 0, 40)
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
-	header.Text = "HAUSTIERE"
+	header.Text = "PETS"
 	header.TextSize = 26
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -148,7 +148,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	countLabel.Position = UDim2.new(0, 0, 0, 0)
 	Theme.applyLabelStyle(countLabel)
 	countLabel.TextXAlignment = Enum.TextXAlignment.Left
-	countLabel.Text = "0/50 Inventar  |  0/3 Ausgeruestet"
+	countLabel.Text = "0/50 Inventory  |  0/3 Equipped"
 	countLabel.TextSize = 16
 	countLabel.TextScaled = false
 	countLabel.ZIndex = 8
@@ -159,7 +159,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	multLabel.Position = UDim2.new(0.5, 4, 0, 0)
 	Theme.applyLabelStyle(multLabel)
 	multLabel.TextXAlignment = Enum.TextXAlignment.Right
-	multLabel.Text = "Pet-Multiplikator: 1x"
+	multLabel.Text = "Pet Multiplier: 1x"
 	multLabel.TextSize = 16
 	multLabel.TextScaled = false
 	multLabel.ZIndex = 8
@@ -181,7 +181,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 
 	local bestButton = Instance.new("TextButton")
 	bestButton.Size = UDim2.new(0, 200, 1, 0)
-	bestButton.Text = "BESTES AUSRUESTEN"
+	bestButton.Text = "EQUIP BEST"
 	Theme.applyButtonStyle(bestButton, Theme.Colors.Green)
 	bestButton.TextSize = 16
 	bestButton.TextScaled = false
@@ -190,7 +190,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 
 	local unequipAllButton = Instance.new("TextButton")
 	unequipAllButton.Size = UDim2.new(0, 180, 1, 0)
-	unequipAllButton.Text = "ALLE ABLEGEN"
+	unequipAllButton.Text = "UNEQUIP ALL"
 	Theme.applyButtonStyle(unequipAllButton, Theme.Colors.Red)
 	unequipAllButton.TextSize = 16
 	unequipAllButton.TextScaled = false
@@ -274,13 +274,13 @@ function PetFrame.update(refs: Refs, state)
 		petCount += 1
 	end
 	refs.countLabel.Text = string.format(
-		"%d/%d Inventar  |  %d/%d Ausgeruestet",
+		"%d/%d Inventory  |  %d/%d Equipped",
 		petCount,
 		PetConfig.MaxInventorySize,
 		#equipped,
 		PetConfig.MaxEquipped
 	)
-	refs.multLabel.Text = string.format("Pet-Multiplikator: %.3gx", petMult)
+	refs.multLabel.Text = string.format("Pet Multiplier: %.3gx", petMult)
 
 	-- Cards neu rendern.
 	for _, child in ipairs(refs.scroll:GetChildren()) do

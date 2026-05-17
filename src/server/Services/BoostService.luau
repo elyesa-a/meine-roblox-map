@@ -72,7 +72,7 @@ function BoostService.buyBoost(player: Player, boostId: string)
 		return
 	end
 	if profile.DnaCoins < def.priceDna then
-		ShowPopup:FireClient(player, "Nicht genug DNA-Coins!")
+		ShowPopup:FireClient(player, "Not enough DNA!")
 		return
 	end
 	profile.DnaCoins -= def.priceDna
@@ -84,7 +84,7 @@ function BoostService.buyBoost(player: Player, boostId: string)
 	else
 		profile.ActiveBoosts[boostId] = now + def.durationSec
 	end
-	ShowPopup:FireClient(player, string.format("%s aktiviert!", def.displayName))
+	ShowPopup:FireClient(player, string.format("%s activated!", def.displayName))
 	StatService.broadcastProfile(player)
 	StatService.playSound(player, "Purchase")
 end

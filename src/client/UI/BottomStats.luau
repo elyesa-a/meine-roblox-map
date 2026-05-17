@@ -42,7 +42,7 @@ function BottomStats.create(parent: ScreenGui): Refs
 	powerLabel.Position = UDim2.new(0, 8, 0, 4)
 	Theme.applyLabelStyle(powerLabel)
 	powerLabel.TextXAlignment = Enum.TextXAlignment.Center
-	powerLabel.Text = "0 Kraft"
+	powerLabel.Text = "0 Power"
 	powerLabel.Parent = powerCard
 
 	-- Level-Bar.
@@ -59,7 +59,7 @@ function BottomStats.create(parent: ScreenGui): Refs
 	levelLabel.Position = UDim2.new(0, 8, 0, 0)
 	Theme.applyLabelStyle(levelLabel)
 	levelLabel.TextXAlignment = Enum.TextXAlignment.Left
-	levelLabel.Text = "Stufe 1"
+	levelLabel.Text = "Level 1"
 	levelLabel.Parent = levelHolder
 
 	local progressBg = Instance.new("Frame")
@@ -109,7 +109,7 @@ function BottomStats.create(parent: ScreenGui): Refs
 	local clickButton = Instance.new("TextButton")
 	clickButton.Name = "ClickButton"
 	clickButton.Size = UDim2.new(0, 160, 1, 0)
-	clickButton.Text = "+1 KRAFT"
+	clickButton.Text = "+1 POWER"
 	Theme.applyButtonStyle(clickButton, Theme.Colors.Red)
 	clickButton.TextSize = 22
 	clickButton.TextScaled = false
@@ -133,7 +133,7 @@ function BottomStats.create(parent: ScreenGui): Refs
 	local autoButton = Instance.new("TextButton")
 	autoButton.Name = "AutoButton"
 	autoButton.Size = UDim2.new(0, 110, 1, 0)
-	autoButton.Text = "AUTO: AUS"
+	autoButton.Text = "AUTO: OFF"
 	Theme.applyButtonStyle(autoButton, Theme.Colors.PanelMedium)
 	autoButton.TextSize = 16
 	autoButton.TextScaled = false
@@ -154,8 +154,8 @@ function BottomStats.create(parent: ScreenGui): Refs
 end
 
 function BottomStats.update(refs: Refs, state)
-	refs.powerLabel.Text = NumberFormatter.format(state.Power or 0) .. " Kraft"
-	refs.levelLabel.Text = "Stufe " .. tostring(state.Level or 1)
+	refs.powerLabel.Text = NumberFormatter.format(state.Power or 0) .. " Power"
+	refs.levelLabel.Text = "Level " .. tostring(state.Level or 1)
 	local cost = state.LevelCost or 0
 	local frac = if cost > 0 then math.clamp((state.Power or 0) / cost, 0, 1) else 0
 	refs.progressFill.Size = UDim2.new(frac, 0, 1, 0)

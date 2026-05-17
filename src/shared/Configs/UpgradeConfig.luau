@@ -15,10 +15,10 @@ local UpgradeConfig = {}
 UpgradeConfig.MaxLevel = 50
 
 UpgradeConfig.Upgrades = {
-	{ id = "PowerBoost", displayName = "Mehr Kraft", perLevelDelta = 0.1, color = Color3.fromRGB(255, 90, 90) },
-	{ id = "DnaBoost", displayName = "Mehr DNA-Coins", perLevelDelta = 0.1, color = Color3.fromRGB(80, 160, 255) },
-	{ id = "LuckBoost", displayName = "Mehr Glueck", perLevelDelta = 0.15, color = Color3.fromRGB(255, 215, 60) },
-	{ id = "TrainingSpeed", displayName = "Mehr Training-Speed", perLevelDelta = 0.1, color = Color3.fromRGB(80, 220, 130) },
+	{ id = "PowerBoost", displayName = "More Power", perLevelDelta = 0.1, color = Color3.fromRGB(255, 90, 90) },
+	{ id = "DnaBoost", displayName = "More DNA", perLevelDelta = 0.1, color = Color3.fromRGB(80, 160, 255) },
+	{ id = "LuckBoost", displayName = "More Luck", perLevelDelta = 0.15, color = Color3.fromRGB(255, 215, 60) },
+	{ id = "TrainingSpeed", displayName = "Faster Training", perLevelDelta = 0.1, color = Color3.fromRGB(80, 220, 130) },
 }
 
 function UpgradeConfig.getById(id: string): UpgradeDef?

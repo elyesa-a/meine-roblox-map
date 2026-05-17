@@ -77,7 +77,7 @@ local function makeCard(parent: ScrollingFrame, def): CardRefs
 	button.Size = UDim2.new(0, 180, 0, 64)
 	button.Position = UDim2.new(1, -12, 0.5, 0)
 	Theme.applyButtonStyle(button, Theme.Colors.Green)
-	button.Text = "KAUFEN\n100 DNA"
+	button.Text = "BUY\n100 DNA"
 	button.TextSize = 16
 	button.TextScaled = false
 	button.ZIndex = 9
@@ -110,7 +110,7 @@ function UpgradeFrame.create(parent: ScreenGui): Refs
 	header.Size = UDim2.new(1, -16, 0, 40)
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
-	header.Text = "SCHUB"
+	header.Text = "SKILLS"
 	header.TextSize = 28
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -211,7 +211,7 @@ function UpgradeFrame.update(refs: Refs, state)
 			local nextMult = UpgradeConfig.getMultiplier(level + 1, def.perLevelDelta)
 			local cost = UpgradeConfig.getCost(level)
 			cardRefs.progressLabel.Text = string.format("%.2gx -> %.2gx", currMult, nextMult)
-			cardRefs.button.Text = string.format("KAUFEN\n%s DNA", NumberFormatter.format(cost))
+			cardRefs.button.Text = string.format("BUY\n%s DNA", NumberFormatter.format(cost))
 			cardRefs.button.BackgroundColor3 = if dna >= cost then Theme.Colors.Green else Theme.Colors.PanelMedium
 		end
 	end

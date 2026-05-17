@@ -57,7 +57,7 @@ function SpinFrame.create(parent: ScreenGui): Refs
 	header.Size = UDim2.new(1, -16, 0, 40)
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
-	header.Text = "GLUECKSRAD"
+	header.Text = "SPIN"
 	header.TextSize = 28
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -148,7 +148,7 @@ function SpinFrame.create(parent: ScreenGui): Refs
 	statusLabel.Size = UDim2.new(1, -32, 0, 28)
 	statusLabel.Position = UDim2.new(0, 16, 0, 392)
 	Theme.applyLabelStyle(statusLabel)
-	statusLabel.Text = "Bereit!"
+	statusLabel.Text = "Ready!"
 	statusLabel.TextSize = 18
 	statusLabel.TextScaled = false
 	statusLabel.ZIndex = 7
@@ -223,17 +223,17 @@ function SpinFrame.tick(refs: Refs, state)
 	local lastSpin = state.Spin.LastFreeSpin or 0
 	local elapsed = extrapolated - lastSpin
 	if elapsed >= SpinConfig.CooldownSec then
-		refs.statusLabel.Text = "Free-Spin bereit!"
+		refs.statusLabel.Text = "Free Spin ready!"
 		refs.cooldownLabel.Text = ""
 		refs.spinButton.BackgroundColor3 = Theme.Colors.Green
 		refs.spinButton.Active = true
 		refs.spinButton.Text = "SPIN"
 	else
-		refs.statusLabel.Text = "Cooldown laeuft..."
-		refs.cooldownLabel.Text = "Naechster Spin in " .. formatCooldown(SpinConfig.CooldownSec - elapsed)
+		refs.statusLabel.Text = "Cooldown running..."
+		refs.cooldownLabel.Text = "Next Spin in " .. formatCooldown(SpinConfig.CooldownSec - elapsed)
 		refs.spinButton.BackgroundColor3 = Theme.Colors.PanelMedium
 		refs.spinButton.Active = false
-		refs.spinButton.Text = "WARTEN"
+		refs.spinButton.Text = "WAIT"
 	end
 end
 

@@ -107,12 +107,12 @@ function AuraService.buyAura(player: Player, auraId: string)
 		return -- schon gekauft
 	end
 	if profile.DnaCoins < def.priceDna then
-		ShowPopup:FireClient(player, "Nicht genug DNA-Coins!")
+		ShowPopup:FireClient(player, "Not enough DNA!")
 		return
 	end
 	profile.DnaCoins -= def.priceDna
 	profile.Auras[auraId] = true
-	ShowPopup:FireClient(player, string.format("%s gekauft!", def.displayName))
+	ShowPopup:FireClient(player, string.format("%s bought!", def.displayName))
 	StatService.broadcastProfile(player)
 	StatService.playSound(player, "Purchase")
 end
@@ -132,7 +132,7 @@ function AuraService.equipAura(player: Player, auraId: string?)
 		return
 	end
 	if not profile.Auras[auraId] then
-		ShowPopup:FireClient(player, "Aura nicht im Besitz!")
+		ShowPopup:FireClient(player, "You do not own this aura!")
 		return
 	end
 	if not AuraConfig.getById(auraId) then
