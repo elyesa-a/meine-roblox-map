@@ -48,6 +48,20 @@ export type SpinState = {
 	LastFreeSpin: number,
 }
 
+export type DailyQuestEntry = {
+	Id: string,
+	Progress: number,
+	Claimed: boolean,
+}
+
+export type DailyQuestState = {
+	LastResetDay: number,
+	CompletedCount: number,
+	Streak: number,
+	QuestTokens: number,
+	Quests: { DailyQuestEntry },
+}
+
 export type Profile = {
 	Power: number,
 	Rebirths: number,
@@ -60,7 +74,13 @@ export type Profile = {
 	Upgrades: { [string]: number },
 	ActiveBoosts: { [string]: number }, -- boostId -> expiration timestamp (os.time)
 	DailyChest: DailyChestState,
+	DailyQuests: DailyQuestState,
 	Spin: SpinState,
+	Titles: { [string]: boolean },
+	EquippedTitle: string?,
+	TitleStats: { [string]: number },
+	BossDefeats: { [string]: number },
+	ZonesReached: { [string]: boolean },
 	OwnedGamepasses: { [string]: boolean },
 	Settings: Settings,
 	-- Internes Flag, wird NICHT gespeichert (filtern wir vor dem Speichern).
@@ -84,7 +104,13 @@ local function getDefaultProfile(): Profile
 		Upgrades = {},
 		ActiveBoosts = {},
 		DailyChest = { LastClaim = 0, Streak = 0 },
+		DailyQuests = { LastResetDay = 0, CompletedCount = 0, Streak = 0, QuestTokens = 0, Quests = {} },
 		Spin = { LastFreeSpin = 0 },
+		Titles = { Rookie = true },
+		EquippedTitle = "Rookie",
+		TitleStats = {},
+		BossDefeats = {},
+		ZonesReached = {},
 		OwnedGamepasses = {},
 		Settings = {
 			Music = true,

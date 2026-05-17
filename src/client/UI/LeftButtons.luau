@@ -22,6 +22,7 @@ local ENTRIES: { Entry } = {
 	{ id = "Upgrades", label = "SKILLS",        color = Theme.Colors.Green },
 	{ id = "Auras",    label = "AURAS",         color = Theme.Colors.Purple },
 	{ id = "Daily",    label = "DAILY",         color = Theme.Colors.Orange },
+	{ id = "Quests",   label = "QUESTS",        color = Theme.Colors.Yellow },
 	{ id = "Shop",     label = "SHOP",          color = Theme.Colors.Pink },
 	{ id = "Settings", label = "SETTINGS", color = Theme.Colors.PanelMedium },
 }

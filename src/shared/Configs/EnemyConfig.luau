@@ -38,20 +38,20 @@ EnemyConfig.Enemies = {
 	{ Id = "QuarantineBot", DisplayName = "Quarantine Bot", MaxHealth = 1000000, RequiredPower = 700000, DNAReward = 3500, RespawnTime = 35, AreaName = "QuarantineEnemies", IsBoss = false },
 	{ Id = "RedAlertGuard", DisplayName = "Red Alert Guard", MaxHealth = 2500000, RequiredPower = 1500000, DNAReward = 6000, RespawnTime = 40, AreaName = "QuarantineEnemies", IsBoss = false },
 	{ Id = "SterileTitan", DisplayName = "Sterile Titan", MaxHealth = 5000000, RequiredPower = 3000000, DNAReward = 10000, RespawnTime = 45, AreaName = "QuarantineEnemies", IsBoss = false },
-	{ Id = "LockdownBoss", DisplayName = "Lockdown Boss", MaxHealth = 10000000, RequiredPower = 6000000, DNAReward = 18000, RespawnTime = 60, AreaName = "QuarantineBoss", IsBoss = true },
+	{ Id = "LockdownBoss", DisplayName = "Magma Beast", MaxHealth = 10000000, RequiredPower = 6000000, DNAReward = 18000, RespawnTime = 60, AreaName = "QuarantineBoss", IsBoss = true },
 
 	{ Id = "GlitchHunter", DisplayName = "Glitch Hunter", MaxHealth = 25000000, RequiredPower = 15000000, DNAReward = 35000, RespawnTime = 60, AreaName = "GlitchEnemies", IsBoss = false },
 	{ Id = "FirewallBeast", DisplayName = "Firewall Beast", MaxHealth = 50000000, RequiredPower = 30000000, DNAReward = 60000, RespawnTime = 75, AreaName = "GlitchEnemies", IsBoss = false },
-	{ Id = "AntiVirusCore", DisplayName = "Anti-Virus Core", MaxHealth = 100000000, RequiredPower = 60000000, DNAReward = 100000, RespawnTime = 90, AreaName = "GlitchBoss", IsBoss = true },
+	{ Id = "AntiVirusCore", DisplayName = "Glitch Overlord", MaxHealth = 100000000, RequiredPower = 60000000, DNAReward = 100000, RespawnTime = 90, AreaName = "GlitchBoss", IsBoss = true },
 	{ Id = "CoreSentry", DisplayName = "Core Sentry", MaxHealth = 150000000, RequiredPower = 90000000, DNAReward = 150000, RespawnTime = 90, AreaName = "EndgameEnemies", IsBoss = false },
 	{ Id = "OmegaCellGuard", DisplayName = "Omega Cell Guard", MaxHealth = 250000000, RequiredPower = 140000000, DNAReward = 250000, RespawnTime = 100, AreaName = "EndgameEnemies", IsBoss = false },
 	{ Id = "FinalCoreBeast", DisplayName = "Final Core Beast", MaxHealth = 350000000, RequiredPower = 200000000, DNAReward = 350000, RespawnTime = 110, AreaName = "EndgameEnemies", IsBoss = false },
-	{ Id = "OmegaImmuneBoss", DisplayName = "Omega Immune Boss", MaxHealth = 500000000, RequiredPower = 250000000, DNAReward = 500000, RespawnTime = 120, AreaName = "EndgameBoss", IsBoss = true },
+	{ Id = "OmegaImmuneBoss", DisplayName = "Final Experiment", MaxHealth = 500000000, RequiredPower = 250000000, DNAReward = 500000, RespawnTime = 120, AreaName = "EndgameBoss", IsBoss = true },
 
 	-- Boss-field Phase A entries for early progression arenas.
-	{ Id = "MiniAntibodyKing", DisplayName = "Mini Antibody King", MaxHealth = 3000, RequiredPower = 1000, DNAReward = 100, RespawnTime = 30, AreaName = "StartBoss", IsBoss = true },
-	{ Id = "WhiteCellTitan", DisplayName = "White Cell Titan", MaxHealth = 30000, RequiredPower = 15000, DNAReward = 500, RespawnTime = 45, AreaName = "HospitalBoss", IsBoss = true },
-	{ Id = "DNAGuardianBoss", DisplayName = "DNA Guardian Boss", MaxHealth = 650000, RequiredPower = 300000, DNAReward = 2500, RespawnTime = 60, AreaName = "MutationBoss", IsBoss = true },
+	{ Id = "MiniAntibodyKing", DisplayName = "Bacteria King", MaxHealth = 3000, RequiredPower = 1000, DNAReward = 100, RespawnTime = 30, AreaName = "StartBoss", IsBoss = true },
+	{ Id = "WhiteCellTitan", DisplayName = "Virus Brute", MaxHealth = 30000, RequiredPower = 15000, DNAReward = 500, RespawnTime = 45, AreaName = "HospitalBoss", IsBoss = true },
+	{ Id = "DNAGuardianBoss", DisplayName = "Toxic Mutant", MaxHealth = 650000, RequiredPower = 300000, DNAReward = 2500, RespawnTime = 60, AreaName = "MutationBoss", IsBoss = true },
 }
 
 local byId: { [string]: EnemyDef } = {}

@@ -39,8 +39,12 @@ local function onPortalTouched(portal: BasePart, otherPart: BasePart)
 
 	local zoneId = portal:GetAttribute("ZoneId")
 	local requiredRebirth = portal:GetAttribute("RequiredRebirth") or 0
+	local requiredPower = portal:GetAttribute("RequiredPower") or 0
 	if type(requiredRebirth) ~= "number" then
 		requiredRebirth = 0
+	end
+	if type(requiredPower) ~= "number" then
+		requiredPower = 0
 	end
 
 	local profile = DataService.getProfile(player)
@@ -51,6 +55,14 @@ local function onPortalTouched(portal: BasePart, otherPart: BasePart)
 	if profile.Rebirths < requiredRebirth then
 		ShowPopup:FireClient(player, string.format("You need Rebirth %d!", requiredRebirth))
 		-- Spieler zur StartZone zurueckwerfen, damit er nicht durchgehen kann.
+		local startZone = ZoneConfig.getById("StartZone")
+		local char = player.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if hrp and startZone then
+			hrp.CFrame = CFrame.new(startZone.center + Vector3.new(0, 5, 0))
+		end
+	elseif profile.Power < requiredPower then
+		ShowPopup:FireClient(player, string.format("You need %d Power!", requiredPower))
 		local startZone = ZoneConfig.getById("StartZone")
 		local char = player.Character
 		local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?

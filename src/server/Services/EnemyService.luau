@@ -33,6 +33,8 @@ local AntiExploitService
 local PetService
 local AuraService
 local BoostService
+local DailyQuestService
+local TitleService
 
 local statesByModel: { [Model]: EnemyState } = {}
 local statesByRoot: { [BasePart]: EnemyState } = {}
@@ -193,8 +195,12 @@ local function grantDna(player: Player, amount: number)
 		return
 	end
 	local dnaMult = if BoostService then BoostService.getMultiplier(player, "Dna") else 1
-	local reward = math.floor(amount * dnaMult)
+	local titleMult = if TitleService then TitleService.getBonusMultiplier(player, "Dna") else 1
+	local reward = math.floor(amount * dnaMult * titleMult)
 	profile.DnaCoins += reward
+	if DailyQuestService then
+		DailyQuestService.record(player, "CollectDna", reward)
+	end
 	StatService.broadcastProfile(player)
 	ShowPopup:FireClient(player, "+" .. tostring(reward) .. " DNA")
 end
@@ -222,6 +228,16 @@ local function defeatEnemy(player: Player, state: EnemyState)
 	state.health = 0
 	updateEnemy(state)
 	grantDna(player, state.def.DNAReward)
+	if DailyQuestService then
+		DailyQuestService.record(player, if state.def.IsBoss then "DefeatBoss" else "DefeatEnemy", 1, state.def.AreaName)
+	end
+	if TitleService then
+		if state.def.IsBoss then
+			TitleService.recordBossDefeat(player, state.def.Id)
+		else
+			TitleService.evaluatePlayer(player)
+		end
+	end
 	playDefeatEffect(state)
 	setModelVisible(state, false)
 	respawnEnemy(state)
@@ -359,6 +375,8 @@ function EnemyService.start(deps)
 	PetService = deps.PetService
 	AuraService = deps.AuraService
 	BoostService = deps.BoostService
+	DailyQuestService = deps.DailyQuestService
+	TitleService = deps.TitleService
 
 	registerFolder(Workspace:FindFirstChild("EnemyAreas"))
 	registerFolder(Workspace:FindFirstChild("BossFields"))

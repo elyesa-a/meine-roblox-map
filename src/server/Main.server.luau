@@ -27,6 +27,8 @@ local DailyChestService = require(Services:WaitForChild("DailyChestService"))
 local SpinService = require(Services:WaitForChild("SpinService"))
 local GamepassService = require(Services:WaitForChild("GamepassService"))
 local EnemyService = require(Services:WaitForChild("EnemyService"))
+local TitleService = require(Services:WaitForChild("TitleService"))
+local DailyQuestService = require(Services:WaitForChild("DailyQuestService"))
 local WorldBuilder = require(Services:WaitForChild("WorldBuilder"))
 local ZoneLockService = require(Services:WaitForChild("ZoneLockService"))
 local TrainingZoneService = require(Services:WaitForChild("TrainingZoneService"))
@@ -58,6 +60,8 @@ AuraService.start({
 	DataService = DataService,
 	StatService = StatService,
 	AntiExploitService = AntiExploitService,
+	DailyQuestService = DailyQuestService,
+	TitleService = TitleService,
 })
 PetService.start({
 	DataService = DataService,
@@ -65,6 +69,11 @@ PetService.start({
 	AntiExploitService = AntiExploitService,
 	UpgradeService = UpgradeService,
 	BoostService = BoostService,
+})
+TitleService.start({
+	DataService = DataService,
+	StatService = StatService,
+	AntiExploitService = AntiExploitService,
 })
 
 -- 4. StatService (mit allen Multiplikator-Services verdrahtet).
@@ -74,6 +83,8 @@ StatService.start({
 	AuraService = AuraService,
 	UpgradeService = UpgradeService,
 	BoostService = BoostService,
+	TitleService = TitleService,
+	DailyQuestService = DailyQuestService,
 })
 
 -- 5. Gameplay-Services.
@@ -84,6 +95,8 @@ RebirthService.start({
 	UpgradeService = UpgradeService,
 	BoostService = BoostService,
 	GamepassService = GamepassService,
+	DailyQuestService = DailyQuestService,
+	TitleService = TitleService,
 })
 ZoneLockService.start({ DataService = DataService })
 TrainingZoneService.start({
@@ -91,18 +104,24 @@ TrainingZoneService.start({
 	StatService = StatService,
 	AntiExploitService = AntiExploitService,
 	UpgradeService = UpgradeService,
+	DailyQuestService = DailyQuestService,
+	TitleService = TitleService,
 })
 DailyChestService.start({
 	DataService = DataService,
 	StatService = StatService,
 	PetService = PetService,
 	AntiExploitService = AntiExploitService,
+	DailyQuestService = DailyQuestService,
+	TitleService = TitleService,
 })
 SpinService.start({
 	DataService = DataService,
 	StatService = StatService,
 	PetService = PetService,
 	AntiExploitService = AntiExploitService,
+	DailyQuestService = DailyQuestService,
+	TitleService = TitleService,
 })
 GamepassService.start({
 	DataService = DataService,
@@ -117,6 +136,14 @@ EnemyService.start({
 	PetService = PetService,
 	AuraService = AuraService,
 	BoostService = BoostService,
+	DailyQuestService = DailyQuestService,
+	TitleService = TitleService,
+})
+DailyQuestService.start({
+	DataService = DataService,
+	StatService = StatService,
+	AntiExploitService = AntiExploitService,
+	TitleService = TitleService,
 })
 
 -- 6a. Pet-Egg ClickDetector.

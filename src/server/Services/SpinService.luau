@@ -17,6 +17,8 @@ local SpinService = {}
 local DataService
 local StatService
 local AntiExploitService
+local DailyQuestService
+local TitleService
 
 local rng = Random.new()
 
@@ -53,7 +55,12 @@ local function grantReward(player: Player, reward)
 		return reward.displayName
 	end
 	if reward.type == "Dna" then
-		profile.DnaCoins += reward.amount
+		local titleMult = if TitleService then TitleService.getBonusMultiplier(player, "Dna") else 1
+		local granted = math.floor(reward.amount * titleMult)
+		profile.DnaCoins += granted
+		if DailyQuestService then
+			DailyQuestService.record(player, "CollectDna", granted)
+		end
 	elseif reward.type == "Power" then
 		profile.Power = math.floor(profile.Power + reward.amount)
 	elseif reward.type == "Luck" then
@@ -71,6 +78,9 @@ local function grantReward(player: Player, reward)
 		local granted = profile.Rebirths - before
 		if granted <= 0 then
 			return "Max Rebirth reached"
+		end
+		if TitleService then
+			TitleService.addStat(player, "RebirthSpinWins", 1)
 		end
 		return string.format("+%d %s", granted, if granted == 1 then "Rebirth" else "Rebirths")
 	end
@@ -91,6 +101,12 @@ function SpinService.spin(player: Player)
 	StatService.playSound(player, "Spin")
 	local reward = rollReward()
 	local grantedDisplay = grantReward(player, reward)
+	if DailyQuestService then
+		DailyQuestService.record(player, "Spin", 1)
+	end
+	if TitleService then
+		TitleService.evaluatePlayer(player)
+	end
 	SpinResult:FireClient(player, {
 		id = reward.id,
 		displayName = reward.displayName,
@@ -108,6 +124,8 @@ function SpinService.start(deps)
 	DataService = deps.DataService
 	StatService = deps.StatService
 	AntiExploitService = deps.AntiExploitService
+	DailyQuestService = deps.DailyQuestService
+	TitleService = deps.TitleService
 
 	AntiExploitService.safeBind(RequestSpin, 1, function(player)
 		SpinService.spin(player)

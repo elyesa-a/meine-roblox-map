@@ -21,6 +21,8 @@ local AntiExploitService
 local UpgradeService
 local BoostService
 local GamepassService
+local DailyQuestService
+local TitleService
 
 function RebirthService.handleRequest(player: Player)
 	local profile = DataService.getProfile(player)
@@ -51,15 +53,27 @@ function RebirthService.handleRequest(player: Player)
 	if GamepassService then
 		dnaMult *= GamepassService.getDnaMultiplier(player)
 	end
+	if TitleService then
+		dnaMult *= TitleService.getBonusMultiplier(player, "Dna")
+	end
 	local reward = math.floor(baseReward * dnaMult)
 	profile.Rebirths = oldRebirth + 1
 	profile.Power = 0
 	profile.Level = 1
 	profile.DnaCoins = profile.DnaCoins + reward
+	if DailyQuestService then
+		DailyQuestService.record(player, "CollectDna", reward)
+	end
 
 	StatService.broadcastProfile(player)
 	StatService.playSound(player, "Rebirth")
 	StatService.spawnRebirthVfx(player)
+	if DailyQuestService then
+		DailyQuestService.record(player, "Rebirth", 1)
+	end
+	if TitleService then
+		TitleService.evaluatePlayer(player)
+	end
 	ShowPopup:FireClient(player, string.format("Rebirth %d! +%d DNA", profile.Rebirths, reward))
 end
 
@@ -70,6 +84,8 @@ function RebirthService.start(deps)
 	UpgradeService = deps.UpgradeService
 	BoostService = deps.BoostService
 	GamepassService = deps.GamepassService
+	DailyQuestService = deps.DailyQuestService
+	TitleService = deps.TitleService
 
 	AntiExploitService.safeBind(RequestRebirth, 2, RebirthService.handleRequest)
 end

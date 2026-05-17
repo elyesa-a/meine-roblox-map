@@ -7,6 +7,7 @@ export type ZoneDef = {
 	id: string,
 	displayName: string,
 	requiredRebirth: number,
+	requiredPower: number,
 	zoneMultiplier: number,
 	color: Color3,
 	-- Position des Zonen-Bodens (Mittelpunkt).
@@ -18,8 +19,9 @@ export type ZoneDef = {
 local ZoneConfig: { [number]: ZoneDef } = {
 	{
 		id = "StartZone",
-		displayName = "Start Zone",
+		displayName = "Lab Entry",
 		requiredRebirth = 0,
+		requiredPower = 0,
 		zoneMultiplier = 1,
 		color = Color3.fromRGB(120, 200, 255),
 		center = Vector3.new(-510, 0, -8),
@@ -28,8 +30,9 @@ local ZoneConfig: { [number]: ZoneDef } = {
 	},
 	{
 		id = "HospitalZone",
-		displayName = "Hospital Zone",
+		displayName = "Bacteria Sector",
 		requiredRebirth = 3,
+		requiredPower = 500,
 		zoneMultiplier = 2,
 		color = Color3.fromRGB(120, 255, 170),
 		center = Vector3.new(-306, 0, -8),
@@ -38,8 +41,9 @@ local ZoneConfig: { [number]: ZoneDef } = {
 	},
 	{
 		id = "MutationLabZone",
-		displayName = "Mutation Lab",
+		displayName = "Virus Chamber",
 		requiredRebirth = 10,
+		requiredPower = 5000,
 		zoneMultiplier = 5,
 		color = Color3.fromRGB(200, 120, 255),
 		center = Vector3.new(-102, 0, -8),
@@ -48,8 +52,9 @@ local ZoneConfig: { [number]: ZoneDef } = {
 	},
 	{
 		id = "QuarantineZone",
-		displayName = "Quarantine",
+		displayName = "Toxic Facility",
 		requiredRebirth = 25,
+		requiredPower = 25000,
 		zoneMultiplier = 12,
 		color = Color3.fromRGB(255, 200, 80),
 		center = Vector3.new(102, 0, -8),
@@ -58,8 +63,9 @@ local ZoneConfig: { [number]: ZoneDef } = {
 	},
 	{
 		id = "GlitchZone",
-		displayName = "Glitch Sector",
+		displayName = "Glitch Core",
 		requiredRebirth = 50,
+		requiredPower = 2000000,
 		zoneMultiplier = 30,
 		color = Color3.fromRGB(255, 80, 200),
 		center = Vector3.new(306, 0, -8),
@@ -68,8 +74,9 @@ local ZoneConfig: { [number]: ZoneDef } = {
 	},
 	{
 		id = "EndgameZone",
-		displayName = "Endgame",
+		displayName = "Final Mutation Core",
 		requiredRebirth = 100,
+		requiredPower = 10000000,
 		zoneMultiplier = 100,
 		color = Color3.fromRGB(255, 60, 60),
 		center = Vector3.new(510, 0, -8),
