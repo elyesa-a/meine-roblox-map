@@ -33,6 +33,8 @@ local CollectibleService = require(Services:WaitForChild("CollectibleService"))
 local WorldBuilder = require(Services:WaitForChild("WorldBuilder"))
 local ZoneLockService = require(Services:WaitForChild("ZoneLockService"))
 local TrainingZoneService = require(Services:WaitForChild("TrainingZoneService"))
+local BorderService = require(Services:WaitForChild("BorderService"))
+local EggCatchService = require(Services:WaitForChild("EggCatchService"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestClick = Remotes:WaitForChild("RequestClick") :: RemoteEvent
@@ -100,6 +102,10 @@ RebirthService.start({
 	TitleService = TitleService,
 })
 ZoneLockService.start({ DataService = DataService })
+-- DNA-Borders + Labor-Luken (Virus-Labor). Reines Map-Gating, additiv.
+BorderService.start({ DataService = DataService })
+-- Egg-Catch-Stationen an das bestehende Pet-Egg-System koppeln.
+EggCatchService.start({ PetService = PetService })
 TrainingZoneService.start({
 	DataService = DataService,
 	StatService = StatService,

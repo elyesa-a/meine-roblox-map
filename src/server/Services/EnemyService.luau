@@ -10,6 +10,11 @@ local Workspace = game:GetService("Workspace")
 local Configs = ReplicatedStorage:WaitForChild("Configs")
 local EnemyConfig = require(Configs:WaitForChild("EnemyConfig"))
 
+-- Gegnerwerte skalieren *4 (bis ~4e61). Anzeigen daher abgekuerzt
+-- formatieren, sonst crasht string.format("%d", ...) bei Riesenzahlen.
+local Modules = ReplicatedStorage:WaitForChild("Modules")
+local NumberFormatter = require(Modules:WaitForChild("NumberFormatter"))
+
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestAttackEnemy = Remotes:WaitForChild("RequestAttackEnemy") :: RemoteEvent
 local EnemyUpdate = Remotes:WaitForChild("EnemyUpdate") :: RemoteEvent
@@ -121,7 +126,7 @@ local function spawnDamageNumber(state: EnemyState, amount: number)
 	local label = Instance.new("TextLabel")
 	label.BackgroundTransparency = 1
 	label.Size = UDim2.fromScale(1, 1)
-	label.Text = "-" .. tostring(math.floor(amount))
+	label.Text = "-" .. NumberFormatter.format(amount)
 	label.Font = Enum.Font.GothamBlack
 	label.TextScaled = true
 	label.TextColor3 = Color3.fromRGB(255, 245, 120)
@@ -211,7 +216,7 @@ local function grantDna(player: Player, amount: number)
 		DailyQuestService.record(player, "CollectDna", reward)
 	end
 	StatService.broadcastProfile(player)
-	ShowPopup:FireClient(player, "+" .. tostring(reward) .. " DNA")
+	ShowPopup:FireClient(player, "+" .. NumberFormatter.format(reward) .. " DNA")
 end
 
 local function grantBossBonus(player: Player, state: EnemyState)
@@ -227,7 +232,7 @@ local function grantBossBonus(player: Player, state: EnemyState)
 	if DailyQuestService then
 		DailyQuestService.recordSet(player, "ReachPower", profile.Power)
 	end
-	ShowPopup:FireClient(player, "+" .. tostring(powerBonus) .. " Power")
+	ShowPopup:FireClient(player, "+" .. NumberFormatter.format(powerBonus) .. " Power")
 	if rng:NextNumber() <= 0.18 then
 		local now = os.time()
 		local existing = profile.ActiveBoosts.Luck2x
@@ -260,7 +265,7 @@ local function defeatEnemy(player: Player, state: EnemyState)
 	state.health = 0
 	updateEnemy(state)
 	grantDna(player, state.def.DNAReward)
-	ShowPopup:FireClient(player, string.format("%s defeated! +%d DNA", state.def.DisplayName, state.def.DNAReward))
+	ShowPopup:FireClient(player, string.format("%s defeated! +%s DNA", state.def.DisplayName, NumberFormatter.format(state.def.DNAReward)))
 	grantBossBonus(player, state)
 	if DailyQuestService then
 		DailyQuestService.record(player, if state.def.IsBoss then "DefeatBoss" else "DefeatEnemy", 1, state.def.AreaName)
