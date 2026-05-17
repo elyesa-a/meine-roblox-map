@@ -62,7 +62,7 @@ local function onPortalTouched(portal: BasePart, otherPart: BasePart)
 			hrp.CFrame = CFrame.new(startZone.center + Vector3.new(0, 5, 0))
 		end
 	elseif profile.Power < requiredPower then
-		ShowPopup:FireClient(player, string.format("You need %d Power!", requiredPower))
+		ShowPopup:FireClient(player, string.format("Not enough Power! Need %d more PWR", math.max(0, requiredPower - profile.Power)))
 		local startZone = ZoneConfig.getById("StartZone")
 		local char = player.Character
 		local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -78,6 +78,7 @@ local function onPortalTouched(portal: BasePart, otherPart: BasePart)
 		local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if hrp and targetZone then
 			hrp.CFrame = CFrame.new(targetZone.center + Vector3.new(0, 5, 0))
+			ShowPopup:FireClient(player, "New Area Unlocked!")
 		end
 	end
 end
