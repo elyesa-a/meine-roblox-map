@@ -1494,6 +1494,67 @@ local function addPipeRun(parent: Instance, startPos: Vector3, length: number, c
 	valve.Transparency = 0.35
 end
 
+local function addFloorCable(parent: Instance, fromPos: Vector3, toPos: Vector3, color: Color3)
+	local mid = (fromPos + toPos) / 2
+	local length = (toPos - fromPos).Magnitude
+	local cable = makeRoomPart(parent, "FloorCable", Vector3.new(length, 0.18, 0.42), mid, color, Enum.Material.SmoothPlastic)
+	cable.CanCollide = false
+	cable.CFrame = CFrame.lookAt(mid, toPos) * CFrame.Angles(0, math.pi / 2, 0)
+end
+
+local function addWarningStripe(parent: Instance, center: Vector3, length: number, axis: string)
+	for i = 1, 8 do
+		local offset = (i - 4.5) * (length / 8)
+		local pos = if axis == "X" then center + Vector3.new(offset, 0, 0) else center + Vector3.new(0, 0, offset)
+		local stripe = makeRoomPart(parent, "BiohazardWarningStripe", if axis == "X" then Vector3.new(length / 12, 0.2, 2.2) else Vector3.new(2.2, 0.2, length / 12), pos, if i % 2 == 0 then Color3.fromRGB(245, 210, 70) else Color3.fromRGB(24, 24, 28), Enum.Material.SmoothPlastic)
+		stripe.CanCollide = false
+	end
+end
+
+local function addBiohazardPanel(parent: Instance, pos: Vector3, color: Color3, text: string)
+	local panel = makeRoomPart(parent, "Biohazard_WallPanel", Vector3.new(28, 14, 0.7), pos, Color3.fromRGB(25, 30, 38), Enum.Material.Metal)
+	panel.CanCollide = false
+	local icon = makeRoomPart(parent, "Biohazard_Icon_Core", Vector3.new(7, 7, 0.8), pos + Vector3.new(-7.5, 1, -0.1), color, Enum.Material.Neon)
+	icon.Shape = Enum.PartType.Ball
+	icon.CanCollide = false
+	icon.Transparency = 0.35
+	addBillboardLabel(panel, text, Color3.fromRGB(255, 255, 255), 46, UDim2.fromOffset(230, 70), Vector3.new(0, 0, 0))
+end
+
+local function addZoneRequirementSign(parent: Instance, zoneId: string, title: string, requirement: string, subtitle: string, pos: Vector3, color: Color3)
+	local panel = makeRoomPart(parent, zoneId .. "_Zone_Sign", Vector3.new(58, 20, 1.1), pos, Color3.fromRGB(24, 29, 38), Enum.Material.Metal)
+	panel.CanCollide = false
+	addPanelFrame(parent, pos, 58, 20, color, "X")
+	addBillboardLabel(
+		panel,
+		title .. "\n" .. requirement .. "\n" .. subtitle,
+		Color3.fromRGB(255, 255, 255),
+		68,
+		UDim2.fromOffset(360, 125),
+		Vector3.new(0, 0, 0)
+	)
+end
+
+local function buildZoneSigns(signFolder: Folder)
+	for _, child in ipairs(signFolder:GetChildren()) do
+		child:Destroy()
+	end
+
+	local signs = {
+		{ id = "Spawn_Lab", title = "SPAWN LAB", req = "0 POWER", sub = "Start your mutation journey", x = -595, color = Color3.fromRGB(110, 220, 255) },
+		{ id = "Toxic_Cell", title = "TOXIC CELL ZONE", req = "500 POWER", sub = "Weak virus cells detected", x = -425, color = Color3.fromRGB(120, 255, 120) },
+		{ id = "Mutant_Lab", title = "MUTANT LAB ZONE", req = "2.5K POWER", sub = "Unstable experiments ahead", x = -255, color = Color3.fromRGB(255, 90, 110) },
+		{ id = "DNA_Breakpoint", title = "DNA BREAKPOINT", req = "10K POWER", sub = "DNA corruption level rising", x = -85, color = Color3.fromRGB(160, 255, 80) },
+		{ id = "Biohazard_Boss", title = "BIOHAZARD BOSS ZONE", req = "50K POWER", sub = "Boss mutation contained behind this gate", x = 85, color = Color3.fromRGB(160, 235, 255) },
+		{ id = "Reactor_Core", title = "REACTOR CORE", req = "500K POWER", sub = "Heat mutation levels unstable", x = 255, color = Color3.fromRGB(255, 120, 60) },
+		{ id = "Glitch_Core", title = "GLITCH CORE", req = "2M POWER", sub = "Digital DNA failure detected", x = 425, color = Color3.fromRGB(255, 90, 220) },
+		{ id = "Final_Experiment", title = "FINAL EXPERIMENT", req = "10M POWER", sub = "Containment failure imminent", x = 595, color = Color3.fromRGB(255, 80, 100) },
+	}
+	for _, sign in ipairs(signs) do
+		addZoneRequirementSign(signFolder, sign.id, sign.title, sign.req, sign.sub, Vector3.new(sign.x, 22, 138), sign.color)
+	end
+end
+
 local function addHubStation(parent: Instance, name: string, pos: Vector3, color: Color3, title: string, subtitle: string)
 	local platform = makeRoomPart(parent, name .. "Platform", Vector3.new(62, 0.5, 34), pos + Vector3.new(0, 0.2, 0), Color3.fromRGB(34, 42, 52), Enum.Material.SmoothPlastic)
 	platform.CanCollide = true
@@ -1541,12 +1602,100 @@ local function addAuraShowcase(parent: Instance)
 	end
 end
 
+local function buildSpawnLab(spawnLabFolder: Folder)
+	for _, child in ipairs(spawnLabFolder:GetChildren()) do
+		child:Destroy()
+	end
+
+	local center = START_AREA_CENTER + Vector3.new(0, 0, 0)
+	local platform = makeRoomPart(spawnLabFolder, "DNA_Core_Platform", Vector3.new(88, 1.2, 88), center + Vector3.new(0, 0.35, 0), Color3.fromRGB(30, 38, 42), Enum.Material.Metal)
+	platform.Shape = Enum.PartType.Cylinder
+	platform.CanCollide = true
+
+	local containment = makeRoomPart(spawnLabFolder, "DNA_Core_GlassCylinder", Vector3.new(34, 34, 34), center + Vector3.new(0, 17.5, 0), Color3.fromRGB(95, 255, 210), Enum.Material.Glass)
+	containment.Shape = Enum.PartType.Cylinder
+	containment.Transparency = 0.72
+	containment.CanCollide = false
+
+	local core = makeRoomPart(spawnLabFolder, "DNA_Core", Vector3.new(13, 13, 13), center + Vector3.new(0, 13, 0), Color3.fromRGB(70, 235, 150), Enum.Material.Neon)
+	core.Shape = Enum.PartType.Ball
+	core.Transparency = 0.22
+	core.CanCollide = false
+	local att = Instance.new("Attachment")
+	att.Parent = core
+	local spores = Instance.new("ParticleEmitter")
+	spores.Name = "Controlled_DNA_Particles"
+	spores.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	spores.Color = ColorSequence.new(Color3.fromRGB(110, 255, 185), Color3.fromRGB(160, 105, 255))
+	spores.Lifetime = NumberRange.new(0.9, 1.8)
+	spores.Rate = 7
+	spores.Speed = NumberRange.new(0.6, 1.6)
+	spores.SpreadAngle = Vector2.new(140, 140)
+	spores.Size = NumberSequence.new(0.55, 0.08)
+	spores.Transparency = NumberSequence.new(0.2, 1)
+	spores.LightEmission = 0.45
+	spores.Parent = att
+
+	addRotatingDnaCore(spawnLabFolder, center + Vector3.new(0, 28, 0))
+	addBillboardLabel(core, "DNA CORE", Color3.fromRGB(255, 255, 255), 60, UDim2.fromOffset(190, 48), Vector3.new(0, 12, 0))
+
+	for _, radius in ipairs({ 54, 70 }) do
+		local ring = makeRoomPart(spawnLabFolder, "Labor_Floor_Ring", Vector3.new(radius, 0.18, radius), center + Vector3.new(0, 1.04, 0), Color3.fromRGB(40, 62, 58), Enum.Material.Metal)
+		ring.Shape = Enum.PartType.Cylinder
+		ring.CanCollide = false
+		ring.Transparency = 0.42
+	end
+	addWarningStripe(spawnLabFolder, center + Vector3.new(0, 1.2, -44), 56, "X")
+	addWarningStripe(spawnLabFolder, center + Vector3.new(0, 1.2, 44), 56, "X")
+
+	for _, endpoint in ipairs({
+		center + Vector3.new(-58, 1.25, -34),
+		center + Vector3.new(58, 1.25, -34),
+		center + Vector3.new(-58, 1.25, 34),
+		center + Vector3.new(58, 1.25, 34),
+	}) do
+		addFloorCable(spawnLabFolder, center + Vector3.new(0, 1.3, 0), endpoint, Color3.fromRGB(16, 24, 24))
+	end
+
+	for i, offset in ipairs({
+		Vector3.new(-62, 0, -42),
+		Vector3.new(62, 0, -42),
+		Vector3.new(-62, 0, 42),
+		Vector3.new(62, 0, 42),
+	}) do
+		addLabTank(spawnLabFolder, center + offset, if i % 2 == 0 then Color3.fromRGB(90, 245, 210) else Color3.fromRGB(130, 255, 95), "DNA SAMPLE")
+	end
+end
+
+local function buildBossGateDisplays(bossGateFolder: Folder)
+	for _, child in ipairs(bossGateFolder:GetChildren()) do
+		child:Destroy()
+	end
+	local gates = {
+		{ name = "Toxic_Slime_Boss_Gate", title = "TOXIC SLIME BOSS", req = "5K POWER", x = -425, color = Color3.fromRGB(110, 255, 100) },
+		{ name = "Mutant_Spider_Boss_Gate", title = "MUTANT SPIDER BOSS", req = "15K POWER", x = -255, color = Color3.fromRGB(255, 90, 110) },
+		{ name = "DNA_Beast_Boss_Gate", title = "DNA BEAST BOSS", req = "50K POWER", x = -85, color = Color3.fromRGB(160, 255, 80) },
+		{ name = "Biohazard_Overlord_Gate", title = "BIOHAZARD OVERLORD", req = "150K POWER", x = 85, color = Color3.fromRGB(160, 235, 255) },
+	}
+	for _, gate in ipairs(gates) do
+		local center = Vector3.new(gate.x, 16, BOSS_ROW_Z - 46)
+		local frame = makeRoomPart(bossGateFolder, gate.name, Vector3.new(54, 28, 2.2), center, Color3.fromRGB(26, 30, 38), Enum.Material.Metal)
+		frame.CanCollide = false
+		addPanelFrame(bossGateFolder, center, 54, 28, gate.color, "X")
+		local barrier = makeRoomPart(bossGateFolder, gate.name .. "_EnergyBarrier", Vector3.new(38, 21, 0.8), center + Vector3.new(0, 0, -1.2), gate.color, Enum.Material.ForceField)
+		barrier.CanCollide = false
+		barrier.Transparency = 0.56
+		addBillboardLabel(frame, gate.title .. "\nREQUIRED: " .. gate.req, Color3.fromRGB(255, 255, 255), 58, UDim2.fromOffset(310, 90), Vector3.new(0, 0, 0))
+		addWarningLight(bossGateFolder, center + Vector3.new(-22, -15, -2), gate.color)
+		addWarningLight(bossGateFolder, center + Vector3.new(22, -15, -2), gate.color)
+	end
+end
+
 local function buildLabDecor(decorFolder: Folder)
 	for _, child in ipairs(decorFolder:GetChildren()) do
 		child:Destroy()
 	end
 
-	addRotatingDnaCore(decorFolder, START_AREA_CENTER + Vector3.new(0, 22, 0))
 	addHubStation(decorFolder, "DailyQuest", START_AREA_CENTER + Vector3.new(-86, 0, 20), Color3.fromRGB(255, 190, 75), "DAILY QUESTS", "COMPLETE LAB TASKS")
 	addHubStation(decorFolder, "Titles", START_AREA_CENTER + Vector3.new(-86, 0, -28), Color3.fromRGB(255, 225, 95), "TITLE TERMINAL", "SHOW YOUR MUTATION")
 	addHubStation(decorFolder, "LuckyWheel", START_AREA_CENTER + Vector3.new(86, 0, -28), Color3.fromRGB(95, 160, 255), "LUCKY WHEEL", "SPIN FOR REWARDS")
@@ -1599,6 +1748,10 @@ function WorldBuilder.build()
 	local mapFolder = makeFolder("Map", Workspace)
 	local wallsFolder = makeFolder("Walls", mapFolder)
 	local wallArtFolder = makeFolder("WallArt", mapFolder)
+	local spawnLabFolder = makeFolder("SpawnLab", mapFolder)
+	local zoneSignsFolder = makeFolder("ZoneSigns", mapFolder)
+	local mapLabDecorFolder = makeFolder("LabDecor", mapFolder)
+	local bossGatesFolder = makeFolder("BossGates", mapFolder)
 	local roomFolder = makeFolder("LabRoom", Workspace)
 	local zonesFolder = makeFolder("Zones", Workspace)
 	local portalsFolder = makeFolder("Portals", Workspace)
@@ -1606,12 +1759,14 @@ function WorldBuilder.build()
 	local eggAreaFolder = makeFolder("EggCatchArea", Workspace)
 	local enemyFolder = makeFolder("EnemyAreas", Workspace)
 	local bossFolder = makeFolder("BossFields", Workspace)
-	local decorFolder = makeFolder("LabDecor", Workspace)
 
 	buildLabRoom(roomFolder, wallsFolder)
 	addWallArt(wallArtFolder)
 	buildEggCatchArea(eggAreaFolder)
-	buildLabDecor(decorFolder)
+	buildSpawnLab(spawnLabFolder)
+	buildZoneSigns(zoneSignsFolder)
+	buildBossGateDisplays(bossGatesFolder)
+	buildLabDecor(mapLabDecorFolder)
 
 	for _, zone in ipairs(ZoneConfig) do
 		buildZone(zone, zonesFolder)

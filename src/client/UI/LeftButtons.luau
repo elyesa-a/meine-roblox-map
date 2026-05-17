@@ -17,15 +17,15 @@ type Entry = {
 }
 
 local ENTRIES: { Entry } = {
-	{ id = "Rebirth",  icon = "DNA", label = "REBIRTH",  color = Theme.Colors.Red },
-	{ id = "Title",    icon = "VIP", label = "TITLES",   color = Theme.Colors.Yellow },
-	{ id = "Pets",     icon = "EGG", label = "PETS",     color = Theme.Colors.Blue },
-	{ id = "Upgrades", icon = "UP",  label = "SKILLS",   color = Theme.Colors.Green },
-	{ id = "Auras",    icon = "FX",  label = "AURAS",    color = Theme.Colors.Purple },
-	{ id = "Daily",    icon = "DAY", label = "DAILY",    color = Theme.Colors.Orange },
-	{ id = "Quests",   icon = "!",   label = "QUESTS",   color = Theme.Colors.Yellow },
-	{ id = "Shop",     icon = "$",   label = "SHOP",     color = Theme.Colors.Pink },
-	{ id = "Settings", icon = "SET", label = "SETTINGS", color = Theme.Colors.PanelMedium },
+	{ id = "Shop",     icon = "$",   label = "Shop",     color = Theme.Colors.Pink },
+	{ id = "Pets",     icon = "EGG", label = "Pets",     color = Theme.Colors.Blue },
+	{ id = "Quests",   icon = "!",   label = "Zones",    color = Theme.Colors.Yellow },
+	{ id = "Rebirth",  icon = "DNA", label = "Bosses",   color = Theme.Colors.Red },
+	{ id = "Upgrades", icon = "UP",  label = "Upgrades", color = Theme.Colors.Green },
+	{ id = "Settings", icon = "SET", label = "Settings", color = Theme.Colors.PanelMedium },
+	{ id = "Auras",    icon = "FX",  label = "Auras",    color = Theme.Colors.Purple },
+	{ id = "Title",    icon = "VIP", label = "Titles",   color = Theme.Colors.Yellow },
+	{ id = "Daily",    icon = "DAY", label = "Daily",    color = Theme.Colors.Orange },
 }
 
 function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
@@ -33,7 +33,7 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 	holder.Name = "LeftButtons"
 	holder.AnchorPoint = Vector2.new(0, 0.5)
 	holder.Position = UDim2.new(0, 16, 0.5, 0)
-	holder.Size = UDim2.new(0, 116, 0, #ENTRIES * 62 + 18)
+	holder.Size = UDim2.new(0, 132, 0, #ENTRIES * 48 + 18)
 	holder.BackgroundColor3 = Color3.fromRGB(18, 22, 32)
 	holder.BackgroundTransparency = 0.18
 	holder.Parent = parent
@@ -58,12 +58,10 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 	for _, entry in ipairs(ENTRIES) do
 		local button = Instance.new("TextButton")
 		button.Name = entry.id .. "Button"
-		button.Size = UDim2.new(0, 96, 0, 56)
-		button.Text = entry.icon .. "\n" .. entry.label
+		button.Size = UDim2.new(0, 112, 0, 42)
+		button.Text = ""
 		Theme.applyButtonStyle(button, entry.color)
 		button.BackgroundColor3 = Color3.fromRGB(31, 38, 52)
-		button.TextSize = 14
-		button.TextScaled = false
 		button.Parent = holder
 
 		local accent = Instance.new("Frame")
@@ -77,6 +75,48 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 		local accentCorner = Instance.new("UICorner")
 		accentCorner.CornerRadius = UDim.new(1, 0)
 		accentCorner.Parent = accent
+
+		local iconFrame = Instance.new("Frame")
+		iconFrame.Name = "IconSlot"
+		iconFrame.AnchorPoint = Vector2.new(0, 0.5)
+		iconFrame.Position = UDim2.new(0, 10, 0.5, 0)
+		iconFrame.Size = UDim2.new(0, 26, 0, 26)
+		iconFrame.BackgroundColor3 = entry.color
+		iconFrame.BackgroundTransparency = 0.12
+		iconFrame.BorderSizePixel = 0
+		iconFrame.Parent = button
+		local iconCorner = Instance.new("UICorner")
+		iconCorner.CornerRadius = UDim.new(0, 8)
+		iconCorner.Parent = iconFrame
+
+		local iconLabel = Instance.new("TextLabel")
+		iconLabel.Name = "IconText"
+		iconLabel.Size = UDim2.fromScale(1, 1)
+		iconLabel.BackgroundTransparency = 1
+		iconLabel.Font = Enum.Font.GothamBlack
+		iconLabel.Text = entry.icon
+		iconLabel.TextSize = if #entry.icon <= 1 then 17 else 10
+		iconLabel.TextScaled = false
+		iconLabel.TextColor3 = Theme.Colors.White
+		iconLabel.TextStrokeColor3 = Theme.Colors.Black
+		iconLabel.TextStrokeTransparency = 0
+		iconLabel.Parent = iconFrame
+
+		local textLabel = Instance.new("TextLabel")
+		textLabel.Name = "ButtonLabel"
+		textLabel.AnchorPoint = Vector2.new(0, 0.5)
+		textLabel.Position = UDim2.new(0, 44, 0.5, 0)
+		textLabel.Size = UDim2.new(1, -50, 1, -8)
+		textLabel.BackgroundTransparency = 1
+		textLabel.Font = Theme.Font
+		textLabel.Text = entry.label
+		textLabel.TextXAlignment = Enum.TextXAlignment.Left
+		textLabel.TextSize = 15
+		textLabel.TextScaled = false
+		textLabel.TextColor3 = Theme.Colors.White
+		textLabel.TextStrokeColor3 = Theme.Colors.Black
+		textLabel.TextStrokeTransparency = 0
+		textLabel.Parent = button
 
 		button.MouseButton1Click:Connect(function()
 			UIAnimator.buttonPunch(button)
