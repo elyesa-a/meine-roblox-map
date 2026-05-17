@@ -18,15 +18,19 @@ CollectibleConfig.RebirthShardsPerRebirth = 10
 CollectibleConfig.MaxActivePerZone = 4
 CollectibleConfig.SpawnIntervalSec = 6
 
+-- Schluessel = neue Zonen-Ids (1 Zone pro Area, siehe ZoneConfig/AreaConfig).
+-- Zone 1 behaelt die Id "StartZone".
 CollectibleConfig.ZoneMultiplier = {
 	StartZone = 1,
-	HospitalZone = 2,
-	MutationLabZone = 5,
-	QuarantineZone = 12,
-	FrostLabZone = 18,
-	MagmaReactorZone = 26,
-	GlitchZone = 45,
-	EndgameZone = 90,
+	Area2 = 2,
+	Area3 = 4,
+	Area4 = 7,
+	Area5 = 12,
+	Area6 = 18,
+	Area7 = 26,
+	Area8 = 40,
+	Area9 = 65,
+	Area10 = 100,
 }
 
 CollectibleConfig.Collectibles = {

@@ -1,8 +1,16 @@
 --!strict
--- Zonen-Definition.
--- Layout: Progressions-Zonen liegen als klare Sektor-Reihe im Laborraum.
--- Nicht jede Zone braucht ein Trainingsbett; einige sind Boss-/Atmosphaeren-
--- Sektoren fuer die groessere DNA Mutation Facility.
+-- Zonen-Definition -- jetzt 1 Zone pro Virus-Labor-Area (10 Stueck), linear.
+--
+-- Die ZoneDef-Form und getById bleiben UNVERAENDERT, damit bestehende
+-- Systeme (ZoneLockService, TrainingZoneService, Client ProgressionPanel)
+-- ohne Aenderung weiterlaufen. Nur Anzahl/Werte der Zonen wurden neu
+-- ausgerichtet auf die 10 Areale (siehe AreaConfig).
+--
+-- Zone i deckt das komplette Area-Segment ab (Trainingsbereich + Gegner-
+-- Halle). requiredRebirth = Trainings-Rebirth der Area. Die Zonen liegen
+-- contiguous und ueberlappen nicht (Layout aus AreaConfig).
+
+local AreaConfig = require(script.Parent:WaitForChild("AreaConfig"))
 
 export type ZoneDef = {
 	id: string,
@@ -11,102 +19,32 @@ export type ZoneDef = {
 	requiredPower: number,
 	zoneMultiplier: number,
 	color: Color3,
-	-- Position des Zonen-Bodens (Mittelpunkt).
 	center: Vector3,
 	size: Vector3,
 	enabled: boolean,
 }
 
-local ZoneConfig: { [number]: ZoneDef } = {
-	{
-		id = "StartZone",
-		displayName = "Lab Entry",
-		requiredRebirth = 0,
-		requiredPower = 0,
-		zoneMultiplier = 1,
-		color = Color3.fromRGB(120, 200, 255),
-		center = Vector3.new(-595, 0, -8),
-		size = Vector3.new(126, 1, 126),
+local ZoneConfig: { [number]: ZoneDef } = {}
+
+local zoneMultipliers = { 1, 2, 4, 7, 12, 18, 26, 40, 65, 100 }
+local span = AreaConfig.Layout.AreaSpan
+
+for i, area in ipairs(AreaConfig.Areas) do
+	ZoneConfig[i] = {
+		-- Zone 1 behaelt die Id "StartZone", damit ZoneConfig.getById("StartZone")
+		-- (von ZoneLockService genutzt) weiterhin aufloest.
+		id = if i == 1 then "StartZone" else "Area" .. tostring(i),
+		displayName = area.displayName,
+		requiredRebirth = area.trainingRebirth,
+		requiredPower = if i == 1 then 0 else math.floor(50 * (3.2 ^ (i - 1))),
+		zoneMultiplier = zoneMultipliers[i] or 1,
+		color = area.primaryColor,
+		-- Segment-Mitte = Gegner-Halle; deckt Trainingsbereich + Halle ab.
+		center = Vector3.new(area.hallCenterX, 0, 0),
+		size = Vector3.new(span, 1, 200),
 		enabled = true,
-	},
-	{
-		id = "HospitalZone",
-		displayName = "Bacteria Sector",
-		requiredRebirth = 3,
-		requiredPower = 500,
-		zoneMultiplier = 2,
-		color = Color3.fromRGB(120, 255, 170),
-		center = Vector3.new(-425, 0, -8),
-		size = Vector3.new(126, 1, 126),
-		enabled = true,
-	},
-	{
-		id = "MutationLabZone",
-		displayName = "Virus Chamber",
-		requiredRebirth = 10,
-		requiredPower = 5000,
-		zoneMultiplier = 5,
-		color = Color3.fromRGB(230, 70, 90),
-		center = Vector3.new(-255, 0, -8),
-		size = Vector3.new(126, 1, 126),
-		enabled = true,
-	},
-	{
-		id = "QuarantineZone",
-		displayName = "Toxic Facility",
-		requiredRebirth = 25,
-		requiredPower = 25000,
-		zoneMultiplier = 12,
-		color = Color3.fromRGB(150, 255, 70),
-		center = Vector3.new(-85, 0, -8),
-		size = Vector3.new(126, 1, 126),
-		enabled = true,
-	},
-	{
-		id = "FrostLabZone",
-		displayName = "Frost Lab",
-		requiredRebirth = 30,
-		requiredPower = 100000,
-		zoneMultiplier = 16,
-		color = Color3.fromRGB(160, 235, 255),
-		center = Vector3.new(85, 0, -8),
-		size = Vector3.new(126, 1, 126),
-		enabled = true,
-	},
-	{
-		id = "MagmaReactorZone",
-		displayName = "Magma Reactor",
-		requiredRebirth = 40,
-		requiredPower = 500000,
-		zoneMultiplier = 22,
-		color = Color3.fromRGB(255, 105, 45),
-		center = Vector3.new(255, 0, -8),
-		size = Vector3.new(126, 1, 126),
-		enabled = true,
-	},
-	{
-		id = "GlitchZone",
-		displayName = "Glitch Core",
-		requiredRebirth = 50,
-		requiredPower = 2000000,
-		zoneMultiplier = 30,
-		color = Color3.fromRGB(255, 80, 200),
-		center = Vector3.new(425, 0, -8),
-		size = Vector3.new(126, 1, 126),
-		enabled = true,
-	},
-	{
-		id = "EndgameZone",
-		displayName = "Final Mutation Core",
-		requiredRebirth = 100,
-		requiredPower = 10000000,
-		zoneMultiplier = 100,
-		color = Color3.fromRGB(255, 60, 60),
-		center = Vector3.new(595, 0, -8),
-		size = Vector3.new(126, 1, 126),
-		enabled = true,
-	},
-}
+	}
+end
 
 function ZoneConfig.getById(id: string): ZoneDef?
 	for _, z in ipairs(ZoneConfig) do

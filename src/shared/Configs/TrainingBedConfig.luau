@@ -1,74 +1,42 @@
 --!strict
--- Trainingsbetten: jedes Bett liegt mittig in seiner Progressions-Zone und
--- produziert pro Sekunde Kraft. Multiplikatoren (Rebirth, Zone, etc.) werden
--- im StatService oben drauf gerechnet.
+-- Trainingsbetten: ein Trainingsbereich pro Area (10 Stueck).
+--
+-- Die BedDef-Form bleibt unveraendert. Der VirusLabBuilder liest diese
+-- Tabelle fuer Rate, Rebirth-Anforderung und Farbe; TrainingZoneService
+-- liest zur Laufzeit die Hitbox-Attribute (RequiredRebirth/PowerPerSecond),
+-- die der Builder daraus setzt.
+--
+-- Rebirth-Anforderung exakt nach Vorgabe:
+--   Area 1 Training: Rebirth 0  (direkt nach Spawn)
+--   Area 2 Training: Rebirth 3
+--   Area 3 Training: Rebirth 6  ... +3 je Area ... Area 9: 24
+--   Area 10 Training: Rebirth 30
+
+local AreaConfig = require(script.Parent:WaitForChild("AreaConfig"))
 
 export type BedDef = {
 	id: string,
 	zoneId: string,
 	requiredRebirth: number,
 	powerPerSecond: number,
-	-- Lokale Position relativ zur Zone (wird vom WorldBuilder + Zone-Center kombiniert).
 	localPosition: Vector3,
 	color: Color3,
 	enabled: boolean,
 }
 
-local TrainingBedConfig: { [number]: BedDef } = {
-	{
-		id = "StandardBed",
-		zoneId = "StartZone",
-		requiredRebirth = 0,
-		powerPerSecond = 5,
+local TrainingBedConfig: { [number]: BedDef } = {}
+
+for i, area in ipairs(AreaConfig.Areas) do
+	TrainingBedConfig[i] = {
+		id = "Area" .. tostring(i) .. "TrainingBed",
+		zoneId = if i == 1 then "StartZone" else "Area" .. tostring(i),
+		requiredRebirth = area.trainingRebirth,
+		-- Skaliert deutlich pro Area (jeder Trainingsbereich ist staerker).
+		powerPerSecond = math.floor(5 * (6 ^ (i - 1))),
 		localPosition = Vector3.new(0, 1.5, 0),
-		color = Color3.fromRGB(220, 220, 220),
+		color = area.primaryColor,
 		enabled = true,
-	},
-	{
-		id = "InfectionBed",
-		zoneId = "HospitalZone",
-		requiredRebirth = 3,
-		powerPerSecond = 50,
-		localPosition = Vector3.new(0, 1.5, 0),
-		color = Color3.fromRGB(120, 255, 170),
-		enabled = true,
-	},
-	{
-		id = "MutationBed",
-		zoneId = "MutationLabZone",
-		requiredRebirth = 10,
-		powerPerSecond = 500,
-		localPosition = Vector3.new(0, 1.5, 0),
-		color = Color3.fromRGB(200, 120, 255),
-		enabled = true,
-	},
-	{
-		id = "QuarantineBed",
-		zoneId = "QuarantineZone",
-		requiredRebirth = 25,
-		powerPerSecond = 5000,
-		localPosition = Vector3.new(0, 1.5, 0),
-		color = Color3.fromRGB(255, 200, 80),
-		enabled = true,
-	},
-	{
-		id = "GlitchBed",
-		zoneId = "GlitchZone",
-		requiredRebirth = 50,
-		powerPerSecond = 50000,
-		localPosition = Vector3.new(0, 1.5, 0),
-		color = Color3.fromRGB(255, 80, 200),
-		enabled = true,
-	},
-	{
-		id = "EndgameBed",
-		zoneId = "EndgameZone",
-		requiredRebirth = 100,
-		powerPerSecond = 500000,
-		localPosition = Vector3.new(0, 1.5, 0),
-		color = Color3.fromRGB(255, 60, 60),
-		enabled = true,
-	},
-}
+	}
+end
 
 return TrainingBedConfig

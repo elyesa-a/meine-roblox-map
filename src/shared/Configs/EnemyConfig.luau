@@ -1,15 +1,42 @@
 --!strict
--- Phase A enemy and boss definitions.
--- Enemies use Power-only requirements. Rebirths are intentionally not used here.
+-- EnemyConfig: 100 Gegner, datenbasiert erzeugt (10 Areale x 10 Gegner).
+--
+-- Scaling-Formel (Vorgabe): jeder naechste Gegner ist 4x staerker.
+--   Health   = 100 * 4^(globalIndex-1)
+--   Strength = 10  * 4^(globalIndex-1)
+--   DNADrop  = 10  * 4^(globalIndex-1)
+-- Werte werden intern als echte Zahlen gehalten und nur auf Labels per
+-- NumberFormatter abgekuerzt (K, M, B, T, Qa, Qi, ... Dc).
+--
+-- RequiredPower bleibt bewusst eine MILDE Kurve (nicht *4), weil der
+-- bestehende EnemyService Angriffe ueber RequiredPower freischaltet. Die
+-- spec-konforme Progression laeuft ueber die DNA-Borders (siehe RequiredDNA
+-- + BorderService). So bleibt das bestehende Kampf-System spielbar.
+--
+-- Oeffentliche API (unveraendert, damit EnemyService weiterlaeuft):
+--   EnemyConfig.Enemies           -> { EnemyDef }
+--   EnemyConfig.getById(id)       -> EnemyDef?
+--   EnemyConfig.getByArea(name)   -> { EnemyDef }
+--   EnemyConfig.AttackCooldownSec / AttackDistance / BossPromptDistance
+
+local AreaConfig = require(script.Parent:WaitForChild("AreaConfig"))
 
 export type EnemyDef = {
 	Id: string,
 	DisplayName: string,
 	MaxHealth: number,
+	Strength: number,
 	RequiredPower: number,
 	DNAReward: number,
+	-- DNA, die der Spieler besitzen muss, um die Border VOR diesem Gegner
+	-- zu passieren (0 = frei, kein Border davor).
+	RequiredDNA: number,
 	RespawnTime: number,
-	AreaName: string,
+	AreaName: string, -- = AreaConfig id (z.B. "Area1")
+	AreaIndex: number, -- 1..10
+	EnemyIndex: number, -- 1..10 innerhalb der Area
+	GlobalIndex: number, -- 1..100
+	Shape: string, -- Form-Hinweis fuer den Builder (Optik-Variation)
 	IsBoss: boolean,
 }
 
@@ -19,42 +46,94 @@ EnemyConfig.AttackCooldownSec = 0.2
 EnemyConfig.AttackDistance = 18
 EnemyConfig.BossPromptDistance = 10
 
-EnemyConfig.Enemies = {
-	{ Id = "TinyAntibody", DisplayName = "Tiny Antibody", MaxHealth = 100, RequiredPower = 80, DNAReward = 5, RespawnTime = 8, AreaName = "StartEnemies", IsBoss = false },
-	{ Id = "LabGerm", DisplayName = "Lab Germ", MaxHealth = 250, RequiredPower = 150, DNAReward = 10, RespawnTime = 8, AreaName = "StartEnemies", IsBoss = false },
-	{ Id = "MiniCellGuard", DisplayName = "Mini Cell Guard", MaxHealth = 500, RequiredPower = 300, DNAReward = 20, RespawnTime = 10, AreaName = "StartEnemies", IsBoss = false },
-	{ Id = "WeakCureBot", DisplayName = "Weak Cure Bot", MaxHealth = 1000, RequiredPower = 700, DNAReward = 35, RespawnTime = 12, AreaName = "StartEnemies", IsBoss = false },
-
-	{ Id = "AntibodySoldier", DisplayName = "Antibody Soldier", MaxHealth = 2500, RequiredPower = 1500, DNAReward = 60, RespawnTime = 12, AreaName = "HospitalEnemies", IsBoss = false },
-	{ Id = "WhiteCellGuard", DisplayName = "White Cell Guard", MaxHealth = 5000, RequiredPower = 3000, DNAReward = 90, RespawnTime = 14, AreaName = "HospitalEnemies", IsBoss = false },
-	{ Id = "CleanseDrone", DisplayName = "Cleanse Drone", MaxHealth = 10000, RequiredPower = 7000, DNAReward = 150, RespawnTime = 16, AreaName = "HospitalEnemies", IsBoss = false },
-	{ Id = "HospitalDefender", DisplayName = "Hospital Defender", MaxHealth = 25000, RequiredPower = 15000, DNAReward = 250, RespawnTime = 18, AreaName = "HospitalEnemies", IsBoss = false },
-
-	{ Id = "DNAMutant", DisplayName = "DNA Mutant", MaxHealth = 50000, RequiredPower = 30000, DNAReward = 400, RespawnTime = 20, AreaName = "MutationEnemies", IsBoss = false },
-	{ Id = "MutationBeast", DisplayName = "Mutation Beast", MaxHealth = 100000, RequiredPower = 70000, DNAReward = 700, RespawnTime = 22, AreaName = "MutationEnemies", IsBoss = false },
-	{ Id = "ToxicCell", DisplayName = "Toxic Cell", MaxHealth = 250000, RequiredPower = 150000, DNAReward = 1200, RespawnTime = 25, AreaName = "MutationEnemies", IsBoss = false },
-	{ Id = "DNAGuardian", DisplayName = "DNA Guardian", MaxHealth = 500000, RequiredPower = 300000, DNAReward = 2000, RespawnTime = 30, AreaName = "MutationEnemies", IsBoss = false },
-
-	{ Id = "QuarantineBot", DisplayName = "Quarantine Bot", MaxHealth = 1000000, RequiredPower = 700000, DNAReward = 3500, RespawnTime = 35, AreaName = "QuarantineEnemies", IsBoss = false },
-	{ Id = "RedAlertGuard", DisplayName = "Red Alert Guard", MaxHealth = 2500000, RequiredPower = 1500000, DNAReward = 6000, RespawnTime = 40, AreaName = "QuarantineEnemies", IsBoss = false },
-	{ Id = "SterileTitan", DisplayName = "Sterile Titan", MaxHealth = 5000000, RequiredPower = 3000000, DNAReward = 10000, RespawnTime = 45, AreaName = "QuarantineEnemies", IsBoss = false },
-	{ Id = "LockdownBoss", DisplayName = "Toxic Mutant", MaxHealth = 10000000, RequiredPower = 6000000, DNAReward = 18000, RespawnTime = 60, AreaName = "QuarantineBoss", IsBoss = true },
-	{ Id = "FrozenExperiment", DisplayName = "Frozen Experiment", MaxHealth = 18000000, RequiredPower = 100000, DNAReward = 12000, RespawnTime = 70, AreaName = "FrostBoss", IsBoss = true },
-	{ Id = "MagmaBeast", DisplayName = "Magma Beast", MaxHealth = 30000000, RequiredPower = 500000, DNAReward = 28000, RespawnTime = 80, AreaName = "MagmaBoss", IsBoss = true },
-
-	{ Id = "GlitchHunter", DisplayName = "Glitch Hunter", MaxHealth = 25000000, RequiredPower = 15000000, DNAReward = 35000, RespawnTime = 60, AreaName = "GlitchEnemies", IsBoss = false },
-	{ Id = "FirewallBeast", DisplayName = "Firewall Beast", MaxHealth = 50000000, RequiredPower = 30000000, DNAReward = 60000, RespawnTime = 75, AreaName = "GlitchEnemies", IsBoss = false },
-	{ Id = "AntiVirusCore", DisplayName = "Glitch Overlord", MaxHealth = 100000000, RequiredPower = 60000000, DNAReward = 100000, RespawnTime = 90, AreaName = "GlitchBoss", IsBoss = true },
-	{ Id = "CoreSentry", DisplayName = "Core Sentry", MaxHealth = 150000000, RequiredPower = 90000000, DNAReward = 150000, RespawnTime = 90, AreaName = "EndgameEnemies", IsBoss = false },
-	{ Id = "OmegaCellGuard", DisplayName = "Omega Cell Guard", MaxHealth = 250000000, RequiredPower = 140000000, DNAReward = 250000, RespawnTime = 100, AreaName = "EndgameEnemies", IsBoss = false },
-	{ Id = "FinalCoreBeast", DisplayName = "Final Core Beast", MaxHealth = 350000000, RequiredPower = 200000000, DNAReward = 350000, RespawnTime = 110, AreaName = "EndgameEnemies", IsBoss = false },
-	{ Id = "OmegaImmuneBoss", DisplayName = "Final Experiment", MaxHealth = 500000000, RequiredPower = 250000000, DNAReward = 500000, RespawnTime = 120, AreaName = "EndgameBoss", IsBoss = true },
-
-	-- Boss-field Phase A entries for early progression arenas.
-	{ Id = "MiniAntibodyKing", DisplayName = "Bacteria King", MaxHealth = 3000, RequiredPower = 1000, DNAReward = 100, RespawnTime = 30, AreaName = "StartBoss", IsBoss = true },
-	{ Id = "WhiteCellTitan", DisplayName = "Virus Brute", MaxHealth = 30000, RequiredPower = 15000, DNAReward = 500, RespawnTime = 45, AreaName = "HospitalBoss", IsBoss = true },
-	{ Id = "DNAGuardianBoss", DisplayName = "Toxic Mutant", MaxHealth = 650000, RequiredPower = 300000, DNAReward = 2500, RespawnTime = 60, AreaName = "MutationBoss", IsBoss = true },
+-- 9 Namen pro Area (Gegner 1..9). Gegner 10 = Boss (AreaConfig.bossName).
+local areaEnemyNames = {
+	{ "Petri Microbe", "Lab Germ", "Splitting Cell", "Sticky Spore", "Twin Bacteria", "Acid Microbe", "Gut Flora", "Rod Bacillus", "Coccus Cluster" },
+	{ "Pale Host Cell", "Swollen Cell", "Burst Membrane", "Lysed Cell", "Infected Plasma", "Necrotic Cell", "Fever Cell", "Blistered Cell", "Rupturing Cell" },
+	{ "Splice Error", "Twisted Gene", "Mutagen Blob", "Helix Crawler", "Code Glitch Cell", "Forked Strand", "Warped Nucleus", "Recombinant", "Aberrant Clone" },
+	{ "Leaking Drum", "Sludge Crawler", "Caustic Slime", "Hazmat Leech", "Solvent Worm", "Corrosive Glob", "Spill Creeper", "Acid Pooler", "Barrel Lurker" },
+	{ "Spike Virion", "Capsid Drone", "Envelope Phage", "RNA Stinger", "Budding Virus", "Lytic Phage", "Latent Carrier", "Swarm Virion", "Replicant Phage" },
+	{ "Rogue Sample", "Server Blight", "Faulty Centrifuge", "Broken Incubator", "Tainted Reagent", "Static Specimen", "Glitched Vial", "Corrupt Culture", "Rusted Servo" },
+	{ "Reactor Spore", "Containment Breach", "Plasma Pathogen", "Core Mutagen", "Hazard Sentinel", "Meltdown Cell", "Fission Microbe", "Radiant Phage", "Burning Pathogen" },
+	{ "Shadow Strand", "Void Mutant", "Black Helix", "Umbral Cell", "Night Pathogen", "Dusk Mutant", "Eclipse Spore", "Abyss Crawler", "Dark Splicer" },
+	{ "Omega Spore", "Prime Mutant", "Alpha Virion", "Sigma Pathogen", "Apex Strain", "Hyper Phage", "Titan Microbe", "Overcharged Cell", "Doom Vector" },
+	{ "Sealed Horror", "Last Specimen", "Containment Wraith", "Final Strain", "Vault Mutant", "Endgame Phage", "Terminal Virus", "Lockdown Beast", "Ground Zero Cell" },
 }
+
+local enemyShapes = { "Blob", "Crawler", "Drone", "Slime", "Spiky", "Brute" }
+
+local BASE_HEALTH = 100
+local BASE_STRENGTH = 10
+local BASE_DNA = 10
+
+local function buildEnemies(): { EnemyDef }
+	local list: { EnemyDef } = {}
+	local areaCount = AreaConfig.count()
+	local perArea = AreaConfig.Layout.EnemiesPerArea
+
+	for areaIndex = 1, areaCount do
+		local area = AreaConfig.getByIndex(areaIndex)
+		if not area then
+			continue
+		end
+		for enemyIndex = 1, perArea do
+			local globalIndex = (areaIndex - 1) * perArea + enemyIndex
+			-- *4 Scaling: Faktor 4^(globalIndex-1).
+			local factor = 4 ^ (globalIndex - 1)
+			local isBoss = (enemyIndex == perArea)
+
+			local maxHealth = BASE_HEALTH * factor
+			local strength = BASE_STRENGTH * factor
+			local dnaReward = BASE_DNA * factor
+
+			-- Milde Power-Kurve nur pro Area (DNA-Borders sind das eigentliche
+			-- Progressions-Gate). Boss minimal hoeher.
+			local requiredPower = math.floor(50 * (3.2 ^ (areaIndex - 1)))
+			if isBoss then
+				requiredPower = math.floor(requiredPower * 1.4)
+			end
+
+			-- Border VOR diesem Gegner verlangt dessen eigenen DNA-Drop.
+			-- Erster Gegner von Area 1 ist frei (Vorgabe: "Required: 0 DNA").
+			local requiredDna = dnaReward
+			if globalIndex == 1 then
+				requiredDna = 0
+			end
+
+			local displayName: string
+			if isBoss then
+				displayName = area.bossName
+			else
+				displayName = areaEnemyNames[areaIndex][enemyIndex]
+			end
+
+			local shape = if isBoss
+				then "Boss"
+				else enemyShapes[((enemyIndex - 1) % #enemyShapes) + 1]
+
+			table.insert(list, {
+				Id = string.format("A%dE%d", areaIndex, enemyIndex),
+				DisplayName = displayName,
+				MaxHealth = maxHealth,
+				Strength = strength,
+				RequiredPower = requiredPower,
+				DNAReward = dnaReward,
+				RequiredDNA = requiredDna,
+				RespawnTime = if isBoss then 28 + areaIndex * 3 else 7 + areaIndex,
+				AreaName = area.id,
+				AreaIndex = areaIndex,
+				EnemyIndex = enemyIndex,
+				GlobalIndex = globalIndex,
+				Shape = shape,
+				IsBoss = isBoss,
+			})
+		end
+	end
+
+	return list
+end
+
+EnemyConfig.Enemies = buildEnemies()
 
 local byId: { [string]: EnemyDef } = {}
 local byArea: { [string]: { EnemyDef } } = {}
