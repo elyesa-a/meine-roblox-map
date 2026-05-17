@@ -51,10 +51,21 @@ local function randomPoint(zone): Vector3
 	return Vector3.new(zone.center.X + x, 3.2, zone.center.Z + 86 + z)
 end
 
-local function grant(player: Player, zoneId: string, def)
+local function hasZoneAccess(profile, zoneId: string): boolean
+	local zone = ZoneConfig.getById(zoneId)
+	if not zone or not zone.enabled then
+		return false
+	end
+	return profile.Rebirths >= zone.requiredRebirth and profile.Power >= zone.requiredPower
+end
+
+local function grant(player: Player, zoneId: string, def): boolean
 	local profile = DataService.getProfile(player)
 	if not profile then
-		return
+		return false
+	end
+	if not hasZoneAccess(profile, zoneId) then
+		return false
 	end
 	local zoneMult = CollectibleConfig.getZoneMultiplier(zoneId)
 	local amount = math.floor(def.amount * zoneMult)
@@ -93,6 +104,7 @@ local function grant(player: Player, zoneId: string, def)
 	end
 	StatService.broadcastProfile(player)
 	StatService.playSound(player, "Reward")
+	return true
 end
 
 local function spawnOne(zone)
@@ -156,10 +168,12 @@ local function spawnOne(zone)
 			return
 		end
 		playerTouchCooldown[player] = now
+		if not grant(player, zone.id, def) then
+			return
+		end
 		collected = true
 		part:Destroy()
 		activeByZone[zone.id] = math.max(0, (activeByZone[zone.id] or 1) - 1)
-		grant(player, zone.id, def)
 		task.delay(def.respawnSec, function()
 			spawnOne(zone)
 		end)
