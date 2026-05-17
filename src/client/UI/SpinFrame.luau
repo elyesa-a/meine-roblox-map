@@ -36,10 +36,10 @@ local SEGMENT_COLORS = {
 	Color3.fromRGB(65, 145, 255),
 	Color3.fromRGB(245, 70, 82),
 }
-local WHEEL_DIAMETER = 360
+local WHEEL_DIAMETER = 390
 local WHEEL_RADIUS = WHEEL_DIAMETER / 2
-local SEGMENT_STRIPS = 9
-local LABEL_RADIUS = 124
+local TILE_SIZE = 10
+local LABEL_RADIUS = 130
 
 local function formatCooldown(sec: number): string
 	sec = math.max(0, math.floor(sec))
@@ -101,35 +101,45 @@ local function makeCircle(parent: Instance, name: string, size: UDim2, position:
 	return circle
 end
 
-local function addSegment(wheel: Frame, reward, index: number, count: number)
+local function addSegmentTiles(wheel: Frame, count: number)
+	local segmentAngle = 360 / count
+	local radiusSquared = (WHEEL_RADIUS - 4) * (WHEEL_RADIUS - 4)
+
+	for x = TILE_SIZE / 2, WHEEL_DIAMETER - TILE_SIZE / 2, TILE_SIZE do
+		for y = TILE_SIZE / 2, WHEEL_DIAMETER - TILE_SIZE / 2, TILE_SIZE do
+			local dx = x - WHEEL_RADIUS
+			local dy = y - WHEEL_RADIUS
+			if dx * dx + dy * dy <= radiusSquared then
+				local angleFromTop = normalizeDegrees(math.deg(math.atan(dy, dx)) + 90)
+				local segmentIndex = math.clamp(math.floor(angleFromTop / segmentAngle) + 1, 1, count)
+				local color = SEGMENT_COLORS[((segmentIndex - 1) % #SEGMENT_COLORS) + 1]
+
+				local tile = Instance.new("Frame")
+				tile.Name = "SegmentTile"
+				tile.AnchorPoint = Vector2.new(0.5, 0.5)
+				tile.Size = UDim2.fromOffset(TILE_SIZE + 1, TILE_SIZE + 1)
+				tile.Position = UDim2.fromOffset(x, y)
+				tile.BackgroundColor3 = color
+				tile.BorderSizePixel = 0
+				tile.ZIndex = 9
+				tile.Parent = wheel
+			end
+		end
+	end
+end
+
+local function addRewardLabel(wheel: Frame, reward, index: number, count: number)
 	local segmentAngle = 360 / count
 	local color = SEGMENT_COLORS[((index - 1) % #SEGMENT_COLORS) + 1]
-	local stripAngle = segmentAngle / SEGMENT_STRIPS
-	local startAngle = -90 + (index - 1) * segmentAngle
-
-	for stripIndex = 1, SEGMENT_STRIPS do
-		local strip = Instance.new("Frame")
-		strip.Name = "Segment_" .. tostring(index) .. "_Strip_" .. tostring(stripIndex)
-		strip.AnchorPoint = Vector2.new(0, 0.5)
-		strip.Size = UDim2.new(0, WHEEL_RADIUS + 10, 0, 17)
-		strip.Position = UDim2.fromScale(0.5, 0.5)
-		strip.Rotation = startAngle + (stripIndex - 0.5) * stripAngle
-		strip.BackgroundColor3 = color
-		strip.BorderSizePixel = 0
-		strip.ZIndex = 9
-		strip.Parent = wheel
-		strip:SetAttribute("RewardId", reward.id)
-	end
-
-	local midAngle = startAngle + segmentAngle / 2
+	local midAngle = -90 + (index - 0.5) * segmentAngle
 	local radians = math.rad(midAngle)
-	local labelX = WHEEL_DIAMETER / 2 + math.cos(radians) * LABEL_RADIUS
-	local labelY = WHEEL_DIAMETER / 2 + math.sin(radians) * LABEL_RADIUS
+	local labelX = WHEEL_RADIUS + math.cos(radians) * LABEL_RADIUS
+	local labelY = WHEEL_RADIUS + math.sin(radians) * LABEL_RADIUS
 
 	local rewardLabel = Instance.new("TextLabel")
 	rewardLabel.Name = "RewardLabel"
 	rewardLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-	rewardLabel.Size = UDim2.new(0, 74, 0, 32)
+	rewardLabel.Size = UDim2.new(0, 82, 0, 34)
 	rewardLabel.Position = UDim2.fromOffset(labelX, labelY)
 	rewardLabel.BackgroundTransparency = 1
 	rewardLabel.Font = Enum.Font.GothamBold
@@ -194,7 +204,7 @@ function SpinFrame.create(parent: ScreenGui): Refs
 	root.Name = "SpinFrame"
 	root.AnchorPoint = Vector2.new(0.5, 0.5)
 	root.Position = UDim2.fromScale(0.5, 0.5)
-	root.Size = UDim2.new(0, 620, 0, 660)
+	root.Size = UDim2.new(0, 620, 0, 700)
 	Theme.applyPanelStyle(root, Theme.Colors.Yellow)
 	root.ZIndex = 6
 	root.Parent = backdrop
@@ -217,7 +227,7 @@ function SpinFrame.create(parent: ScreenGui): Refs
 		UIAnimator.framePopOut(backdrop, root)
 	end)
 
-	local wheelHolder = makeCircle(root, "WheelHolder", UDim2.new(0, WHEEL_DIAMETER + 26, 0, WHEEL_DIAMETER + 26), UDim2.new(0.5, 0, 0, 256), Color3.fromRGB(20, 25, 38), 7)
+	local wheelHolder = makeCircle(root, "WheelHolder", UDim2.fromOffset(WHEEL_DIAMETER, WHEEL_DIAMETER), UDim2.new(0.5, 0, 0, 270), Color3.fromRGB(20, 25, 38), 7)
 	wheelHolder.ClipsDescendants = false
 	local holderStroke = Instance.new("UIStroke")
 	holderStroke.Color = Color3.fromRGB(255, 235, 120)
@@ -225,18 +235,26 @@ function SpinFrame.create(parent: ScreenGui): Refs
 	holderStroke.Transparency = 0.05
 	holderStroke.Parent = wheelHolder
 
-	local wheel = makeCircle(wheelHolder, "Wheel", UDim2.fromOffset(WHEEL_DIAMETER, WHEEL_DIAMETER), UDim2.fromScale(0.5, 0.5), Color3.fromRGB(32, 39, 56), 8)
-	wheel.ClipsDescendants = true
+	local wheel = Instance.new("Frame")
+	wheel.Name = "SegmentsFrame"
+	wheel.AnchorPoint = Vector2.new(0.5, 0.5)
+	wheel.Size = UDim2.fromOffset(WHEEL_DIAMETER, WHEEL_DIAMETER)
+	wheel.Position = UDim2.fromScale(0.5, 0.5)
+	wheel.BackgroundTransparency = 1
+	wheel.BorderSizePixel = 0
+	wheel.ZIndex = 8
+	wheel.Parent = wheelHolder
 
+	addSegmentTiles(wheel, #SpinConfig.Rewards)
 	for i, reward in ipairs(SpinConfig.Rewards) do
-		addSegment(wheel, reward, i, #SpinConfig.Rewards)
+		addRewardLabel(wheel, reward, i, #SpinConfig.Rewards)
 	end
 
 	for i = 1, #SpinConfig.Rewards do
 		local spoke = Instance.new("Frame")
 		spoke.Name = "Spoke_" .. tostring(i)
-		spoke.AnchorPoint = Vector2.new(0, 0.5)
-		spoke.Size = UDim2.new(0, WHEEL_RADIUS, 0, 2)
+		spoke.AnchorPoint = Vector2.new(0.5, 0.5)
+		spoke.Size = UDim2.new(0, WHEEL_DIAMETER - 10, 0, 3)
 		spoke.Position = UDim2.fromScale(0.5, 0.5)
 		spoke.Rotation = (i - 1) * (360 / #SpinConfig.Rewards) - 90
 		spoke.BackgroundColor3 = Color3.fromRGB(18, 24, 36)
@@ -267,15 +285,15 @@ function SpinFrame.create(parent: ScreenGui): Refs
 	pointerStroke.Thickness = 2
 	pointerStroke.Parent = pointer
 
-	local statusLabel = makeLabel(root, "FREE SPIN READY!", UDim2.new(1, -32, 0, 28), UDim2.new(0, 16, 0, 466), 7)
+	local statusLabel = makeLabel(root, "FREE SPIN READY!", UDim2.new(1, -32, 0, 28), UDim2.new(0, 16, 0, 480), 7)
 	statusLabel.TextSize = 18
 	statusLabel.TextScaled = false
 
-	local cooldownLabel = makeLabel(root, "", UDim2.new(1, -32, 0, 22), UDim2.new(0, 16, 0, 496), 7)
+	local cooldownLabel = makeLabel(root, "", UDim2.new(1, -32, 0, 22), UDim2.new(0, 16, 0, 512), 7)
 	cooldownLabel.TextSize = 14
 	cooldownLabel.TextScaled = false
 
-	local resultLabel = makeLabel(root, "REWARD: -", UDim2.new(1, -32, 0, 32), UDim2.new(0, 16, 0, 526), 7)
+	local resultLabel = makeLabel(root, "REWARD: -", UDim2.new(1, -32, 0, 32), UDim2.new(0, 16, 0, 548), 7)
 	resultLabel.TextSize = 18
 	resultLabel.TextScaled = false
 	resultLabel.TextColor3 = Theme.Colors.Yellow
