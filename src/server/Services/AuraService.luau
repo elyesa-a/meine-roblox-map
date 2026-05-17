@@ -22,15 +22,268 @@ local DataService
 local StatService
 local AntiExploitService
 
--- VFX-Tracking: pro Spieler die aktive Aura-Attachment-Instanz.
-local activeAttachments: { [Player]: Attachment } = {}
+local AURA_EFFECTS_FOLDER_NAME = "AuraEffects"
+local ACTIVE_AURA_NAME = "ActiveAuraEffect"
+local SPARKLE_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
+local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
+local FIRE_TEXTURE = "rbxasset://textures/particles/fire_main.dds"
+
+-- VFX-Tracking: pro Spieler alle Instanzen, die zur aktiven Aura gehoeren.
+local activeEffects: { [Player]: { Instance } } = {}
+
+local auraEffectsFolder: Folder? = nil
+
+local function makeFolder(name: string, parent: Instance): Folder
+	local existing = parent:FindFirstChild(name)
+	if existing and existing:IsA("Folder") then
+		return existing
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = name
+	folder.Parent = parent
+	return folder
+end
+
+local function makeAttachmentTemplate(parent: Instance, name: string, targetPart: string, position: Vector3?): Attachment
+	local attachment = Instance.new("Attachment")
+	attachment.Name = name
+	attachment.Position = position or Vector3.zero
+	attachment:SetAttribute("TargetPart", targetPart)
+	attachment.Parent = parent
+	return attachment
+end
+
+local function makeEmitter(parent: Instance, name: string, texture: string, color: ColorSequence, rate: number, lifetime: NumberRange, speed: NumberRange, size: NumberSequence, transparency: NumberSequence, lightEmission: number): ParticleEmitter
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = name
+	emitter.Texture = texture
+	emitter.Color = color
+	emitter.Rate = rate
+	emitter.Lifetime = lifetime
+	emitter.Speed = speed
+	emitter.Size = size
+	emitter.Transparency = transparency
+	emitter.LightEmission = lightEmission
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Rotation = NumberRange.new(0, 360)
+	emitter.RotSpeed = NumberRange.new(-90, 90)
+	emitter.Drag = 2
+	emitter.Parent = parent
+	return emitter
+end
+
+local function seq(startValue: number, endValue: number): NumberSequence
+	return NumberSequence.new({
+		NumberSequenceKeypoint.new(0, startValue),
+		NumberSequenceKeypoint.new(1, endValue),
+	})
+end
+
+local function makeLightTemplate(parent: Instance, color: Color3, brightness: number, range: number)
+	local light = Instance.new("PointLight")
+	light.Name = "AuraLight"
+	light.Color = color
+	light.Brightness = brightness
+	light.Range = range
+	light:SetAttribute("TargetPart", "HumanoidRootPart")
+	light.Parent = parent
+end
+
+local function makeBeamTemplate(parent: Instance, name: string, color: ColorSequence, attachment0Name: string, attachment1Name: string, width: number)
+	local beam = Instance.new("Beam")
+	beam.Name = name
+	beam.Color = color
+	beam.Width0 = width
+	beam.Width1 = width * 0.65
+	beam.LightEmission = 0.85
+	beam.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.18),
+		NumberSequenceKeypoint.new(1, 0.55),
+	})
+	beam.FaceCamera = true
+	beam.Segments = 6
+	beam:SetAttribute("Attachment0Name", attachment0Name)
+	beam:SetAttribute("Attachment1Name", attachment1Name)
+	beam.Parent = parent
+end
+
+local function makeShardTemplate(parent: Instance, name: string, color: Color3, offset: Vector3, size: Vector3)
+	local shard = Instance.new("Part")
+	shard.Name = name
+	shard.Anchored = false
+	shard.CanCollide = false
+	shard.CanTouch = false
+	shard.CanQuery = false
+	shard.Massless = true
+	shard.Material = Enum.Material.Neon
+	shard.Color = color
+	shard.Size = size
+	shard:SetAttribute("TargetPart", "HumanoidRootPart")
+	shard:SetAttribute("OffsetX", offset.X)
+	shard:SetAttribute("OffsetY", offset.Y)
+	shard:SetAttribute("OffsetZ", offset.Z)
+	shard.Parent = parent
+end
+
+local function resetTemplate(displayName: string): Folder
+	local root = makeFolder(AURA_EFFECTS_FOLDER_NAME, ReplicatedStorage)
+	auraEffectsFolder = root
+	local existing = root:FindFirstChild(displayName)
+	if existing then
+		existing:Destroy()
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = displayName
+	folder.Parent = root
+	return folder
+end
+
+local function buildAuraEffectTemplates()
+	local electric = resetTemplate("Electric Aura")
+	do
+		local cyan = ColorSequence.new(Color3.fromRGB(120, 235, 255), Color3.fromRGB(255, 255, 255))
+		local root = makeAttachmentTemplate(electric, "ElectricRoot", "HumanoidRootPart")
+		makeEmitter(root, "ElectricSparks", SPARKLE_TEXTURE, cyan, 26, NumberRange.new(0.18, 0.42), NumberRange.new(4, 8), seq(0.35, 0.05), seq(0.05, 1), 0.9)
+		local arcA = makeAttachmentTemplate(electric, "ElectricArcA", "HumanoidRootPart", Vector3.new(-2.2, 0.4, 0))
+		local arcB = makeAttachmentTemplate(electric, "ElectricArcB", "HumanoidRootPart", Vector3.new(2.2, 1.8, 0))
+		local arcC = makeAttachmentTemplate(electric, "ElectricArcC", "HumanoidRootPart", Vector3.new(0, -1.5, 1.7))
+		makeBeamTemplate(electric, "ElectricBeamA", cyan, arcA.Name, arcB.Name, 0.17)
+		makeBeamTemplate(electric, "ElectricBeamB", cyan, arcB.Name, arcC.Name, 0.12)
+		makeLightTemplate(electric, Color3.fromRGB(120, 230, 255), 0.85, 11)
+	end
+
+	local blizzard = resetTemplate("Blizzard Aura")
+	do
+		local ice = ColorSequence.new(Color3.fromRGB(210, 245, 255), Color3.fromRGB(120, 210, 255))
+		local root = makeAttachmentTemplate(blizzard, "BlizzardRoot", "HumanoidRootPart")
+		makeEmitter(root, "Snowflakes", SPARKLE_TEXTURE, ice, 18, NumberRange.new(1.1, 1.8), NumberRange.new(1, 3), seq(0.5, 0.08), seq(0.12, 1), 0.35)
+		local torso = makeAttachmentTemplate(blizzard, "FrostMist", "UpperTorso", Vector3.new(0, 0.1, 0))
+		local mist = makeEmitter(torso, "ColdMist", SMOKE_TEXTURE, ice, 10, NumberRange.new(1, 1.6), NumberRange.new(0.7, 1.7), seq(1.6, 0.45), seq(0.58, 1), 0.18)
+		mist.Acceleration = Vector3.new(0, 1.2, 0)
+		makeLightTemplate(blizzard, Color3.fromRGB(180, 235, 255), 0.35, 9)
+	end
+
+	local purple = resetTemplate("Purple Aura")
+	do
+		local violet = ColorSequence.new(Color3.fromRGB(180, 80, 255), Color3.fromRGB(235, 180, 255))
+		local root = makeAttachmentTemplate(purple, "PurpleRoot", "HumanoidRootPart")
+		makeEmitter(root, "MysticGlow", SPARKLE_TEXTURE, violet, 22, NumberRange.new(0.8, 1.35), NumberRange.new(1.5, 3.2), seq(0.85, 0.12), seq(0.18, 1), 0.75)
+		local torso = makeAttachmentTemplate(purple, "PurpleMist", "UpperTorso")
+		makeEmitter(torso, "SoftPurpleMist", SMOKE_TEXTURE, violet, 8, NumberRange.new(1, 1.7), NumberRange.new(0.5, 1.3), seq(1.35, 0.35), seq(0.64, 1), 0.25)
+		makeLightTemplate(purple, Color3.fromRGB(190, 100, 255), 0.5, 10)
+	end
+
+	local poison = resetTemplate("Poison Aura")
+	do
+		local toxic = ColorSequence.new(Color3.fromRGB(70, 255, 95), Color3.fromRGB(20, 120, 45))
+		local root = makeAttachmentTemplate(poison, "PoisonRoot", "HumanoidRootPart")
+		local gas = makeEmitter(root, "ToxicGas", SMOKE_TEXTURE, toxic, 15, NumberRange.new(1.1, 1.8), NumberRange.new(0.7, 1.8), seq(1.15, 0.32), seq(0.42, 1), 0.22)
+		gas.Acceleration = Vector3.new(0, 1.4, 0)
+		local bubbles = makeAttachmentTemplate(poison, "PoisonBubbles", "UpperTorso", Vector3.new(0, -0.2, 0))
+		makeEmitter(bubbles, "ToxicBubbles", SPARKLE_TEXTURE, toxic, 12, NumberRange.new(0.7, 1.25), NumberRange.new(1.2, 2.2), seq(0.42, 0.08), seq(0.08, 1), 0.45)
+		makeLightTemplate(poison, Color3.fromRGB(80, 255, 95), 0.45, 9)
+	end
+
+	local magma = resetTemplate("Magma Aura")
+	do
+		local lava = ColorSequence.new(Color3.fromRGB(255, 210, 70), Color3.fromRGB(255, 70, 35))
+		local root = makeAttachmentTemplate(magma, "MagmaRoot", "HumanoidRootPart")
+		local flame = makeEmitter(root, "LavaEmbers", FIRE_TEXTURE, lava, 18, NumberRange.new(0.45, 0.9), NumberRange.new(1.8, 3.8), seq(0.85, 0.14), seq(0.12, 1), 0.65)
+		flame.Acceleration = Vector3.new(0, 3.4, 0)
+		local embers = makeAttachmentTemplate(magma, "MagmaEmbers", "UpperTorso")
+		makeEmitter(embers, "HotSparks", SPARKLE_TEXTURE, lava, 14, NumberRange.new(0.35, 0.8), NumberRange.new(2.4, 4.8), seq(0.35, 0.05), seq(0.05, 1), 0.85)
+		makeLightTemplate(magma, Color3.fromRGB(255, 120, 45), 0.75, 11)
+	end
+
+	local glitch = resetTemplate("Glitch Aura")
+	do
+		local digital = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 245, 255)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 70, 220)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 90, 255)),
+		})
+		local root = makeAttachmentTemplate(glitch, "GlitchRoot", "HumanoidRootPart")
+		makeEmitter(root, "DigitalFlicker", SPARKLE_TEXTURE, digital, 30, NumberRange.new(0.25, 0.65), NumberRange.new(2.2, 5.2), seq(0.48, 0.05), seq(0.03, 1), 0.9)
+		makeShardTemplate(glitch, "GlitchShardA", Color3.fromRGB(80, 245, 255), Vector3.new(-2.1, 1.2, 0), Vector3.new(0.55, 0.55, 0.12))
+		makeShardTemplate(glitch, "GlitchShardB", Color3.fromRGB(255, 70, 220), Vector3.new(1.9, 0.1, -0.6), Vector3.new(0.42, 0.8, 0.12))
+		makeShardTemplate(glitch, "GlitchShardC", Color3.fromRGB(170, 90, 255), Vector3.new(0.5, 2.1, 0.7), Vector3.new(0.72, 0.36, 0.12))
+		makeLightTemplate(glitch, Color3.fromRGB(255, 80, 220), 0.7, 10)
+	end
+
+	local rainbow = resetTemplate("Rainbow Aura")
+	do
+		local rainbowSeq = ColorSequence.new({
+			ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 80, 80)),
+			ColorSequenceKeypoint.new(0.18, Color3.fromRGB(255, 220, 80)),
+			ColorSequenceKeypoint.new(0.36, Color3.fromRGB(110, 255, 120)),
+			ColorSequenceKeypoint.new(0.55, Color3.fromRGB(80, 215, 255)),
+			ColorSequenceKeypoint.new(0.75, Color3.fromRGB(165, 100, 255)),
+			ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 90, 210)),
+		})
+		local root = makeAttachmentTemplate(rainbow, "RainbowRoot", "HumanoidRootPart")
+		makeEmitter(root, "RainbowSparkles", SPARKLE_TEXTURE, rainbowSeq, 34, NumberRange.new(0.8, 1.45), NumberRange.new(1.8, 4), seq(0.7, 0.08), seq(0.06, 1), 0.95)
+		local head = makeAttachmentTemplate(rainbow, "RainbowHalo", "Head", Vector3.new(0, 0.45, 0))
+		makeEmitter(head, "RainbowHaloSpark", SPARKLE_TEXTURE, rainbowSeq, 12, NumberRange.new(0.75, 1.25), NumberRange.new(0.8, 1.8), seq(0.45, 0.05), seq(0.08, 1), 0.85)
+		makeLightTemplate(rainbow, Color3.fromRGB(255, 245, 170), 0.85, 12)
+	end
+end
+
+local function markAuraInstance(instance: Instance)
+	instance.Name = ACTIVE_AURA_NAME
+	instance:SetAttribute("IsAuraVFX", true)
+end
 
 local function removeVFX(player: Player)
-	local att = activeAttachments[player]
-	if att then
-		att:Destroy()
-		activeAttachments[player] = nil
+	local tracked = activeEffects[player]
+	if tracked then
+		for _, instance in ipairs(tracked) do
+			if instance.Parent then
+				instance:Destroy()
+			end
+		end
+		activeEffects[player] = nil
 	end
+
+	local char = player.Character
+	if char then
+		for _, instance in ipairs(char:GetDescendants()) do
+			if instance:GetAttribute("IsAuraVFX") == true or instance.Name == ACTIVE_AURA_NAME then
+				instance:Destroy()
+			end
+		end
+	end
+end
+
+local function findTargetPart(char: Model, targetPartName: string): BasePart?
+	local direct = char:FindFirstChild(targetPartName)
+	if direct and direct:IsA("BasePart") then
+		return direct
+	end
+	if targetPartName == "UpperTorso" then
+		local torso = char:FindFirstChild("Torso")
+		if torso and torso:IsA("BasePart") then
+			return torso
+		end
+	end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if hrp and hrp:IsA("BasePart") then
+		return hrp
+	end
+	return nil
+end
+
+local function getAuraTemplate(def): Folder?
+	if not auraEffectsFolder then
+		auraEffectsFolder = ReplicatedStorage:FindFirstChild(AURA_EFFECTS_FOLDER_NAME) :: Folder?
+	end
+	if not auraEffectsFolder then
+		return nil
+	end
+	local template = auraEffectsFolder:FindFirstChild(def.displayName)
+	if template and template:IsA("Folder") then
+		return template
+	end
+	return nil
 end
 
 local function applyVFX(player: Player, auraId: string?)
@@ -51,35 +304,77 @@ local function applyVFX(player: Player, auraId: string?)
 		return
 	end
 
-	local attachment = Instance.new("Attachment")
-	attachment.Name = "AuraVFX"
-	attachment.Parent = hrp
-
-	local emitter = Instance.new("ParticleEmitter")
-	emitter.Name = "AuraEmitter"
-	emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-	emitter.LightEmission = 0.5
-	emitter.Size = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 1.2),
-		NumberSequenceKeypoint.new(1, 0.2),
-	})
-	emitter.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.2),
-		NumberSequenceKeypoint.new(1, 1.0),
-	})
-	emitter.Lifetime = NumberRange.new(0.8, 1.4)
-	emitter.Rate = 40
-	emitter.Speed = NumberRange.new(2, 4)
-	emitter.SpreadAngle = Vector2.new(180, 180)
-	emitter.Rotation = NumberRange.new(0, 360)
-	if def.colorSequence then
-		emitter.Color = def.colorSequence
-	else
-		emitter.Color = ColorSequence.new(def.color)
+	local template = getAuraTemplate(def)
+	if not template then
+		return
 	end
-	emitter.Parent = attachment
 
-	activeAttachments[player] = attachment
+	local created: { Instance } = {}
+	local attachmentsByTemplateName: { [string]: Attachment } = {}
+
+	for _, child in ipairs(template:GetChildren()) do
+		if child:IsA("Attachment") then
+			local targetName = child:GetAttribute("TargetPart")
+			local target = findTargetPart(char, if type(targetName) == "string" then targetName else "HumanoidRootPart")
+			if target then
+				local clone = child:Clone()
+				markAuraInstance(clone)
+				clone.Parent = target
+				attachmentsByTemplateName[child.Name] = clone
+				table.insert(created, clone)
+			end
+		end
+	end
+
+	for _, child in ipairs(template:GetChildren()) do
+		if child:IsA("Beam") then
+			local attachment0Name = child:GetAttribute("Attachment0Name")
+			local attachment1Name = child:GetAttribute("Attachment1Name")
+			if type(attachment0Name) == "string" and type(attachment1Name) == "string" then
+				local attachment0 = attachmentsByTemplateName[attachment0Name]
+				local attachment1 = attachmentsByTemplateName[attachment1Name]
+				if attachment0 and attachment1 then
+					local clone = child:Clone()
+					clone.Attachment0 = attachment0
+					clone.Attachment1 = attachment1
+					markAuraInstance(clone)
+					clone.Parent = hrp
+					table.insert(created, clone)
+				end
+			end
+		elseif child:IsA("PointLight") then
+			local targetName = child:GetAttribute("TargetPart")
+			local target = findTargetPart(char, if type(targetName) == "string" then targetName else "HumanoidRootPart")
+			if target then
+				local clone = child:Clone()
+				markAuraInstance(clone)
+				clone.Parent = target
+				table.insert(created, clone)
+			end
+		elseif child:IsA("BasePart") then
+			local targetName = child:GetAttribute("TargetPart")
+			local target = findTargetPart(char, if type(targetName) == "string" then targetName else "HumanoidRootPart")
+			if target then
+				local clone = child:Clone()
+				local offset = Vector3.new(
+					child:GetAttribute("OffsetX") :: number? or 0,
+					child:GetAttribute("OffsetY") :: number? or 0,
+					child:GetAttribute("OffsetZ") :: number? or 0
+				)
+				markAuraInstance(clone)
+				clone.CFrame = target.CFrame * CFrame.new(offset)
+				clone.Parent = char
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = target
+				weld.Part1 = clone
+				markAuraInstance(weld)
+				weld.Parent = clone
+				table.insert(created, clone)
+			end
+		end
+	end
+
+	activeEffects[player] = created
 end
 
 function AuraService.getMultiplier(player: Player): number
@@ -135,11 +430,13 @@ function AuraService.equipAura(player: Player, auraId: string?)
 		ShowPopup:FireClient(player, "You do not own this aura!")
 		return
 	end
-	if not AuraConfig.getById(auraId) then
+	local def = AuraConfig.getById(auraId)
+	if not def then
 		return
 	end
 	profile.EquippedAura = auraId
 	applyVFX(player, auraId)
+	ShowPopup:FireClient(player, string.format("%s equipped!", def.displayName))
 	StatService.broadcastProfile(player)
 end
 
@@ -168,6 +465,7 @@ function AuraService.start(deps)
 	DataService = deps.DataService
 	StatService = deps.StatService
 	AntiExploitService = deps.AntiExploitService
+	buildAuraEffectTemplates()
 
 	AntiExploitService.safeBind(RequestBuyAura, 5, function(player, auraId)
 		if type(auraId) ~= "string" then
@@ -202,7 +500,7 @@ function AuraService.start(deps)
 	end
 
 	Players.PlayerRemoving:Connect(function(player)
-		activeAttachments[player] = nil
+		activeEffects[player] = nil
 	end)
 end
 
