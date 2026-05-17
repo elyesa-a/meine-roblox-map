@@ -137,6 +137,14 @@ local function spawnDamageNumber(state: EnemyState, amount: number)
 end
 
 local function playAttackBurst(state: EnemyState)
+	local originalColor = state.root.Color
+	state.root.Color = Color3.fromRGB(255, 245, 120)
+	task.delay(0.08, function()
+		if state.root.Parent then
+			state.root.Color = originalColor
+		end
+	end)
+
 	local emitter = Instance.new("ParticleEmitter")
 	emitter.Name = "EnemyHitBurst"
 	emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
@@ -252,6 +260,7 @@ local function defeatEnemy(player: Player, state: EnemyState)
 	state.health = 0
 	updateEnemy(state)
 	grantDna(player, state.def.DNAReward)
+	ShowPopup:FireClient(player, string.format("%s defeated! +%d DNA", state.def.DisplayName, state.def.DNAReward))
 	grantBossBonus(player, state)
 	if DailyQuestService then
 		DailyQuestService.record(player, if state.def.IsBoss then "DefeatBoss" else "DefeatEnemy", 1, state.def.AreaName)

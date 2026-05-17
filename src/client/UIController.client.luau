@@ -18,6 +18,8 @@ local LeftButtons = require(UI:WaitForChild("LeftButtons"))
 local BottomStats = require(UI:WaitForChild("BottomStats"))
 local RightBoosts = require(UI:WaitForChild("RightBoosts"))
 local TopBar = require(UI:WaitForChild("TopBar"))
+local ProgressionPanel = require(UI:WaitForChild("ProgressionPanel"))
+local CurrentAreaLabel = require(UI:WaitForChild("CurrentAreaLabel"))
 local RebirthFrame = require(UI:WaitForChild("RebirthFrame"))
 local SettingsFrame = require(UI:WaitForChild("SettingsFrame"))
 local PetFrame = require(UI:WaitForChild("PetFrame"))
@@ -77,6 +79,11 @@ local topRefs = TopBar.create(screen, function()
 	menuController:openMenu("Spin")
 end)
 
+-- Ziel-/Mission-HUD: zeigt naechste Zone und aktuelle Daily-Mission.
+local progressionRefs = ProgressionPanel.create(screen)
+local areaRefs = CurrentAreaLabel.create(screen)
+CurrentAreaLabel.start(areaRefs)
+
 -- Rechte Boost-Leiste: kauft DNA-Boosts. (Gamepasses liegen nur im Shop.)
 local rightRefs = RightBoosts.create(screen)
 
@@ -104,7 +111,7 @@ LeftButtons.create(screen, function(id)
 end)
 
 -- Klick-Button (zentral unten).
-ClickHandler.bind(screen, bottomRefs.clickButton, Theme.Colors.Yellow)
+ClickHandler.bind(screen, bottomRefs.clickButton, Theme.Colors.Yellow, bottomRefs.autoClickButton)
 
 -- Popup-Listener.
 PopupHandler.start(screen)
@@ -135,6 +142,7 @@ local state: { [string]: any } = {
 local function applyState()
 	BottomStats.update(bottomRefs, state)
 	TopBar.update(topRefs, state)
+	ProgressionPanel.update(progressionRefs, state)
 	RebirthFrame.update(rebirthRefs, state)
 	SettingsFrame.update(settingsRefs, state)
 	PetFrame.update(petRefs, state)
@@ -173,6 +181,8 @@ RunService.Heartbeat:Connect(function(dt)
 	DailyChestFrame.tick(dailyRefs, state)
 	DailyQuestFrame.tick(dailyQuestRefs, state)
 	RightBoosts.tick(rightRefs, state)
+	TopBar.update(topRefs, state)
+	ProgressionPanel.update(progressionRefs, state)
 end)
 
 print("[UIController] UI bereit.")

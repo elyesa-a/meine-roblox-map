@@ -12,26 +12,74 @@ local ShowPopup = Remotes:WaitForChild("ShowPopup") :: RemoteEvent
 local PopupHandler = {}
 
 function PopupHandler.start(parent: ScreenGui)
+	local container = Instance.new("Frame")
+	container.Name = "NotificationFrame"
+	container.AnchorPoint = Vector2.new(0.5, 0)
+	container.Position = UDim2.new(0.5, 0, 0, 110)
+	container.Size = UDim2.new(0, 300, 0, 150)
+	container.BackgroundTransparency = 1
+	container.ZIndex = 100
+	container.Parent = parent
+
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Vertical
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.Padding = UDim.new(0, 6)
+	layout.Parent = container
+
 	ShowPopup.OnClientEvent:Connect(function(message)
 		if type(message) ~= "string" then
 			return
 		end
-		local toast = Instance.new("TextLabel")
-		toast.AnchorPoint = Vector2.new(0.5, 0)
-		toast.Position = UDim2.new(0.5, 0, 0, 80)
-		toast.Size = UDim2.new(0, 400, 0, 56)
-		Theme.applyPanelStyle(toast :: any, Theme.Colors.PanelDark)
-		Theme.applyLabelStyle(toast)
-		toast.Text = message
-		toast.TextSize = 20
-		toast.TextScaled = false
-		toast.ZIndex = 100
-		toast.Parent = parent
+
+		local toast = Instance.new("Frame")
+		toast.Name = "NotificationToast"
+		toast.Size = UDim2.new(0, 0, 0, 42)
+		toast.BackgroundColor3 = Color3.fromRGB(9, 13, 20)
+		toast.BackgroundTransparency = 0.05
+		toast.BorderSizePixel = 0
+		toast.ClipsDescendants = true
+		toast.ZIndex = 101
+		toast.Parent = container
+
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 12)
+		corner.Parent = toast
+
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(56, 236, 207)
+		stroke.Thickness = 1.5
+		stroke.Transparency = 0.35
+		stroke.Parent = toast
+
+		local accent = Instance.new("Frame")
+		accent.Name = "Accent"
+		accent.Size = UDim2.new(0, 5, 1, 0)
+		accent.BackgroundColor3 = Theme.Colors.Green
+		accent.BorderSizePixel = 0
+		accent.ZIndex = 102
+		accent.Parent = toast
+
+		local label = Instance.new("TextLabel")
+		label.Name = "Message"
+		label.Position = UDim2.new(0, 16, 0, 0)
+		label.Size = UDim2.new(1, -24, 1, 0)
+		label.BackgroundTransparency = 1
+		label.Font = Theme.Font
+		label.Text = message
+		label.TextColor3 = Theme.Colors.White
+		label.TextSize = 15
+		label.TextScaled = false
+		label.TextStrokeTransparency = 1
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.ZIndex = 102
+		label.Parent = toast
 
 		local tweenIn = TweenService:Create(
 			toast,
 			TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ Position = UDim2.new(0.5, 0, 0, 110) }
+			{ Size = UDim2.new(0, 300, 0, 42) }
 		)
 		tweenIn:Play()
 
@@ -39,8 +87,10 @@ function PopupHandler.start(parent: ScreenGui)
 			local tweenOut = TweenService:Create(
 				toast,
 				TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-				{ Position = UDim2.new(0.5, 0, 0, 70), TextTransparency = 1, BackgroundTransparency = 1 }
+				{ Size = UDim2.new(0, 0, 0, 42), BackgroundTransparency = 1 }
 			)
+			TweenService:Create(label, TweenInfo.new(0.2), { TextTransparency = 1 }):Play()
+			TweenService:Create(stroke, TweenInfo.new(0.2), { Transparency = 1 }):Play()
 			tweenOut:Play()
 			tweenOut.Completed:Connect(function()
 				toast:Destroy()

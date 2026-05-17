@@ -7,6 +7,8 @@ export type UpgradeDef = {
 	-- Pro Level wird der Effekt um perLevelDelta erhoeht (additiv).
 	-- Level 0 = 1x, Level 1 = 1+delta, ...
 	perLevelDelta: number,
+	maxLevel: number?,
+	costs: { number }?,
 	color: Color3,
 }
 
@@ -19,6 +21,14 @@ UpgradeConfig.Upgrades = {
 	{ id = "DnaBoost", displayName = "More DNA", perLevelDelta = 0.1, color = Color3.fromRGB(80, 160, 255) },
 	{ id = "LuckBoost", displayName = "More Luck", perLevelDelta = 0.15, color = Color3.fromRGB(255, 215, 60) },
 	{ id = "TrainingSpeed", displayName = "Faster Training", perLevelDelta = 0.1, color = Color3.fromRGB(80, 220, 130) },
+	{
+		id = "SpeedBoost",
+		displayName = "Speed",
+		perLevelDelta = 0.5,
+		maxLevel = 4,
+		costs = { 300, 1000, 6000, 15000 },
+		color = Color3.fromRGB(90, 245, 210),
+	},
 }
 
 function UpgradeConfig.getById(id: string): UpgradeDef?
@@ -31,8 +41,18 @@ function UpgradeConfig.getById(id: string): UpgradeDef?
 end
 
 -- Kosten fuer den naechsten Level (bei aktuellem Level `level`, also Level+1).
-function UpgradeConfig.getCost(level: number): number
+function UpgradeConfig.getCost(level: number, def: UpgradeDef?): number
+	if def and def.costs then
+		local customCost = def.costs[level + 1]
+		if customCost then
+			return customCost
+		end
+	end
 	return math.floor(100 * (level + 1) ^ 1.8)
+end
+
+function UpgradeConfig.getMaxLevel(def: UpgradeDef?): number
+	return if def and def.maxLevel then def.maxLevel else UpgradeConfig.MaxLevel
 end
 
 function UpgradeConfig.getMultiplier(level: number, perLevelDelta: number): number

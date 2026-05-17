@@ -201,15 +201,16 @@ function UpgradeFrame.update(refs: Refs, state)
 			continue
 		end
 		local level = upgrades[def.id] or 0
+		local maxLevel = UpgradeConfig.getMaxLevel(def)
 		cardRefs.levelLabel.Text = string.format("Level %d", level)
 		local currMult = UpgradeConfig.getMultiplier(level, def.perLevelDelta)
-		if level >= UpgradeConfig.MaxLevel then
+		if level >= maxLevel then
 			cardRefs.progressLabel.Text = string.format("%.2gx (Max Level)", currMult)
 			cardRefs.button.Text = "MAX LEVEL"
 			cardRefs.button.BackgroundColor3 = Theme.Colors.PanelMedium
 		else
 			local nextMult = UpgradeConfig.getMultiplier(level + 1, def.perLevelDelta)
-			local cost = UpgradeConfig.getCost(level)
+			local cost = UpgradeConfig.getCost(level, def)
 			cardRefs.progressLabel.Text = string.format("%.2gx -> %.2gx", currMult, nextMult)
 			cardRefs.button.Text = string.format("BUY\n%s DNA", NumberFormatter.format(cost))
 			cardRefs.button.BackgroundColor3 = if dna >= cost then Theme.Colors.Green else Theme.Colors.PanelMedium
