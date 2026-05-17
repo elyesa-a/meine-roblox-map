@@ -41,6 +41,10 @@ local LAB_WHITE = Color3.fromRGB(208, 214, 218)
 local LAB_PANEL = Color3.fromRGB(190, 198, 202)
 local LAB_TRIM = Color3.fromRGB(150, 160, 166)
 local LAB_DARK = Color3.fromRGB(26, 32, 40)
+local ACCESS_UNLOCKED = Color3.fromRGB(80, 255, 140)
+local ACCESS_UNLOCKED_SOFT = Color3.fromRGB(170, 255, 205)
+local ACCESS_LOCKED = Color3.fromRGB(255, 85, 85)
+local ACCESS_LOCKED_SOFT = Color3.fromRGB(255, 170, 170)
 local FLOOR_Y = 0 -- Oberkante Boden
 local CORRIDOR_MIN_Z = -85
 local CORRIDOR_MAX_Z = 130 -- inkl. Egg-Catch-Alkoven (+Z Seite)
@@ -114,9 +118,22 @@ local function tint(a: Color3, b: Color3, t: number): Color3
 	return a:Lerp(b, math.clamp(t, 0, 1))
 end
 
+local function markAreaVisual(part: BasePart, areaId: string?)
+	if areaId then
+		part:SetAttribute("AreaVisualId", areaId)
+	end
+end
+
 -- ---- Boden, Waende, Decken-Akzent pro Segment ----------------------------
 
-local function buildShellSegment(parent, centerX, lengthX, primary, secondary, withCorridorLines)
+local function buildShellSegment(parent, centerX, lengthX, primary, secondary, withCorridorLines, areaId: string?, startsLocked: boolean?)
+	local visualPrimary = primary
+	local visualSecondary = secondary
+	if areaId then
+		visualPrimary = if startsLocked then ACCESS_LOCKED else ACCESS_UNLOCKED
+		visualSecondary = if startsLocked then ACCESS_LOCKED_SOFT else ACCESS_UNLOCKED_SOFT
+	end
+
 	-- Boden.
 	local floor = makePart(
 		parent,
@@ -128,6 +145,41 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 		true
 	)
 	floor.TopSurface = Enum.SurfaceType.Smooth
+
+	-- Geschlossene, helle Decke: Labor statt offener Arena.
+	makePart(
+		parent,
+		"LabCeiling",
+		Vector3.new(lengthX, 2, FLOOR_SIZE_Z),
+		Vector3.new(centerX, FLOOR_Y + L.WallHeight + 1, FLOOR_CENTER_Z),
+		Color3.fromRGB(218, 226, 228),
+		Enum.Material.SmoothPlastic,
+		true
+	)
+	for i = 0, 3 do
+		local sx = centerX - lengthX / 2 + (lengthX * i / 3)
+		makePart(
+			parent,
+			"CeilingSupport",
+			Vector3.new(2.4, 1.2, FLOOR_SIZE_Z),
+			Vector3.new(sx, FLOOR_Y + L.WallHeight - 0.7, FLOOR_CENTER_Z),
+			LAB_TRIM,
+			Enum.Material.Metal,
+			false
+		)
+	end
+	for i = 0, 2 do
+		local px = centerX - lengthX / 2 + lengthX * (i + 0.5) / 3
+		makePart(
+			parent,
+			"CeilingPanel",
+			Vector3.new(lengthX / 3 - 10, 0.18, FLOOR_SIZE_Z - 18),
+			Vector3.new(px, FLOOR_Y + L.WallHeight - 0.15, FLOOR_CENTER_Z),
+			Color3.fromRGB(198, 207, 211),
+			Enum.Material.SmoothPlastic,
+			false
+		)
+	end
 
 	-- Seitenwaende.
 	makePart(
@@ -150,12 +202,12 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 	)
 
 	-- Dezente Neon-Leitlinien an den Waenden (Orientierung, keine Disco).
-	neonStrip(parent, Vector3.new(lengthX, 0.5, 0.5), Vector3.new(centerX, FLOOR_Y + 6, CORRIDOR_MIN_Z - 0.1), primary, 0.45)
-	neonStrip(parent, Vector3.new(lengthX, 0.5, 0.5), Vector3.new(centerX, FLOOR_Y + 6, CORRIDOR_MAX_Z + 0.1), primary, 0.45)
+	markAreaVisual(neonStrip(parent, Vector3.new(lengthX, 0.5, 0.5), Vector3.new(centerX, FLOOR_Y + 6, CORRIDOR_MIN_Z - 0.1), visualPrimary, 0.45), areaId)
+	markAreaVisual(neonStrip(parent, Vector3.new(lengthX, 0.5, 0.5), Vector3.new(centerX, FLOOR_Y + 6, CORRIDOR_MAX_Z + 0.1), visualPrimary, 0.45), areaId)
 
 	-- Boden-Leitlinie entlang des Laufwegs.
 	if withCorridorLines then
-		neonStrip(parent, Vector3.new(lengthX, 0.12, 1.4), Vector3.new(centerX, FLOOR_Y + 0.06, 0), primary, 0.25)
+		markAreaVisual(neonStrip(parent, Vector3.new(lengthX, 0.12, 1.4), Vector3.new(centerX, FLOOR_Y + 0.06, 0), visualPrimary, 0.25), areaId)
 	end
 
 	-- Decken-Lichtbalken.
@@ -166,15 +218,16 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 			"CeilBeam",
 			Vector3.new(18, 0.6, FLOOR_SIZE_Z),
 			Vector3.new(lx, FLOOR_Y + L.WallHeight - 1, FLOOR_CENTER_Z),
-			tint(primary, secondary, 0.5),
+			tint(visualPrimary, visualSecondary, 0.5),
 			Enum.Material.Neon,
 			false
 		)
+		markAreaVisual(beam, areaId)
 		beam.Transparency = 0.4
 		local pl = Instance.new("PointLight")
 		pl.Brightness = 0.7
 		pl.Range = 40
-		pl.Color = tint(primary, secondary, 0.4)
+		pl.Color = tint(visualPrimary, visualSecondary, 0.4)
 		pl.Parent = beam
 	end
 
@@ -339,7 +392,7 @@ local function buildBorder(parent, def, x, primary)
 	makePart(model, "BorderBeam", Vector3.new(2.4, 2, zHalf * 2 + 4), Vector3.new(x, FLOOR_Y + height + 3, 0), LAB_TRIM, Enum.Material.Metal, true)
 
 	-- Glas-/Neon-Wand = Trigger (CanCollide=false, BorderService prueft DNA).
-	local wall = makePart(model, "BorderField", Vector3.new(1.2, height, zHalf * 2), Vector3.new(x, FLOOR_Y + height / 2 + 0.5, 0), primary, Enum.Material.ForceField, false)
+	local wall = makePart(model, "BorderField", Vector3.new(1.2, height, zHalf * 2), Vector3.new(x, FLOOR_Y + height / 2 + 0.5, 0), ACCESS_LOCKED, Enum.Material.ForceField, false)
 	wall.Transparency = 0.45
 	wall.CanTouch = true
 	wall:SetAttribute("RequiredDNA", def.RequiredDNA)
@@ -348,7 +401,7 @@ local function buildBorder(parent, def, x, primary)
 	label(
 		sign,
 		string.format("⚠ DNA GATE\nRequired: %s DNA", NumberFormatter.format(def.RequiredDNA)),
-		Color3.fromRGB(255, 235, 140),
+		ACCESS_LOCKED_SOFT,
 		55,
 		UDim2.fromOffset(230, 80),
 		Vector3.new(0, 0, 0)
@@ -360,9 +413,10 @@ end
 local function buildGate(parent, area, x, requiredDna)
 	local model = Instance.new("Model")
 	model.Name = "Gate_" .. area.id
+	model:SetAttribute("AreaId", area.id)
 	model.Parent = parent
 
-	local primary = area.primaryColor
+	local primary = if area.index == 1 then ACCESS_UNLOCKED else ACCESS_LOCKED
 	local height = 22
 	local zHalf = 74
 
@@ -470,6 +524,7 @@ local function buildTrainingArea(parent, bedsFolder, gatesFolder, area, x)
 		end
 		makePart(gm, "TGateBeam", Vector3.new(6, 5, zHalf * 2 + 10), Vector3.new(gateX, FLOOR_Y + 21, 0), LAB_WHITE, Enum.Material.Metal, true)
 		local field = makePart(gm, "TrainingGateField", Vector3.new(1.6, 18, zHalf * 2), Vector3.new(gateX, FLOOR_Y + 9.5, 0), Color3.fromRGB(255, 170, 90), Enum.Material.ForceField, false)
+		field.Color = ACCESS_LOCKED
 		field.Transparency = 0.5
 		field.CanTouch = true
 		field:SetAttribute("RequiredDNA", 0)
@@ -479,7 +534,7 @@ local function buildTrainingArea(parent, bedsFolder, gatesFolder, area, x)
 		label(
 			s,
 			string.format("TRAINING LOCK\nRequires Rebirth %d", bedDef.requiredRebirth),
-			Color3.fromRGB(255, 200, 120),
+			ACCESS_LOCKED_SOFT,
 			80,
 			UDim2.fromOffset(260, 76),
 			Vector3.new(0, 0, 0)
@@ -678,7 +733,7 @@ function VirusLabBuilder.build()
 		local areaModel = makeFolder(area.id, labFolder)
 
 		-- Shell-Segment der Area.
-		buildShellSegment(areaModel, hallX, L.AreaSpan, primary, secondary, true)
+		buildShellSegment(areaModel, hallX, L.AreaSpan, primary, secondary, true, area.id, area.index > 1)
 
 		-- Trainingsbereich (vor der Halle) + ggf. Rebirth-Gate.
 		buildTrainingArea(areaModel, bedsFolder, gatesFolder, area, hallX + L.TrainingOffsetX)
