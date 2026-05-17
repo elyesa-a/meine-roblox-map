@@ -116,7 +116,7 @@ local function grantQuestReward(player: Player, reward)
 		profile.DnaCoins += reward.Dna
 	end
 	if reward.Power then
-		profile.Power = math.floor(profile.Power + reward.Power)
+		StatService.addPowerReward(player, reward.Power)
 	end
 	if reward.Luck then
 		local now = os.time()

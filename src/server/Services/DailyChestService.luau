@@ -69,9 +69,7 @@ function DailyChestService.claim(player: Player)
 		DailyQuestService.record(player, "CollectDna", reward.dna)
 	end
 	if reward.power > 0 then
-		-- Direkt setzen, da addPower-Multiplikatoren hier nicht erwuenscht sind
-		-- (Chest-Belohnung soll fix bleiben).
-		profile.Power = math.floor(profile.Power + reward.power)
+		StatService.addPowerReward(player, reward.power)
 	end
 
 	profile.DailyChest.LastClaim = os.time()

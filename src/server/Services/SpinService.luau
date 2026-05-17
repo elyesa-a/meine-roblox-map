@@ -62,7 +62,7 @@ local function grantReward(player: Player, reward)
 			DailyQuestService.record(player, "CollectDna", granted)
 		end
 	elseif reward.type == "Power" then
-		profile.Power = math.floor(profile.Power + reward.amount)
+		StatService.addPowerReward(player, reward.amount)
 	elseif reward.type == "Luck" then
 		local now = os.time()
 		local boostSeconds = reward.boostSeconds or 300
