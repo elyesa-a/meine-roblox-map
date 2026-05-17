@@ -33,6 +33,14 @@ local START_AREA_CENTER = Vector3.new(0, 0, -165)
 local EGG_AREA_CENTER = Vector3.new(540, 0, -210)
 local ENEMY_ROW_Z = 205
 local BOSS_ROW_Z = 318
+local TRAINING_LAYOUT: { [string]: Vector3 } = {
+	StandardBed = Vector3.new(-220, 1.5, -55),
+	InfectionBed = Vector3.new(0, 1.5, -55),
+	MutationBed = Vector3.new(220, 1.5, -55),
+	QuarantineBed = Vector3.new(-220, 1.5, 25),
+	GlitchBed = Vector3.new(0, 1.5, 25),
+	EndgameBed = Vector3.new(220, 1.5, 25),
+}
 
 local LAB_WHITE = Color3.fromRGB(206, 213, 216)
 local LAB_PANEL = Color3.fromRGB(190, 198, 202)
@@ -723,11 +731,11 @@ local function addTrainingDecor(model: Model, bed, worldPos: Vector3)
 	end
 
 	local offsets = {
-		Vector3.new(-34, 0, -24),
-		Vector3.new(-17, 0, 26),
-		Vector3.new(0, 0, -28),
-		Vector3.new(17, 0, 26),
-		Vector3.new(34, 0, -24),
+		Vector3.new(-23, 0, -16),
+		Vector3.new(-12, 0, 17),
+		Vector3.new(0, 0, -20),
+		Vector3.new(12, 0, 17),
+		Vector3.new(23, 0, -16),
 	}
 	for i, offset in ipairs(offsets) do
 		addTrainingDecorStation(folder, "TrainingObject" .. tostring(i), worldPos + offset, bed.color, theme)
@@ -739,9 +747,9 @@ local function addTrainingSectionWalls(model: Model, bed, worldPos: Vector3, zon
 	folder.Name = "TransparentSectionWalls"
 	folder.Parent = model
 
-	local width = zone.size.X - 12
-	local depth = zone.size.Z - 14
-	local height = 12
+	local width = 70
+	local depth = 50
+	local height = 9
 	local y = worldPos.Y + height / 2 + 0.6
 	local color = bed.color
 	local panelColor = Color3.fromRGB(
@@ -757,43 +765,43 @@ local function addTrainingSectionWalls(model: Model, bed, worldPos: Vector3, zon
 		return panel
 	end
 
-	local floor = makeRoomPart(folder, "ContainmentCellFloor", Vector3.new(width + 6, 0.34, depth + 6), worldPos + Vector3.new(0, 0.18, 0), Color3.fromRGB(196, 204, 208), Enum.Material.SmoothPlastic)
+	local floor = makeRoomPart(folder, "ContainmentCellFloor", Vector3.new(width + 4, 0.28, depth + 4), worldPos + Vector3.new(0, 0.14, 0), Color3.fromRGB(196, 204, 208), Enum.Material.SmoothPlastic)
 	floor.CanCollide = true
 	for _, x in ipairs({ -width / 2, width / 2 }) do
-		local frame = makeRoomPart(folder, "WhiteCellFrame", Vector3.new(1.4, height + 1.6, depth + 1.2), worldPos + Vector3.new(x, y, 0), LAB_WHITE, Enum.Material.Metal)
+		local frame = makeRoomPart(folder, "WhiteCellFrame", Vector3.new(1, height + 1.2, depth + 0.8), worldPos + Vector3.new(x, y, 0), LAB_WHITE, Enum.Material.Metal)
 		frame.CanCollide = false
 	end
 	for _, z in ipairs({ -depth / 2, depth / 2 }) do
-		local frame = makeRoomPart(folder, "WhiteCellFrame", Vector3.new(width + 1.2, height + 1.6, 1.4), worldPos + Vector3.new(0, y, z), LAB_WHITE, Enum.Material.Metal)
+		local frame = makeRoomPart(folder, "WhiteCellFrame", Vector3.new(width + 0.8, height + 1.2, 1), worldPos + Vector3.new(0, y, z), LAB_WHITE, Enum.Material.Metal)
 		frame.CanCollide = false
 	end
 
-	glassPanel("LeftGlassWall", Vector3.new(0.6, height, depth), worldPos + Vector3.new(-width / 2, y, 0))
-	glassPanel("RightGlassWall", Vector3.new(0.6, height, depth), worldPos + Vector3.new(width / 2, y, 0))
-	glassPanel("BackGlassWall", Vector3.new(width, height, 0.6), worldPos + Vector3.new(0, y, depth / 2))
-	glassPanel("FrontLeftGlassWall", Vector3.new(width * 0.28, height, 0.6), worldPos + Vector3.new(-width * 0.36, y, -depth / 2))
-	glassPanel("FrontRightGlassWall", Vector3.new(width * 0.28, height, 0.6), worldPos + Vector3.new(width * 0.36, y, -depth / 2))
+	glassPanel("LeftGlassWall", Vector3.new(0.45, height, depth), worldPos + Vector3.new(-width / 2, y, 0))
+	glassPanel("RightGlassWall", Vector3.new(0.45, height, depth), worldPos + Vector3.new(width / 2, y, 0))
+	glassPanel("BackGlassWall", Vector3.new(width, height, 0.45), worldPos + Vector3.new(0, y, depth / 2))
+	glassPanel("FrontLeftGlassWall", Vector3.new(width * 0.18, height, 0.45), worldPos + Vector3.new(-width * 0.42, y, -depth / 2))
+	glassPanel("FrontRightGlassWall", Vector3.new(width * 0.18, height, 0.45), worldPos + Vector3.new(width * 0.42, y, -depth / 2))
 
 	local borderY = worldPos.Y + 0.9
 	addLabGuideLine(folder, worldPos + Vector3.new(0, borderY, depth / 2), width, "X", color)
 	addLabGuideLine(folder, worldPos + Vector3.new(-width / 2, borderY, 0), depth, "Z", color)
 	addLabGuideLine(folder, worldPos + Vector3.new(width / 2, borderY, 0), depth, "Z", color)
-	addLabGuideLine(folder, worldPos + Vector3.new(-width * 0.36, borderY, -depth / 2), width * 0.28, "X", color)
-	addLabGuideLine(folder, worldPos + Vector3.new(width * 0.36, borderY, -depth / 2), width * 0.28, "X", color)
+	addLabGuideLine(folder, worldPos + Vector3.new(-width * 0.42, borderY, -depth / 2), width * 0.18, "X", color)
+	addLabGuideLine(folder, worldPos + Vector3.new(width * 0.42, borderY, -depth / 2), width * 0.18, "X", color)
 
 	local signTextByBed = {
-		StandardBed = "BASIC TRAINING",
-		InfectionBed = "INFECTION TRAINING",
-		MutationBed = "MUTATION TRAINING",
-		QuarantineBed = "QUARANTINE TRAINING",
-		GlitchBed = "GLITCH TRAINING",
+		StandardBed = "POWER TRAINING",
+		InfectionBed = "DNA TRAINING",
+		MutationBed = "BOOST TRAINING",
+		QuarantineBed = "LUCK TRAINING",
+		GlitchBed = "AUTO TRAINING",
 		EndgameBed = "ENDGAME TRAINING",
 	}
 	local sign = makeRoomPart(
 		folder,
 		"EntranceSign",
-		Vector3.new(32, 6, 0.6),
-		worldPos + Vector3.new(0, 7, -depth / 2 - 1.6),
+		Vector3.new(20, 3.8, 0.4),
+		worldPos + Vector3.new(0, 4.2, -depth / 2 - 1.05),
 		LAB_WHITE,
 		Enum.Material.Metal
 	)
@@ -803,25 +811,36 @@ local function addTrainingSectionWalls(model: Model, bed, worldPos: Vector3, zon
 		string.format("%s\nRequires: %s PWR", signTextByBed[bed.id] or "TRAINING", formatShort(zone.requiredPower or 0)),
 		Color3.fromRGB(20, 28, 34),
 		LABEL_DISTANCE_TRAINING,
-		UDim2.fromOffset(230, 58)
+		UDim2.fromOffset(170, 44),
+		Vector3.new(0, 0.3, 0)
 	)
 
-	for _, x in ipairs({ -10, 10 }) do
-		local scanner = makeRoomPart(folder, "ContainmentEntryScanner", Vector3.new(2.4, 11, 2.4), worldPos + Vector3.new(x, 6, -depth / 2 - 3.4), LAB_WHITE, Enum.Material.Metal)
+	local entryBase = makeRoomPart(folder, "CompactTrainingEntryThreshold", Vector3.new(22, 0.18, 3.6), worldPos + Vector3.new(0, 0.42, -depth / 2 - 2.4), Color3.fromRGB(34, 42, 48), Enum.Material.SmoothPlastic)
+	entryBase.CanCollide = false
+	addSurfaceText(entryBase, Enum.NormalId.Top, "TRAINING", Color3.fromRGB(210, 238, 235), 18)
+
+	local entryHeader = makeRoomPart(folder, "CompactTrainingEntryHeader", Vector3.new(17, 1.5, 1.4), worldPos + Vector3.new(0, 6.4, -depth / 2 - 2.4), LAB_WHITE, Enum.Material.Metal)
+	entryHeader.CanCollide = false
+	local headerAccent = makeRoomPart(folder, "CompactTrainingEntryAccent", Vector3.new(14, 0.24, 0.35), entryHeader.Position + Vector3.new(0, -0.35, -0.75), color, Enum.Material.Neon)
+	headerAccent.CanCollide = false
+	headerAccent.Transparency = 0.58
+
+	for _, x in ipairs({ -6.2, 6.2 }) do
+		local scanner = makeRoomPart(folder, "ContainmentEntryScanner", Vector3.new(1.2, 5.8, 1.2), worldPos + Vector3.new(x, 3.2, -depth / 2 - 2.4), LAB_WHITE, Enum.Material.Metal)
 		scanner.CanCollide = false
-		local scanLight = makeRoomPart(folder, "ScannerSoftLight", Vector3.new(0.6, 8, 0.6), scanner.Position + Vector3.new(0, 0, -1.15), color, Enum.Material.Neon)
+		local scanLight = makeRoomPart(folder, "ScannerSoftLight", Vector3.new(0.32, 3.8, 0.32), scanner.Position + Vector3.new(0, 0, -0.58), color, Enum.Material.Neon)
 		scanLight.CanCollide = false
-		scanLight.Transparency = 0.48
+		scanLight.Transparency = 0.62
 	end
-	local bioPanel = makeRoomPart(folder, "BiohazardCellMarker", Vector3.new(18, 5, 0.5), worldPos + Vector3.new(0, 4.5, depth / 2 + 1.1), Color3.fromRGB(224, 229, 230), Enum.Material.Metal)
+	local bioPanel = makeRoomPart(folder, "BiohazardCellMarker", Vector3.new(15, 4, 0.45), worldPos + Vector3.new(0, 4, depth / 2 + 0.9), Color3.fromRGB(224, 229, 230), Enum.Material.Metal)
 	bioPanel.CanCollide = false
 	addSurfaceText(bioPanel, Enum.NormalId.Back, "BIOHAZARD\nCONTAINMENT", Color3.fromRGB(38, 52, 58), 20)
 
 	if bed.id == "GlitchBed" then
-		for i, x in ipairs({ -28, -12, 14, 32 }) do
-			local block = makeRoomPart(folder, "GlitchPanel" .. tostring(i), Vector3.new(5, 5, 0.5), worldPos + Vector3.new(x, 9 + (i % 2) * 4, depth / 2 + 0.4), color, Enum.Material.Neon)
+		for i, x in ipairs({ -22, -8, 8, 22 }) do
+			local block = makeRoomPart(folder, "GlitchPanel" .. tostring(i), Vector3.new(3.8, 3.8, 0.45), worldPos + Vector3.new(x, 7 + (i % 2) * 2.5, depth / 2 + 0.35), color, Enum.Material.Neon)
 			block.CanCollide = false
-			block.Transparency = 0.35
+			block.Transparency = 0.48
 		end
 	end
 end
@@ -1497,7 +1516,7 @@ local function buildBed(bed, bedsFolder: Folder)
 	model.Name = bed.id
 	model.Parent = bedsFolder
 
-	local worldPos = zone.center + bed.localPosition
+	local worldPos = TRAINING_LAYOUT[bed.id] or (zone.center + bed.localPosition)
 
 	-- Bett-Basis (Matratze).
 	local frame = Instance.new("Part")
@@ -1506,7 +1525,7 @@ local function buildBed(bed, bedsFolder: Folder)
 	frame.CanCollide = true
 	frame.Size = Vector3.new(8, 1.2, 4)
 	frame.Position = worldPos + Vector3.new(0, 0.6, 0)
-	frame.Color = bed.color
+	frame.Color = Color3.fromRGB(34, 42, 48)
 	frame.Material = Enum.Material.SmoothPlastic
 	frame.TopSurface = Enum.SurfaceType.Smooth
 	frame.Parent = model
@@ -1518,7 +1537,7 @@ local function buildBed(bed, bedsFolder: Folder)
 	headboard.CanCollide = true
 	headboard.Size = Vector3.new(8, 4, 0.8)
 	headboard.Position = worldPos + Vector3.new(0, 2.6, -2)
-	headboard.Color = Color3.fromRGB(30, 30, 40)
+	headboard.Color = Color3.fromRGB(24, 30, 36)
 	headboard.Material = Enum.Material.SmoothPlastic
 	headboard.Parent = model
 
@@ -1530,7 +1549,7 @@ local function buildBed(bed, bedsFolder: Folder)
 			leg.CanCollide = true
 			leg.Size = Vector3.new(0.6, 1.2, 0.6)
 			leg.Position = worldPos + Vector3.new(dx * 3.7, 0, dz * 1.7)
-			leg.Color = Color3.fromRGB(30, 30, 40)
+			leg.Color = Color3.fromRGB(24, 30, 36)
 			leg.Material = Enum.Material.SmoothPlastic
 			leg.Parent = model
 		end
@@ -1545,7 +1564,7 @@ local function buildBed(bed, bedsFolder: Folder)
 	accent.Position = headboard.Position + Vector3.new(0, 2.2, 0.4)
 	accent.Color = bed.color
 	accent.Material = Enum.Material.Neon
-	accent.Transparency = 0.25
+	accent.Transparency = 0.48
 	accent.Parent = model
 
 	-- Permanenter sanfter Pulse-Emitter ueber dem Bett.
@@ -1570,8 +1589,8 @@ local function buildBed(bed, bedsFolder: Folder)
 	hitbox.Anchored = true
 	hitbox.CanCollide = false
 	hitbox.Transparency = 1
-	hitbox.Size = Vector3.new(8, 6, 4)
-	hitbox.Position = worldPos + Vector3.new(0, 3, 0)
+	hitbox.Size = Vector3.new(7.5, 5, 4)
+	hitbox.Position = worldPos + Vector3.new(0, 2.8, 0)
 	hitbox.Parent = model
 	hitbox:SetAttribute("BedId", bed.id)
 	hitbox:SetAttribute("PowerPerSecond", bed.powerPerSecond)
@@ -1579,9 +1598,18 @@ local function buildBed(bed, bedsFolder: Folder)
 
 	addBillboardLabel(
 		frame,
-		string.format("%s\n+%d Power/s", bed.id, bed.powerPerSecond),
+		string.format("%s\n+%d Power/s", ({
+			StandardBed = "POWER TRAINING",
+			InfectionBed = "DNA TRAINING",
+			MutationBed = "BOOST TRAINING",
+			QuarantineBed = "LUCK TRAINING",
+			GlitchBed = "AUTO TRAINING",
+			EndgameBed = "ENDGAME TRAINING",
+		})[bed.id] or bed.id, bed.powerPerSecond),
 		Color3.fromRGB(255, 255, 255),
-		LABEL_DISTANCE_TRAINING
+		LABEL_DISTANCE_TRAINING,
+		UDim2.fromOffset(185, 52),
+		Vector3.new(0, 4.5, 0)
 	)
 
 	addTrainingDecor(model, bed, worldPos)
@@ -2101,6 +2129,155 @@ local function addWallTankModule(parent: Instance, pos: Vector3, color: Color3, 
 	addBillboardLabel(screen, labelText, Color3.fromRGB(255, 255, 255), 34, UDim2.fromOffset(170, 56), Vector3.new(0, 0, 0))
 end
 
+local function addCentralWallPanel(parent: Instance, name: string, pos: Vector3, size: Vector3, color: Color3, text: string)
+	local panel = makeRoomPart(parent, name, size, pos, Color3.fromRGB(26, 31, 38), Enum.Material.Metal)
+	panel.CanCollide = false
+	panel.Transparency = 0.02
+
+	local accent
+	if size.X > size.Z then
+		accent = makeRoomPart(parent, name .. "_Accent", Vector3.new(size.X - 4, 0.45, 0.45), pos + Vector3.new(0, -size.Y / 2 + 2, -0.45), color, Enum.Material.SmoothPlastic)
+	else
+		accent = makeRoomPart(parent, name .. "_Accent", Vector3.new(0.45, 0.45, size.Z - 4), pos + Vector3.new(-0.45, -size.Y / 2 + 2, 0), color, Enum.Material.SmoothPlastic)
+	end
+	accent.CanCollide = false
+
+	local marker = makeRoomPart(parent, name .. "_StatusLight", Vector3.new(2.2, 2.2, 0.5), pos + Vector3.new(if size.X > size.Z then -size.X / 2 + 3.4 else 0, size.Y / 2 - 3.4, if size.X > size.Z then -0.5 else -size.Z / 2 + 3.4), color, Enum.Material.Neon)
+	marker.Shape = Enum.PartType.Ball
+	marker.CanCollide = false
+	marker.Transparency = 0.38
+
+	addBillboardLabel(panel, text, Color3.fromRGB(245, 250, 252), 58, UDim2.fromOffset(230, 70), Vector3.new(0, 0, 0))
+end
+
+local function addCentralContainmentCell(parent: Instance, name: string, center: Vector3, color: Color3, labelText: string, side: number)
+	local model = Instance.new("Model")
+	model.Name = name
+	model.Parent = parent
+
+	local base = makeRoomPart(model, "CellBase", Vector3.new(50, 0.8, 34), center + Vector3.new(0, 0.4, 0), Color3.fromRGB(190, 199, 202), Enum.Material.Metal)
+	base.CanCollide = false
+
+	local frameColor = Color3.fromRGB(210, 216, 218)
+	local glassColor = Color3.fromRGB(
+		math.floor((color.R * 255 + 185) / 2),
+		math.floor((color.G * 255 + 215) / 2),
+		math.floor((color.B * 255 + 225) / 2)
+	)
+	local height = 22
+	local y = center.Y + height / 2 + 1
+	for _, dx in ipairs({ -25, 25 }) do
+		local frame = makeRoomPart(model, "CellVerticalFrame", Vector3.new(1.2, height + 2, 34), center + Vector3.new(dx, y, 0), frameColor, Enum.Material.Metal)
+		frame.CanCollide = false
+	end
+	for _, dz in ipairs({ -17, 17 }) do
+		local frame = makeRoomPart(model, "CellHorizontalFrame", Vector3.new(50, height + 2, 1.2), center + Vector3.new(0, y, dz), frameColor, Enum.Material.Metal)
+		frame.CanCollide = false
+	end
+	local glassBack = makeRoomPart(model, "ObservationGlassBack", Vector3.new(47, height, 0.65), center + Vector3.new(0, y, 17), glassColor, Enum.Material.Glass)
+	glassBack.Transparency = 0.62
+	glassBack.CanCollide = false
+	local glassSide = makeRoomPart(model, "ObservationGlassSide", Vector3.new(0.65, height, 31), center + Vector3.new(side * 25, y, 0), glassColor, Enum.Material.Glass)
+	glassSide.Transparency = 0.62
+	glassSide.CanCollide = false
+
+	local tank = makeRoomPart(model, "ContainedSampleTube", Vector3.new(9, 18, 9), center + Vector3.new(-10, 10, -2), color, Enum.Material.Glass)
+	tank.Shape = Enum.PartType.Cylinder
+	tank.Transparency = 0.48
+	tank.CanCollide = false
+	local sample = makeRoomPart(model, "ContainedVirusSample", Vector3.new(4.5, 4.5, 4.5), tank.Position, color, Enum.Material.Neon)
+	sample.Shape = Enum.PartType.Ball
+	sample.Transparency = 0.35
+	sample.CanCollide = false
+	for _, offset in ipairs({ Vector3.new(7, 0, 0), Vector3.new(-7, 0, 0), Vector3.new(0, 7, 0), Vector3.new(0, -7, 0) }) do
+		local node = makeRoomPart(model, "SmallSampleNode", Vector3.new(1.6, 1.6, 1.6), sample.Position + offset, color, Enum.Material.Neon)
+		node.Shape = Enum.PartType.Ball
+		node.Transparency = 0.42
+		node.CanCollide = false
+	end
+
+	local console = makeRoomPart(model, "CellWallConsole", Vector3.new(15, 9, 0.7), center + Vector3.new(11, 8, -17.5), Color3.fromRGB(24, 31, 38), Enum.Material.Metal)
+	console.CanCollide = false
+	addSurfaceText(console, Enum.NormalId.Front, labelText, Color3.fromRGB(245, 250, 252), 24)
+
+	addWarningLight(model, center + Vector3.new(-20, 0, -13), Color3.fromRGB(85, 220, 120))
+	addWarningLight(model, center + Vector3.new(20, 0, -13), Color3.fromRGB(215, 70, 55))
+end
+
+local function addCeilingTechModule(parent: Instance, pos: Vector3, color: Color3)
+	local panel = makeRoomPart(parent, "DarkCeilingTechPanel", Vector3.new(78, 1, 34), pos, Color3.fromRGB(88, 98, 104), Enum.Material.Metal)
+	panel.CanCollide = false
+	local centerRail = makeRoomPart(parent, "PanelCableRail", Vector3.new(72, 1.4, 4), pos + Vector3.new(0, -1.1, 0), Color3.fromRGB(32, 38, 44), Enum.Material.Metal)
+	centerRail.CanCollide = false
+	for _, x in ipairs({ -26, 0, 26 }) do
+		local module = makeRoomPart(parent, "CeilingSensorNode", Vector3.new(9, 4, 9), pos + Vector3.new(x, -4, 0), LAB_WHITE, Enum.Material.Metal)
+		module.CanCollide = false
+		local light = makeRoomPart(parent, "SmallCeilingStatusDot", Vector3.new(2.2, 0.4, 2.2), module.Position + Vector3.new(0, -2.3, 0), color, Enum.Material.Neon)
+		light.Shape = Enum.PartType.Cylinder
+		light.CanCollide = false
+		light.Transparency = 0.42
+	end
+end
+
+local function addGateTerminal(parent: Instance, name: string, pos: Vector3, color: Color3, zoneName: string, requirement: string, danger: string, reward: string)
+	local terminal = makeRoomPart(parent, name, Vector3.new(12, 12, 7), pos + Vector3.new(0, 6, 0), LAB_WHITE, Enum.Material.Metal)
+	terminal.CanCollide = false
+	local screen = makeRoomPart(parent, name .. "_Screen", Vector3.new(9.2, 7.2, 0.7), terminal.Position + Vector3.new(0, 1.1, -3.85), Color3.fromRGB(20, 28, 34), Enum.Material.Metal)
+	screen.CanCollide = false
+	addSurfaceText(
+		screen,
+		Enum.NormalId.Front,
+		string.format("%s\n%s\nDanger: %s\nReward: %s", zoneName, requirement, danger, reward),
+		Color3.fromRGB(235, 250, 248),
+		18
+	)
+	local status = makeRoomPart(parent, name .. "_StatusLight", Vector3.new(1.5, 1.5, 0.55), terminal.Position + Vector3.new(3.9, -4.4, -3.9), color, Enum.Material.Neon)
+	status.Shape = Enum.PartType.Ball
+	status.CanCollide = false
+	status.Transparency = 0.38
+end
+
+local function addZoneTransitionGate(parent: Instance, name: string, center: Vector3, width: number, color: Color3, title: string, requirement: string, statusText: string, danger: string, reward: string)
+	local gate = Instance.new("Model")
+	gate.Name = name
+	gate.Parent = parent
+
+	local leftX = center.X - width / 2
+	local rightX = center.X + width / 2
+	local frameColor = Color3.fromRGB(205, 213, 216)
+	local darkColor = Color3.fromRGB(24, 30, 38)
+
+	for _, x in ipairs({ leftX, rightX }) do
+		local pillar = makeRoomPart(gate, "SecurityGatePillar", Vector3.new(6, 25, 8), Vector3.new(x, 12.5, center.Z), frameColor, Enum.Material.Metal)
+		pillar.CanCollide = false
+		local glass = makeRoomPart(gate, "GateObservationGlass", Vector3.new(3.8, 16, 0.7), pillar.Position + Vector3.new(0, 2, -4.3), color, Enum.Material.Glass)
+		glass.CanCollide = false
+		glass.Transparency = 0.66
+		local warningColor = if x == leftX then Color3.fromRGB(80, 220, 120) else Color3.fromRGB(220, 75, 65)
+		local lamp = makeRoomPart(gate, "GateWarningLamp", Vector3.new(2.2, 2.2, 0.7), pillar.Position + Vector3.new(0, 10.5, -4.4), warningColor, Enum.Material.Neon)
+		lamp.Shape = Enum.PartType.Ball
+		lamp.CanCollide = false
+		lamp.Transparency = 0.32
+	end
+
+	local header = makeRoomPart(gate, "SecurityGateHeader", Vector3.new(width + 18, 7, 9), center + Vector3.new(0, 25, 0), frameColor, Enum.Material.Metal)
+	header.CanCollide = false
+	local darkInset = makeRoomPart(gate, "GateHeaderDarkInset", Vector3.new(width + 7, 4.2, 0.8), header.Position + Vector3.new(0, 0, -4.8), darkColor, Enum.Material.Metal)
+	darkInset.CanCollide = false
+	addSurfaceText(darkInset, Enum.NormalId.Front, string.format("%s\n%s  •  %s", title, requirement, statusText), Color3.fromRGB(245, 250, 252), 24)
+
+	local scanLine = makeRoomPart(gate, "GateScanLine", Vector3.new(width - 16, 0.45, 0.45), center + Vector3.new(0, 13.5, -4.75), color, Enum.Material.Neon)
+	scanLine.CanCollide = false
+	scanLine.Transparency = 0.44
+	local barrier = makeRoomPart(gate, "TransparentSecurityGlass", Vector3.new(width - 28, 15, 0.6), center + Vector3.new(0, 10.5, 3.9), color, Enum.Material.Glass)
+	barrier.CanCollide = false
+	barrier.Transparency = 0.78
+
+	addGateTerminal(gate, "LeftGateTerminal", center + Vector3.new(-width / 2 - 14, 0, -6), color, title, requirement, danger, reward)
+	addGateTerminal(gate, "RightGateTerminal", center + Vector3.new(width / 2 + 14, 0, -6), color, title, requirement, danger, reward)
+	addWarningStripe(gate, center + Vector3.new(0, 0.35, -8), width + 18, "X")
+end
+
 local function buildLabWallDetails(wallDetailsFolder: Folder)
 	for _, child in ipairs(wallDetailsFolder:GetChildren()) do
 		child:Destroy()
@@ -2112,6 +2289,43 @@ local function buildLabWallDetails(wallDetailsFolder: Folder)
 	local backZ = ROOM_CENTER.Z + halfZ - 5.6
 	local leftX = ROOM_CENTER.X - halfX + 5.6
 	local rightX = ROOM_CENTER.X + halfX - 5.6
+
+	local centralPanels = {
+		{ name = "WallPanel_LabA1", pos = Vector3.new(leftX, 36, -292), size = Vector3.new(1, 18, 70), color = Color3.fromRGB(80, 220, 205), text = "LAB-A1\nCENTRAL LAB" },
+		{ name = "WallPanel_DnaStorage", pos = Vector3.new(leftX, 36, -168), size = Vector3.new(1, 18, 70), color = Color3.fromRGB(80, 220, 135), text = "DNA STORAGE\nSAMPLES SECURED" },
+		{ name = "WallPanel_TestChamber", pos = Vector3.new(leftX, 36, -44), size = Vector3.new(1, 18, 70), color = Color3.fromRGB(95, 205, 235), text = "TEST CHAMBER\nOBSERVATION ACTIVE" },
+		{ name = "WallPanel_Quarantine", pos = Vector3.new(rightX, 36, -292), size = Vector3.new(1, 18, 70), color = Color3.fromRGB(225, 80, 70), text = "QUARANTINE\nACCESS CONTROL" },
+		{ name = "WallPanel_Biohazard", pos = Vector3.new(rightX, 36, -168), size = Vector3.new(1, 18, 70), color = Color3.fromRGB(120, 230, 95), text = "BIOHAZARD\nLOW RISK SAMPLE" },
+		{ name = "WallPanel_Containment", pos = Vector3.new(rightX, 36, -44), size = Vector3.new(1, 18, 70), color = Color3.fromRGB(80, 220, 205), text = "CONTAINMENT AREA\nCELL BLOCK READY" },
+		{ name = "WallPanel_CentralLabFrontA", pos = Vector3.new(-210, 36, frontZ), size = Vector3.new(110, 18, 1), color = Color3.fromRGB(80, 220, 205), text = "CENTRAL LAB\nDNA MUTATION FACILITY" },
+		{ name = "WallPanel_CentralLabFrontB", pos = Vector3.new(210, 36, frontZ), size = Vector3.new(110, 18, 1), color = Color3.fromRGB(120, 230, 95), text = "CONTAINMENT AREA\nAUTHORIZED TESTING" },
+	}
+	for _, panel in ipairs(centralPanels) do
+		addCentralWallPanel(wallDetailsFolder, panel.name, panel.pos, panel.size, panel.color, panel.text)
+	end
+
+	for _, z in ipairs({ -320, -230, -140, -50, 40 }) do
+		local leftDuct = makeRoomPart(wallDetailsFolder, "SideWallCableDuct", Vector3.new(1.6, 2.2, 72), Vector3.new(leftX + 0.4, 59, z), Color3.fromRGB(42, 49, 56), Enum.Material.Metal)
+		leftDuct.CanCollide = false
+		local rightDuct = makeRoomPart(wallDetailsFolder, "SideWallCableDuct", Vector3.new(1.6, 2.2, 72), Vector3.new(rightX - 0.4, 59, z), Color3.fromRGB(42, 49, 56), Enum.Material.Metal)
+		rightDuct.CanCollide = false
+		for _, duct in ipairs({ leftDuct, rightDuct }) do
+			local status = makeRoomPart(wallDetailsFolder, "DuctStatusPoint", Vector3.new(0.7, 0.7, 0.7), duct.Position + Vector3.new(0, -2, -24), Color3.fromRGB(86, 220, 190), Enum.Material.Neon)
+			status.Shape = Enum.PartType.Ball
+			status.CanCollide = false
+			status.Transparency = 0.45
+		end
+	end
+
+	local cellData = {
+		{ name = "CentralContainmentCell01", center = Vector3.new(-510, 0, -238), color = Color3.fromRGB(100, 230, 195), label = "CONTAINMENT\nCELL 01", side = -1 },
+		{ name = "CentralContainmentCell02", center = Vector3.new(510, 0, -238), color = Color3.fromRGB(120, 220, 255), label = "DNA SAMPLE\nA-02", side = 1 },
+		{ name = "CentralObservationCell03", center = Vector3.new(-510, 0, -72), color = Color3.fromRGB(140, 230, 95), label = "TEST SUBJECT\nSTABLE", side = -1 },
+		{ name = "CentralObservationCell04", center = Vector3.new(510, 0, -72), color = Color3.fromRGB(220, 95, 85), label = "BIO SAMPLE\nLOCKED", side = 1 },
+	}
+	for _, cell in ipairs(cellData) do
+		addCentralContainmentCell(wallDetailsFolder, cell.name, cell.center, cell.color, cell.label, cell.side)
+	end
 
 	local tankLabels = {
 		{ text = "TANK A-01\nBACTERIA SAMPLE", color = Color3.fromRGB(120, 255, 170) },
@@ -2165,6 +2379,31 @@ local function buildLabCeilingDetails(ceilingDetailsFolder: Folder)
 			slat.CanCollide = false
 		end
 	end
+
+	for _, z in ipairs({ -250, -125, 0, 125 }) do
+		for _, x in ipairs({ -390, -130, 130, 390 }) do
+			addCeilingTechModule(ceilingDetailsFolder, Vector3.new(x, ceilingY - 0.5, z), if (x + z) % 2 == 0 then Color3.fromRGB(80, 220, 205) else Color3.fromRGB(95, 215, 130))
+		end
+	end
+	for _, x in ipairs({ -525, -350, -175, 0, 175, 350, 525 }) do
+		local pipe = makeRoomPart(ceilingDetailsFolder, "LongCeilingUtilityPipe", Vector3.new(3.2, 3.2, 610), Vector3.new(x, ceilingY - 3.2, 5), Color3.fromRGB(70, 78, 84), Enum.Material.Metal)
+		pipe.CanCollide = false
+		local cable = makeRoomPart(ceilingDetailsFolder, "BlackCeilingCableRun", Vector3.new(1.2, 1.2, 580), Vector3.new(x + 12, ceilingY - 5.4, 5), Color3.fromRGB(22, 26, 30), Enum.Material.SmoothPlastic)
+		cable.CanCollide = false
+	end
+	for _, z in ipairs({ -306, -184, -62, 60, 182, 304 }) do
+		local lightStrip = makeRoomPart(ceilingDetailsFolder, "ControlledCeilingLightStrip", Vector3.new(850, 0.45, 3.4), Vector3.new(0, ceilingY - 6.2, z), Color3.fromRGB(215, 230, 230), Enum.Material.SmoothPlastic)
+		lightStrip.CanCollide = false
+		lightStrip.Transparency = 0.08
+		local light = Instance.new("SurfaceLight")
+		light.Name = "SoftLabStripLight"
+		light.Face = Enum.NormalId.Bottom
+		light.Brightness = 0.42
+		light.Range = 30
+		light.Angle = 95
+		light.Color = Color3.fromRGB(210, 238, 235)
+		light.Parent = lightStrip
+	end
 end
 
 local function buildLabCorridors(corridorFolder: Folder)
@@ -2185,6 +2424,150 @@ local function buildLabCorridors(corridorFolder: Folder)
 		{ text = "TO BOSS SECTOR", pos = Vector3.new(250, 0.24, 272), color = Color3.fromRGB(92, 48, 64) },
 	}) do
 		addFloorTextMarker(corridorFolder, sign.pos, sign.text, sign.color)
+	end
+end
+
+local function addAreaOrientationSign(parent: Instance, name: string, pos: Vector3, color: Color3, title: string, subtitle: string)
+	local sign = makeRoomPart(parent, name, Vector3.new(72, 14, 1.2), pos, Color3.fromRGB(24, 30, 38), Enum.Material.Metal)
+	sign.CanCollide = false
+	local topAccent = makeRoomPart(parent, name .. "_TopAccent", Vector3.new(68, 0.7, 0.5), pos + Vector3.new(0, 6.1, -0.75), color, Enum.Material.SmoothPlastic)
+	topAccent.CanCollide = false
+	local bottomAccent = makeRoomPart(parent, name .. "_BottomAccent", Vector3.new(68, 0.55, 0.5), pos + Vector3.new(0, -6.1, -0.75), color, Enum.Material.SmoothPlastic)
+	bottomAccent.CanCollide = false
+	addSurfaceText(sign, Enum.NormalId.Front, title .. "\n" .. subtitle, Color3.fromRGB(245, 250, 252), 25)
+end
+
+local function buildZoneOrientation(orientationFolder: Folder)
+	for _, child in ipairs(orientationFolder:GetChildren()) do
+		child:Destroy()
+	end
+
+	local gates = {
+		{
+			name = "TrainingSessionGate",
+			center = Vector3.new(0, 0, -118),
+			width = 88,
+			color = Color3.fromRGB(82, 220, 205),
+			title = "TRAINING SESSION",
+			requirement = "Required: 0 PWR",
+			status = "Status: UNLOCKED",
+			danger = "Safe",
+			reward = "Power",
+		},
+		{
+			name = "BacteriaSectorGate",
+			center = Vector3.new(-425, 0, 74),
+			width = 106,
+			color = Color3.fromRGB(105, 230, 125),
+			title = "BACTERIA SECTOR",
+			requirement = "Required: 500 PWR",
+			status = "Status: LOCKED",
+			danger = "Low",
+			reward = "+DNA",
+		},
+		{
+			name = "VirusChamberGate",
+			center = Vector3.new(-255, 0, 74),
+			width = 106,
+			color = Color3.fromRGB(220, 80, 82),
+			title = "VIRUS CHAMBER",
+			requirement = "Required: 5K PWR",
+			status = "Status: LOCKED",
+			danger = "Medium",
+			reward = "+DNA",
+		},
+		{
+			name = "MutationSectorGate",
+			center = Vector3.new(-85, 0, 74),
+			width = 106,
+			color = Color3.fromRGB(155, 230, 95),
+			title = "MUTATION SECTOR",
+			requirement = "Required: 25K PWR",
+			status = "Status: LOCKED",
+			danger = "High",
+			reward = "+DNA",
+		},
+		{
+			name = "DnaStorageGate",
+			center = Vector3.new(540, 0, -132),
+			width = 112,
+			color = Color3.fromRGB(88, 220, 210),
+			title = "DNA STORAGE",
+			requirement = "Required: DNA",
+			status = "Status: OPEN",
+			danger = "Low",
+			reward = "Pets",
+		},
+		{
+			name = "RebirthChamberGate",
+			center = Vector3.new(102, 0, -116),
+			width = 96,
+			color = Color3.fromRGB(205, 95, 230),
+			title = "REBIRTH CHAMBER",
+			requirement = "Required: Power",
+			status = "Status: READY",
+			danger = "Mutation",
+			reward = "Rebirth",
+		},
+		{
+			name = "PremiumShopGate",
+			center = Vector3.new(540, 0, -62),
+			width = 104,
+			color = Color3.fromRGB(225, 180, 85),
+			title = "SHOP LAB",
+			requirement = "Optional Boosts",
+			status = "Status: OPEN",
+			danger = "None",
+			reward = "Boosts",
+		},
+		{
+			name = "BossContainmentGate",
+			center = Vector3.new(0, 0, BOSS_ROW_Z - 88),
+			width = 220,
+			color = Color3.fromRGB(215, 72, 65),
+			title = "BOSS CONTAINMENT",
+			requirement = "Required: High PWR",
+			status = "Status: LOCKED",
+			danger = "Critical",
+			reward = "Boss Chest",
+		},
+	}
+	for _, gate in ipairs(gates) do
+		addZoneTransitionGate(orientationFolder, gate.name, gate.center, gate.width, gate.color, gate.title, gate.requirement, gate.status, gate.danger, gate.reward)
+	end
+
+	local areaSigns = {
+		{ name = "AreaSignCentralLab", pos = Vector3.new(0, 19, -36), color = Color3.fromRGB(82, 220, 205), title = "AREA: CENTRAL LAB", sub = "Train, upgrade and prepare" },
+		{ name = "AreaSignBacteria", pos = Vector3.new(-425, 19, 126), color = Color3.fromRGB(105, 230, 125), title = "AREA: BACTERIA SECTOR", sub = "Beginner virus samples" },
+		{ name = "AreaSignVirus", pos = Vector3.new(-255, 19, 126), color = Color3.fromRGB(220, 80, 82), title = "AREA: VIRUS CHAMBER", sub = "Aggressive samples ahead" },
+		{ name = "AreaSignMutation", pos = Vector3.new(-85, 19, 126), color = Color3.fromRGB(155, 230, 95), title = "AREA: MUTATION SECTOR", sub = "Unstable DNA tests" },
+		{ name = "AreaSignBoss", pos = Vector3.new(0, 21, BOSS_ROW_Z - 44), color = Color3.fromRGB(215, 72, 65), title = "AREA: BOSS CONTAINMENT", sub = "Hold E to start boss fights" },
+		{ name = "AreaSignDnaStorage", pos = Vector3.new(540, 18, -178), color = Color3.fromRGB(88, 220, 210), title = "AREA: DNA STORAGE", sub = "Open eggs and collect pets" },
+		{ name = "AreaSignShopLab", pos = Vector3.new(540, 18, -8), color = Color3.fromRGB(225, 180, 85), title = "AREA: SHOP LAB", sub = "Optional boosts and upgrades" },
+	}
+	for _, sign in ipairs(areaSigns) do
+		addAreaOrientationSign(orientationFolder, sign.name, sign.pos, sign.color, sign.title, sign.sub)
+	end
+
+	for _, marker in ipairs({
+		{ pos = Vector3.new(0, 0.28, -136), text = "NEXT ZONE ->", color = Color3.fromRGB(62, 136, 130) },
+		{ pos = Vector3.new(-425, 0.28, 45), text = "ENTER BACTERIA SECTOR", color = Color3.fromRGB(52, 112, 66) },
+		{ pos = Vector3.new(-255, 0.28, 45), text = "ENTER VIRUS CHAMBER", color = Color3.fromRGB(122, 52, 58) },
+		{ pos = Vector3.new(-85, 0.28, 45), text = "ENTER MUTATION SECTOR", color = Color3.fromRGB(76, 112, 58) },
+		{ pos = Vector3.new(540, 0.28, -172), text = "TO DNA STORAGE", color = Color3.fromRGB(62, 136, 130) },
+		{ pos = Vector3.new(540, 0.28, -102), text = "TO SHOP LAB", color = Color3.fromRGB(130, 98, 48) },
+		{ pos = Vector3.new(0, 0.28, BOSS_ROW_Z - 122), text = "BOSS SECTOR", color = Color3.fromRGB(122, 52, 58) },
+	}) do
+		addFloorTextMarker(orientationFolder, marker.pos, marker.text, marker.color)
+	end
+
+	for _, guide in ipairs({
+		{ pos = Vector3.new(0, 0.3, -116), len = 180, axis = "X", color = Color3.fromRGB(82, 220, 205) },
+		{ pos = Vector3.new(-255, 0.3, 74), len = 430, axis = "X", color = Color3.fromRGB(92, 205, 160) },
+		{ pos = Vector3.new(540, 0.3, -100), len = 180, axis = "Z", color = Color3.fromRGB(225, 180, 85) },
+		{ pos = Vector3.new(0, 0.3, BOSS_ROW_Z - 104), len = 320, axis = "X", color = Color3.fromRGB(210, 75, 70) },
+	}) do
+		addLabGuideLine(orientationFolder, guide.pos, guide.len, guide.axis, guide.color)
 	end
 end
 
@@ -2236,6 +2619,7 @@ function WorldBuilder.build()
 	local labWallDetailsFolder = makeFolder("LabWallDetails", mapFolder)
 	local labCeilingDetailsFolder = makeFolder("LabCeilingDetails", mapFolder)
 	local labCorridorsFolder = makeFolder("LabCorridors", mapFolder)
+	local zoneOrientationFolder = makeFolder("ZoneOrientation", mapFolder)
 	makeFolder("EnemyTestChambers", mapFolder)
 	makeFolder("DirectionSigns", mapFolder)
 	makeFolder("EnemyModels", mapFolder)
@@ -2266,6 +2650,7 @@ function WorldBuilder.build()
 	buildLabWallDetails(labWallDetailsFolder)
 	buildLabCeilingDetails(labCeilingDetailsFolder)
 	buildLabCorridors(labCorridorsFolder)
+	buildZoneOrientation(zoneOrientationFolder)
 	buildZoneTriggers(zoneTriggersFolder)
 
 	for _, zone in ipairs(ZoneConfig) do
