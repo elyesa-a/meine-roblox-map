@@ -25,8 +25,9 @@ local AuraFrame = require(UI:WaitForChild("AuraFrame"))
 local UpgradeFrame = require(UI:WaitForChild("UpgradeFrame"))
 local SpinFrame = require(UI:WaitForChild("SpinFrame"))
 local DailyChestFrame = require(UI:WaitForChild("DailyChestFrame"))
+local DailyQuestFrame = require(UI:WaitForChild("DailyQuestFrame"))
 local GamepassFrame = require(UI:WaitForChild("GamepassFrame"))
-local StubFrame = require(UI:WaitForChild("StubFrame"))
+local TitleFrame = require(UI:WaitForChild("TitleFrame"))
 local MenuController = require(UI:WaitForChild("MenuController"))
 local PopupHandler = require(UI:WaitForChild("PopupHandler"))
 local ClickHandler = require(UI:WaitForChild("ClickHandler"))
@@ -54,17 +55,19 @@ local auraRefs = AuraFrame.create(screen)
 local upgradeRefs = UpgradeFrame.create(screen)
 local spinRefs = SpinFrame.create(screen)
 local dailyRefs = DailyChestFrame.create(screen)
+local dailyQuestRefs = DailyQuestFrame.create(screen)
 local gamepassRefs = GamepassFrame.create(screen)
-local titleRefs = StubFrame.create(screen, "TitleFrame", Theme.Colors.Yellow, "TITLES")
+local titleRefs = TitleFrame.create(screen)
 
 local menuController = MenuController.new({
 	Auras = { backdrop = auraRefs.backdrop, root = auraRefs.root, show = AuraFrame.show },
 	Daily = { backdrop = dailyRefs.backdrop, root = dailyRefs.root, show = DailyChestFrame.show },
+	DailyQuests = { backdrop = dailyQuestRefs.backdrop, root = dailyQuestRefs.root, show = DailyQuestFrame.show },
 	Pets = { backdrop = petRefs.backdrop, root = petRefs.root, show = PetFrame.show },
 	Rebirth = { backdrop = rebirthRefs.backdrop, root = rebirthRefs.root, show = RebirthFrame.show },
 	Settings = { backdrop = settingsRefs.backdrop, root = settingsRefs.root, show = SettingsFrame.show },
 	Shop = { backdrop = gamepassRefs.backdrop, root = gamepassRefs.root, show = GamepassFrame.show },
-	Titles = { backdrop = titleRefs.backdrop, root = titleRefs.root, show = StubFrame.show },
+	Titles = { backdrop = titleRefs.backdrop, root = titleRefs.root, show = TitleFrame.show },
 	Skills = { backdrop = upgradeRefs.backdrop, root = upgradeRefs.root, show = UpgradeFrame.show },
 	Spin = { backdrop = spinRefs.backdrop, root = spinRefs.root, show = SpinFrame.show },
 })
@@ -91,6 +94,8 @@ LeftButtons.create(screen, function(id)
 		menuController:openMenu("Auras")
 	elseif id == "Daily" then
 		menuController:openMenu("Daily")
+	elseif id == "Quests" then
+		menuController:openMenu("DailyQuests")
 	elseif id == "Shop" then
 		menuController:openMenu("Shop")
 	elseif id == "Title" then
@@ -119,7 +124,10 @@ local state: { [string]: any } = {
 	Upgrades = {},
 	ActiveBoosts = {},
 	DailyChest = { LastClaim = 0, Streak = 0 },
+	DailyQuests = { LastResetDay = 0, CompletedCount = 0, Streak = 0, QuestTokens = 0, Quests = {} },
 	Spin = { LastFreeSpin = 0 },
+	Titles = { Rookie = true },
+	EquippedTitle = "Rookie",
 	ServerTime = 0,
 	_clientReceivedAt = os.clock(),
 }
@@ -132,6 +140,8 @@ local function applyState()
 	PetFrame.update(petRefs, state)
 	AuraFrame.update(auraRefs, state)
 	UpgradeFrame.update(upgradeRefs, state)
+	TitleFrame.update(titleRefs, state)
+	DailyQuestFrame.update(dailyQuestRefs, state)
 end
 
 UpdateClientData.OnClientEvent:Connect(function(payload)
@@ -161,6 +171,7 @@ RunService.Heartbeat:Connect(function(dt)
 	accum = 0
 	SpinFrame.tick(spinRefs, state)
 	DailyChestFrame.tick(dailyRefs, state)
+	DailyQuestFrame.tick(dailyQuestRefs, state)
 	RightBoosts.tick(rightRefs, state)
 end)
 

@@ -19,6 +19,7 @@ local Configs = ReplicatedStorage:WaitForChild("Configs")
 local ZoneConfig = require(Configs:WaitForChild("ZoneConfig"))
 local TrainingBedConfig = require(Configs:WaitForChild("TrainingBedConfig"))
 local EnemyConfig = require(Configs:WaitForChild("EnemyConfig"))
+local AuraConfig = require(Configs:WaitForChild("AuraConfig"))
 
 local WorldBuilder = {}
 
@@ -279,6 +280,48 @@ local function addDnaDecoration(parent: Instance, center: Vector3, colorA: Color
 	end
 end
 
+local function addRotatingDnaCore(parent: Instance, center: Vector3)
+	local model = Instance.new("Model")
+	model.Name = "RotatingDnaCore"
+	model.Parent = parent
+
+	local pivot = makeRoomPart(model, "Pivot", Vector3.new(1, 1, 1), center, Color3.fromRGB(120, 255, 230), Enum.Material.Neon)
+	pivot.Transparency = 1
+	pivot.CanCollide = false
+	model.PrimaryPart = pivot
+
+	for i = 1, 10 do
+		local y = (i - 5.5) * 3.2
+		local angle = i * math.pi * 0.72
+		local xA = math.cos(angle) * 8
+		local zA = math.sin(angle) * 8
+		local xB = -xA
+		local zB = -zA
+		local colorA = if i % 2 == 0 then Color3.fromRGB(90, 255, 230) else Color3.fromRGB(180, 110, 255)
+		local colorB = if i % 2 == 0 then Color3.fromRGB(180, 110, 255) else Color3.fromRGB(90, 255, 230)
+		local nodeA = makeRoomPart(model, "DnaOrbA", Vector3.new(2.2, 2.2, 2.2), center + Vector3.new(xA, y, zA), colorA, Enum.Material.Neon)
+		nodeA.Shape = Enum.PartType.Ball
+		nodeA.CanCollide = false
+		local nodeB = makeRoomPart(model, "DnaOrbB", Vector3.new(2.2, 2.2, 2.2), center + Vector3.new(xB, y, zB), colorB, Enum.Material.Neon)
+		nodeB.Shape = Enum.PartType.Ball
+		nodeB.CanCollide = false
+		local rung = makeRoomPart(model, "DnaBridge", Vector3.new(15, 0.32, 0.32), center + Vector3.new(0, y, 0), Color3.fromRGB(225, 255, 250), Enum.Material.Neon)
+		rung.CanCollide = false
+		rung.CFrame = CFrame.lookAt(rung.Position, nodeA.Position) * CFrame.Angles(0, math.pi / 2, 0)
+	end
+
+	addBillboardLabel(pivot, "DNA CORE", Color3.fromRGB(255, 255, 255), 55, UDim2.fromOffset(180, 48), Vector3.new(0, 24, 0))
+
+	task.spawn(function()
+		local angle = 0
+		while model.Parent do
+			angle += math.rad(1.5)
+			model:PivotTo(CFrame.new(center) * CFrame.Angles(0, angle, 0))
+			task.wait(0.08)
+		end
+	end)
+end
+
 local function addCeilingLight(parent: Instance, x: number, z: number)
 	local topY = ROOM_FLOOR_Y + ROOM_SIZE.Y / 2 + ROOM_WALL_HEIGHT
 	local lightPanel = makeRoomPart(
@@ -312,6 +355,17 @@ local function addArrowStrip(parent: Instance, center: Vector3, color: Color3)
 	local headB = makeRoomPart(parent, "DirectionArrowHead", Vector3.new(4, 0.25, 1.1), center + Vector3.new(9, 0, -2.2), color, Enum.Material.Neon)
 	headB.CanCollide = false
 	headB.Transparency = 0.25
+end
+
+local function formatShort(n: number): string
+	if n >= 1000000 then
+		local text = string.format("%.1fM", n / 1000000)
+		return text:gsub("%.0M", "M")
+	elseif n >= 1000 then
+		local text = string.format("%.1fK", n / 1000)
+		return text:gsub("%.0K", "K")
+	end
+	return tostring(math.floor(n))
 end
 
 local function addWallArt(wallArtFolder: Folder)
@@ -348,11 +402,13 @@ local function addWallArt(wallArtFolder: Folder)
 	addWallTextPanel(wallArtFolder, "DnaBoostAreaSign", Vector3.new(leftX, 45, 235), Vector3.new(0.6, 24, 118), Color3.fromRGB(120, 255, 150), "DNA BOOST AREA", "COLLECT • UPGRADE • EVOLVE", LABEL_DISTANCE_MAIN_SIGN, "Z")
 
 	local zoneSigns = {
-		{ x = -306, title = "HOSPITAL ZONE", subtitle = "REQUIRES REBIRTH 3", color = Color3.fromRGB(120, 255, 210) },
-		{ x = -102, title = "MUTATION LAB", subtitle = "REQUIRES REBIRTH 10", color = Color3.fromRGB(220, 120, 255) },
-		{ x = 102, title = "QUARANTINE", subtitle = "REQUIRES REBIRTH 25", color = Color3.fromRGB(255, 210, 80) },
-		{ x = 306, title = "GLITCH SECTOR", subtitle = "REQUIRES REBIRTH 50", color = Color3.fromRGB(255, 90, 220) },
-		{ x = 510, title = "ENDGAME CORE", subtitle = "REQUIRES REBIRTH 100", color = Color3.fromRGB(255, 80, 110) },
+		{ x = -425, title = "BACTERIA SECTOR", subtitle = "500 POWER • REBIRTH 3", color = Color3.fromRGB(120, 255, 210) },
+		{ x = -255, title = "VIRUS CHAMBER", subtitle = "5K POWER • REBIRTH 10", color = Color3.fromRGB(255, 95, 110) },
+		{ x = -85, title = "TOXIC FACILITY", subtitle = "25K POWER • REBIRTH 25", color = Color3.fromRGB(160, 255, 80) },
+		{ x = 85, title = "FROST LAB", subtitle = "100K POWER • REBIRTH 30", color = Color3.fromRGB(160, 235, 255) },
+		{ x = 255, title = "MAGMA REACTOR", subtitle = "500K POWER • REBIRTH 40", color = Color3.fromRGB(255, 120, 60) },
+		{ x = 425, title = "GLITCH CORE", subtitle = "2M POWER • REBIRTH 50", color = Color3.fromRGB(255, 90, 220) },
+		{ x = 595, title = "FINAL MUTATION", subtitle = "10M POWER • REBIRTH 100", color = Color3.fromRGB(255, 80, 110) },
 	}
 	for _, sign in ipairs(zoneSigns) do
 		addWallTextPanel(
@@ -970,6 +1026,19 @@ local function buildBossField(parent: Instance, areaName: string, folderName: st
 	addGlowStrip(field, Vector3.new(center.X - halfX, stripY, center.Z), pad.Size.Z, "Z", color)
 	addGlowStrip(field, Vector3.new(center.X + halfX, stripY, center.Z), pad.Size.Z, "Z", color)
 
+	for _, dx in ipairs({ -halfX + 8, halfX - 8 }) do
+		local tower = makeRoomPart(field, "BossArenaTower", Vector3.new(5, 22, 5), center + Vector3.new(dx, 11, halfZ - 5), Color3.fromRGB(30, 32, 42), Enum.Material.Metal)
+		tower.CanCollide = true
+		local lamp = makeRoomPart(field, "BossArenaLamp", Vector3.new(5.6, 1.5, 5.6), tower.Position + Vector3.new(0, 11.5, 0), color, Enum.Material.Neon)
+		lamp.CanCollide = false
+		lamp.Transparency = 0.16
+		local light = Instance.new("PointLight")
+		light.Color = color
+		light.Brightness = 0.75
+		light.Range = 18
+		light.Parent = lamp
+	end
+
 	local sign = makeRoomPart(field, "BossSign", Vector3.new(42, 7, 0.6), center + Vector3.new(0, 9, -halfZ - 2), Color3.fromRGB(32, 38, 50), Enum.Material.SmoothPlastic)
 	sign.CanCollide = false
 	addBillboardLabel(
@@ -992,27 +1061,34 @@ local function buildEnemyAndBossAreas(enemyFolder: Folder, bossFolder: Folder)
 	end
 
 	local areas = {
-		{ area = "StartEnemies", folder = "StartEnemyArea", title = "START ENEMIES", zoneId = "StartZone", x = -510 },
-		{ area = "HospitalEnemies", folder = "HospitalEnemyArea", title = "HOSPITAL ENEMIES", zoneId = "HospitalZone", x = -306 },
-		{ area = "MutationEnemies", folder = "MutationEnemyArea", title = "MUTATION ENEMIES", zoneId = "MutationLabZone", x = -102 },
-		{ area = "QuarantineEnemies", folder = "QuarantineEnemyArea", title = "QUARANTINE ENEMIES", zoneId = "QuarantineZone", x = 102 },
-		{ area = "GlitchEnemies", folder = "GlitchEnemyArea", title = "GLITCH ENEMIES", zoneId = "GlitchZone", x = 306 },
-		{ area = "EndgameEnemies", folder = "EndgameEnemyArea", title = "ENDGAME ENEMIES", zoneId = "EndgameZone", x = 510 },
+		{ area = "StartEnemies", folder = "StartEnemyArea", title = "LAB ENTRY ENEMIES", zoneId = "StartZone" },
+		{ area = "HospitalEnemies", folder = "HospitalEnemyArea", title = "BACTERIA ENEMIES", zoneId = "HospitalZone" },
+		{ area = "MutationEnemies", folder = "MutationEnemyArea", title = "VIRUS ENEMIES", zoneId = "MutationLabZone" },
+		{ area = "QuarantineEnemies", folder = "QuarantineEnemyArea", title = "TOXIC ENEMIES", zoneId = "QuarantineZone" },
+		{ area = "GlitchEnemies", folder = "GlitchEnemyArea", title = "GLITCH ENEMIES", zoneId = "GlitchZone" },
+		{ area = "EndgameEnemies", folder = "EndgameEnemyArea", title = "FINAL ENEMIES", zoneId = "EndgameZone" },
 	}
 	for _, area in ipairs(areas) do
-		buildEnemyArea(enemyFolder, area.area, area.folder, area.title, area.zoneId, Vector3.new(area.x, 0, ENEMY_ROW_Z))
+		local zone = ZoneConfig.getById(area.zoneId)
+		if zone then
+			buildEnemyArea(enemyFolder, area.area, area.folder, area.title, area.zoneId, Vector3.new(zone.center.X, 0, ENEMY_ROW_Z))
+		end
 	end
 
 	local bossFields = {
-		{ area = "StartBoss", folder = "StartBossField", zoneId = "StartZone", x = -510 },
-		{ area = "HospitalBoss", folder = "HospitalBossField", zoneId = "HospitalZone", x = -306 },
-		{ area = "MutationBoss", folder = "MutationBossField", zoneId = "MutationLabZone", x = -102 },
-		{ area = "QuarantineBoss", folder = "QuarantineBossField", zoneId = "QuarantineZone", x = 102 },
-		{ area = "GlitchBoss", folder = "GlitchBossField", zoneId = "GlitchZone", x = 306 },
-		{ area = "EndgameBoss", folder = "EndgameBossField", zoneId = "EndgameZone", x = 510 },
+		{ area = "StartBoss", folder = "BacteriaBossField", zoneId = "HospitalZone" },
+		{ area = "HospitalBoss", folder = "VirusBossField", zoneId = "MutationLabZone" },
+		{ area = "QuarantineBoss", folder = "ToxicBossField", zoneId = "QuarantineZone" },
+		{ area = "FrostBoss", folder = "FrostBossField", zoneId = "FrostLabZone" },
+		{ area = "MagmaBoss", folder = "MagmaBossField", zoneId = "MagmaReactorZone" },
+		{ area = "GlitchBoss", folder = "GlitchBossField", zoneId = "GlitchZone" },
+		{ area = "EndgameBoss", folder = "EndgameBossField", zoneId = "EndgameZone" },
 	}
 	for _, boss in ipairs(bossFields) do
-		buildBossField(bossFolder, boss.area, boss.folder, boss.zoneId, Vector3.new(boss.x, 0, BOSS_ROW_Z))
+		local zone = ZoneConfig.getById(boss.zoneId)
+		if zone then
+			buildBossField(bossFolder, boss.area, boss.folder, boss.zoneId, Vector3.new(zone.center.X, 0, BOSS_ROW_Z))
+		end
 	end
 end
 
@@ -1107,6 +1183,7 @@ local function buildPortal(zone, portalsFolder: Folder)
 
 	portal:SetAttribute("ZoneId", zone.id)
 	portal:SetAttribute("RequiredRebirth", zone.requiredRebirth)
+	portal:SetAttribute("RequiredPower", zone.requiredPower)
 
 	-- Light innen.
 	local light = Instance.new("PointLight")
@@ -1138,10 +1215,24 @@ local function buildPortal(zone, portalsFolder: Folder)
 
 	addBillboardLabel(
 		portal,
-		string.format("%s\nRequires Rebirth %d", zone.displayName, zone.requiredRebirth),
+		string.format("NEXT: %s\nREQUIRED: %s Power • Rebirth %d", zone.displayName, formatShort(zone.requiredPower), zone.requiredRebirth),
 		Color3.fromRGB(255, 255, 255),
 		LABEL_DISTANCE_ZONE
 	)
+
+	local gateFolder = Instance.new("Folder")
+	gateFolder.Name = zone.id .. "_GateFrame"
+	gateFolder.Parent = portalsFolder
+	for _, dx in ipairs({ -8, 8 }) do
+		local pillar = makeRoomPart(gateFolder, "GatePillar", Vector3.new(2.2, 19, 2.2), portal.Position + Vector3.new(dx, 2.5, 0), Color3.fromRGB(28, 32, 40), Enum.Material.Metal)
+		pillar.CanCollide = true
+		local glow = makeRoomPart(gateFolder, "GatePillarGlow", Vector3.new(1, 16, 1), pillar.Position, zone.color, Enum.Material.Neon)
+		glow.CanCollide = false
+		glow.Transparency = 0.35
+	end
+	local top = makeRoomPart(gateFolder, "GateHeader", Vector3.new(21, 2.2, 2.2), portal.Position + Vector3.new(0, 13.2, 0), zone.color, Enum.Material.Neon)
+	top.CanCollide = false
+	top.Transparency = 0.18
 end
 
 local function buildBed(bed, bedsFolder: Folder)
@@ -1323,12 +1414,344 @@ local function buildPetEgg(_startZone, parent: Instance): BasePart
 	return egg
 end
 
+local function addWarningLight(parent: Instance, pos: Vector3, color: Color3)
+	local pole = makeRoomPart(parent, "WarningLightPole", Vector3.new(1.2, 7, 1.2), pos + Vector3.new(0, 3.5, 0), Color3.fromRGB(30, 32, 38), Enum.Material.Metal)
+	pole.CanCollide = false
+	local lamp = makeRoomPart(parent, "WarningLight", Vector3.new(3, 1.4, 3), pos + Vector3.new(0, 7.4, 0), color, Enum.Material.Neon)
+	lamp.Shape = Enum.PartType.Ball
+	lamp.CanCollide = false
+	lamp.Transparency = 0.18
+	local light = Instance.new("PointLight")
+	light.Brightness = 0.65
+	light.Range = 14
+	light.Color = color
+	light.Parent = lamp
+end
+
+local function addBioBarrel(parent: Instance, pos: Vector3, color: Color3)
+	local barrel = makeRoomPart(parent, "BiohazardBarrel", Vector3.new(5, 7, 5), pos + Vector3.new(0, 3.5, 0), Color3.fromRGB(42, 48, 46), Enum.Material.Metal)
+	barrel.Shape = Enum.PartType.Cylinder
+	barrel.CanCollide = true
+	local band = makeRoomPart(parent, "BarrelBioBand", Vector3.new(5.3, 0.6, 5.3), pos + Vector3.new(0, 5.5, 0), color, Enum.Material.Neon)
+	band.Shape = Enum.PartType.Cylinder
+	band.CanCollide = false
+	band.Transparency = 0.25
+	addBillboardLabel(barrel, "BIO\nSAMPLE", Color3.fromRGB(255, 255, 255), 24, UDim2.fromOffset(90, 50), Vector3.new(0, 5, 0))
+end
+
+local function addLabTank(parent: Instance, pos: Vector3, color: Color3, labelText: string)
+	local base = makeRoomPart(parent, "TankBase", Vector3.new(13, 1.2, 13), pos + Vector3.new(0, 0.7, 0), Color3.fromRGB(32, 36, 44), Enum.Material.Metal)
+	base.CanCollide = true
+	local glass = makeRoomPart(parent, "MutationTank", Vector3.new(8, 18, 8), pos + Vector3.new(0, 10, 0), color, Enum.Material.Glass)
+	glass.Shape = Enum.PartType.Cylinder
+	glass.Transparency = 0.48
+	glass.CanCollide = false
+	local core = makeRoomPart(parent, "FloatingSample", Vector3.new(3.8, 3.8, 3.8), pos + Vector3.new(0, 10, 0), color, Enum.Material.Neon)
+	core.Shape = Enum.PartType.Ball
+	core.CanCollide = false
+	core.Transparency = 0.2
+	local att = Instance.new("Attachment")
+	att.Parent = core
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	emitter.Color = ColorSequence.new(color)
+	emitter.Lifetime = NumberRange.new(0.8, 1.6)
+	emitter.Rate = 5
+	emitter.Speed = NumberRange.new(0.5, 1.4)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Size = NumberSequence.new(0.45, 0.08)
+	emitter.Transparency = NumberSequence.new(0.3, 1)
+	emitter.LightEmission = 0.35
+	emitter.Parent = att
+	addBillboardLabel(glass, labelText, Color3.fromRGB(255, 255, 255), 32, UDim2.fromOffset(170, 56), Vector3.new(0, 12, 0))
+end
+
+local function addToxicPuddle(parent: Instance, pos: Vector3, color: Color3)
+	local puddle = makeRoomPart(parent, "ToxicPuddle", Vector3.new(18, 0.18, 10), pos + Vector3.new(0, 0.14, 0), color, Enum.Material.Neon)
+	puddle.Shape = Enum.PartType.Cylinder
+	puddle.CanCollide = false
+	puddle.Transparency = 0.46
+	local att = Instance.new("Attachment")
+	att.Parent = puddle
+	local mist = Instance.new("ParticleEmitter")
+	mist.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	mist.Color = ColorSequence.new(color)
+	mist.Lifetime = NumberRange.new(1.2, 2)
+	mist.Rate = 4
+	mist.Speed = NumberRange.new(0.4, 1.1)
+	mist.SpreadAngle = Vector2.new(80, 80)
+	mist.Size = NumberSequence.new(1.7, 0.25)
+	mist.Transparency = NumberSequence.new(0.62, 1)
+	mist.Parent = att
+end
+
+local function addPipeRun(parent: Instance, startPos: Vector3, length: number, color: Color3)
+	local pipe = makeRoomPart(parent, "WallPipe", Vector3.new(length, 2, 2), startPos, Color3.fromRGB(28, 32, 38), Enum.Material.Metal)
+	pipe.CanCollide = false
+	local valve = makeRoomPart(parent, "ValveWheel", Vector3.new(5, 5, 0.5), startPos + Vector3.new(length * 0.22, 0, 1.2), color, Enum.Material.Neon)
+	valve.Shape = Enum.PartType.Cylinder
+	valve.CanCollide = false
+	valve.Transparency = 0.35
+end
+
+local function addFloorCable(parent: Instance, fromPos: Vector3, toPos: Vector3, color: Color3)
+	local mid = (fromPos + toPos) / 2
+	local length = (toPos - fromPos).Magnitude
+	local cable = makeRoomPart(parent, "FloorCable", Vector3.new(length, 0.18, 0.42), mid, color, Enum.Material.SmoothPlastic)
+	cable.CanCollide = false
+	cable.CFrame = CFrame.lookAt(mid, toPos) * CFrame.Angles(0, math.pi / 2, 0)
+end
+
+local function addWarningStripe(parent: Instance, center: Vector3, length: number, axis: string)
+	for i = 1, 8 do
+		local offset = (i - 4.5) * (length / 8)
+		local pos = if axis == "X" then center + Vector3.new(offset, 0, 0) else center + Vector3.new(0, 0, offset)
+		local stripe = makeRoomPart(parent, "BiohazardWarningStripe", if axis == "X" then Vector3.new(length / 12, 0.2, 2.2) else Vector3.new(2.2, 0.2, length / 12), pos, if i % 2 == 0 then Color3.fromRGB(245, 210, 70) else Color3.fromRGB(24, 24, 28), Enum.Material.SmoothPlastic)
+		stripe.CanCollide = false
+	end
+end
+
+local function addBiohazardPanel(parent: Instance, pos: Vector3, color: Color3, text: string)
+	local panel = makeRoomPart(parent, "Biohazard_WallPanel", Vector3.new(28, 14, 0.7), pos, Color3.fromRGB(25, 30, 38), Enum.Material.Metal)
+	panel.CanCollide = false
+	local icon = makeRoomPart(parent, "Biohazard_Icon_Core", Vector3.new(7, 7, 0.8), pos + Vector3.new(-7.5, 1, -0.1), color, Enum.Material.Neon)
+	icon.Shape = Enum.PartType.Ball
+	icon.CanCollide = false
+	icon.Transparency = 0.35
+	addBillboardLabel(panel, text, Color3.fromRGB(255, 255, 255), 46, UDim2.fromOffset(230, 70), Vector3.new(0, 0, 0))
+end
+
+local function addZoneRequirementSign(parent: Instance, zoneId: string, title: string, requirement: string, subtitle: string, pos: Vector3, color: Color3)
+	local panel = makeRoomPart(parent, zoneId .. "_Zone_Sign", Vector3.new(58, 20, 1.1), pos, Color3.fromRGB(24, 29, 38), Enum.Material.Metal)
+	panel.CanCollide = false
+	addPanelFrame(parent, pos, 58, 20, color, "X")
+	addBillboardLabel(
+		panel,
+		title .. "\n" .. requirement .. "\n" .. subtitle,
+		Color3.fromRGB(255, 255, 255),
+		68,
+		UDim2.fromOffset(360, 125),
+		Vector3.new(0, 0, 0)
+	)
+end
+
+local function buildZoneSigns(signFolder: Folder)
+	for _, child in ipairs(signFolder:GetChildren()) do
+		child:Destroy()
+	end
+
+	local signs = {
+		{ id = "Spawn_Lab", title = "SPAWN LAB", req = "0 POWER", sub = "Start your mutation journey", x = -595, color = Color3.fromRGB(110, 220, 255) },
+		{ id = "Toxic_Cell", title = "TOXIC CELL ZONE", req = "500 POWER", sub = "Weak virus cells detected", x = -425, color = Color3.fromRGB(120, 255, 120) },
+		{ id = "Mutant_Lab", title = "MUTANT LAB ZONE", req = "2.5K POWER", sub = "Unstable experiments ahead", x = -255, color = Color3.fromRGB(255, 90, 110) },
+		{ id = "DNA_Breakpoint", title = "DNA BREAKPOINT", req = "10K POWER", sub = "DNA corruption level rising", x = -85, color = Color3.fromRGB(160, 255, 80) },
+		{ id = "Biohazard_Boss", title = "BIOHAZARD BOSS ZONE", req = "50K POWER", sub = "Boss mutation contained behind this gate", x = 85, color = Color3.fromRGB(160, 235, 255) },
+		{ id = "Reactor_Core", title = "REACTOR CORE", req = "500K POWER", sub = "Heat mutation levels unstable", x = 255, color = Color3.fromRGB(255, 120, 60) },
+		{ id = "Glitch_Core", title = "GLITCH CORE", req = "2M POWER", sub = "Digital DNA failure detected", x = 425, color = Color3.fromRGB(255, 90, 220) },
+		{ id = "Final_Experiment", title = "FINAL EXPERIMENT", req = "10M POWER", sub = "Containment failure imminent", x = 595, color = Color3.fromRGB(255, 80, 100) },
+	}
+	for _, sign in ipairs(signs) do
+		addZoneRequirementSign(signFolder, sign.id, sign.title, sign.req, sign.sub, Vector3.new(sign.x, 22, 138), sign.color)
+	end
+end
+
+local function addHubStation(parent: Instance, name: string, pos: Vector3, color: Color3, title: string, subtitle: string)
+	local platform = makeRoomPart(parent, name .. "Platform", Vector3.new(62, 0.5, 34), pos + Vector3.new(0, 0.2, 0), Color3.fromRGB(34, 42, 52), Enum.Material.SmoothPlastic)
+	platform.CanCollide = true
+	addGlowStrip(parent, pos + Vector3.new(0, 0.65, -17), 62, "X", color)
+	addGlowStrip(parent, pos + Vector3.new(0, 0.65, 17), 62, "X", color)
+	local terminal = makeRoomPart(parent, name .. "Terminal", Vector3.new(18, 11, 4), pos + Vector3.new(0, 5.8, 4), Color3.fromRGB(28, 32, 42), Enum.Material.Metal)
+	terminal.CanCollide = true
+	local screen = makeRoomPart(parent, name .. "Screen", Vector3.new(15, 7, 0.5), terminal.Position + Vector3.new(0, 1.4, -2.25), color, Enum.Material.Neon)
+	screen.CanCollide = false
+	screen.Transparency = 0.18
+	addBillboardLabel(screen, title .. "\n" .. subtitle, Color3.fromRGB(255, 255, 255), 42, UDim2.fromOffset(190, 68), Vector3.new(0, 3.8, 0))
+end
+
+local function addAuraShowcase(parent: Instance)
+	local baseCenter = EGG_AREA_CENTER + Vector3.new(0, 0, 76)
+	local platform = makeRoomPart(parent, "AuraVaultPlatform", Vector3.new(160, 0.5, 38), baseCenter + Vector3.new(0, 0.25, 0), Color3.fromRGB(34, 34, 52), Enum.Material.SmoothPlastic)
+	platform.CanCollide = true
+	addGlowStrip(parent, baseCenter + Vector3.new(0, 0.75, -19), 160, "X", Color3.fromRGB(210, 110, 255))
+	addGlowStrip(parent, baseCenter + Vector3.new(0, 0.75, 19), 160, "X", Color3.fromRGB(210, 110, 255))
+	addBillboardLabel(platform, "AURA VAULT\nPREVIEW AURAS", Color3.fromRGB(255, 255, 255), 48, UDim2.fromOffset(220, 58), Vector3.new(0, 8, 0))
+
+	local startX = baseCenter.X - 60
+	for i, aura in ipairs(AuraConfig.Auras) do
+		local x = startX + (i - 1) * 20
+		local stand = makeRoomPart(parent, "AuraDisplayStand", Vector3.new(8, 1.2, 8), Vector3.new(x, 1, baseCenter.Z), Color3.fromRGB(28, 30, 42), Enum.Material.Metal)
+		stand.CanCollide = true
+		local orb = makeRoomPart(parent, "AuraDisplayOrb", Vector3.new(5, 5, 5), Vector3.new(x, 6.2, baseCenter.Z), aura.color, Enum.Material.Neon)
+		orb.Shape = Enum.PartType.Ball
+		orb.CanCollide = false
+		orb.Transparency = 0.18
+		local att = Instance.new("Attachment")
+		att.Parent = orb
+		local emitter = Instance.new("ParticleEmitter")
+		emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		emitter.Color = aura.colorSequence or ColorSequence.new(aura.color)
+		emitter.Lifetime = NumberRange.new(0.6, 1.1)
+		emitter.Rate = if aura.id == "Rainbow" or aura.id == "Glitch" then 9 else 5
+		emitter.Speed = NumberRange.new(0.8, 1.8)
+		emitter.SpreadAngle = Vector2.new(130, 130)
+		emitter.Size = NumberSequence.new(0.35, 0.06)
+		emitter.Transparency = NumberSequence.new(0.15, 1)
+		emitter.LightEmission = 0.55
+		emitter.Parent = att
+		addBillboardLabel(orb, aura.displayName, Color3.fromRGB(255, 255, 255), 22, UDim2.fromOffset(120, 34), Vector3.new(0, 4, 0))
+	end
+end
+
+local function buildSpawnLab(spawnLabFolder: Folder)
+	for _, child in ipairs(spawnLabFolder:GetChildren()) do
+		child:Destroy()
+	end
+
+	local center = START_AREA_CENTER + Vector3.new(0, 0, 0)
+	local platform = makeRoomPart(spawnLabFolder, "DNA_Core_Platform", Vector3.new(88, 1.2, 88), center + Vector3.new(0, 0.35, 0), Color3.fromRGB(30, 38, 42), Enum.Material.Metal)
+	platform.Shape = Enum.PartType.Cylinder
+	platform.CanCollide = true
+
+	local containment = makeRoomPart(spawnLabFolder, "DNA_Core_GlassCylinder", Vector3.new(34, 34, 34), center + Vector3.new(0, 17.5, 0), Color3.fromRGB(95, 255, 210), Enum.Material.Glass)
+	containment.Shape = Enum.PartType.Cylinder
+	containment.Transparency = 0.72
+	containment.CanCollide = false
+
+	local core = makeRoomPart(spawnLabFolder, "DNA_Core", Vector3.new(13, 13, 13), center + Vector3.new(0, 13, 0), Color3.fromRGB(70, 235, 150), Enum.Material.Neon)
+	core.Shape = Enum.PartType.Ball
+	core.Transparency = 0.22
+	core.CanCollide = false
+	local att = Instance.new("Attachment")
+	att.Parent = core
+	local spores = Instance.new("ParticleEmitter")
+	spores.Name = "Controlled_DNA_Particles"
+	spores.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	spores.Color = ColorSequence.new(Color3.fromRGB(110, 255, 185), Color3.fromRGB(160, 105, 255))
+	spores.Lifetime = NumberRange.new(0.9, 1.8)
+	spores.Rate = 7
+	spores.Speed = NumberRange.new(0.6, 1.6)
+	spores.SpreadAngle = Vector2.new(140, 140)
+	spores.Size = NumberSequence.new(0.55, 0.08)
+	spores.Transparency = NumberSequence.new(0.2, 1)
+	spores.LightEmission = 0.45
+	spores.Parent = att
+
+	addRotatingDnaCore(spawnLabFolder, center + Vector3.new(0, 28, 0))
+	addBillboardLabel(core, "DNA CORE", Color3.fromRGB(255, 255, 255), 60, UDim2.fromOffset(190, 48), Vector3.new(0, 12, 0))
+
+	for _, radius in ipairs({ 54, 70 }) do
+		local ring = makeRoomPart(spawnLabFolder, "Labor_Floor_Ring", Vector3.new(radius, 0.18, radius), center + Vector3.new(0, 1.04, 0), Color3.fromRGB(40, 62, 58), Enum.Material.Metal)
+		ring.Shape = Enum.PartType.Cylinder
+		ring.CanCollide = false
+		ring.Transparency = 0.42
+	end
+	addWarningStripe(spawnLabFolder, center + Vector3.new(0, 1.2, -44), 56, "X")
+	addWarningStripe(spawnLabFolder, center + Vector3.new(0, 1.2, 44), 56, "X")
+
+	for _, endpoint in ipairs({
+		center + Vector3.new(-58, 1.25, -34),
+		center + Vector3.new(58, 1.25, -34),
+		center + Vector3.new(-58, 1.25, 34),
+		center + Vector3.new(58, 1.25, 34),
+	}) do
+		addFloorCable(spawnLabFolder, center + Vector3.new(0, 1.3, 0), endpoint, Color3.fromRGB(16, 24, 24))
+	end
+
+	for i, offset in ipairs({
+		Vector3.new(-62, 0, -42),
+		Vector3.new(62, 0, -42),
+		Vector3.new(-62, 0, 42),
+		Vector3.new(62, 0, 42),
+	}) do
+		addLabTank(spawnLabFolder, center + offset, if i % 2 == 0 then Color3.fromRGB(90, 245, 210) else Color3.fromRGB(130, 255, 95), "DNA SAMPLE")
+	end
+end
+
+local function buildBossGateDisplays(bossGateFolder: Folder)
+	for _, child in ipairs(bossGateFolder:GetChildren()) do
+		child:Destroy()
+	end
+	local gates = {
+		{ name = "Toxic_Slime_Boss_Gate", title = "TOXIC SLIME BOSS", req = "5K POWER", x = -425, color = Color3.fromRGB(110, 255, 100) },
+		{ name = "Mutant_Spider_Boss_Gate", title = "MUTANT SPIDER BOSS", req = "15K POWER", x = -255, color = Color3.fromRGB(255, 90, 110) },
+		{ name = "DNA_Beast_Boss_Gate", title = "DNA BEAST BOSS", req = "50K POWER", x = -85, color = Color3.fromRGB(160, 255, 80) },
+		{ name = "Biohazard_Overlord_Gate", title = "BIOHAZARD OVERLORD", req = "150K POWER", x = 85, color = Color3.fromRGB(160, 235, 255) },
+	}
+	for _, gate in ipairs(gates) do
+		local center = Vector3.new(gate.x, 16, BOSS_ROW_Z - 46)
+		local frame = makeRoomPart(bossGateFolder, gate.name, Vector3.new(54, 28, 2.2), center, Color3.fromRGB(26, 30, 38), Enum.Material.Metal)
+		frame.CanCollide = false
+		addPanelFrame(bossGateFolder, center, 54, 28, gate.color, "X")
+		local barrier = makeRoomPart(bossGateFolder, gate.name .. "_EnergyBarrier", Vector3.new(38, 21, 0.8), center + Vector3.new(0, 0, -1.2), gate.color, Enum.Material.ForceField)
+		barrier.CanCollide = false
+		barrier.Transparency = 0.56
+		addBillboardLabel(frame, gate.title .. "\nREQUIRED: " .. gate.req, Color3.fromRGB(255, 255, 255), 58, UDim2.fromOffset(310, 90), Vector3.new(0, 0, 0))
+		addWarningLight(bossGateFolder, center + Vector3.new(-22, -15, -2), gate.color)
+		addWarningLight(bossGateFolder, center + Vector3.new(22, -15, -2), gate.color)
+	end
+end
+
+local function buildLabDecor(decorFolder: Folder)
+	for _, child in ipairs(decorFolder:GetChildren()) do
+		child:Destroy()
+	end
+
+	addHubStation(decorFolder, "DailyQuest", START_AREA_CENTER + Vector3.new(-86, 0, 20), Color3.fromRGB(255, 190, 75), "DAILY QUESTS", "COMPLETE LAB TASKS")
+	addHubStation(decorFolder, "Titles", START_AREA_CENTER + Vector3.new(-86, 0, -28), Color3.fromRGB(255, 225, 95), "TITLE TERMINAL", "SHOW YOUR MUTATION")
+	addHubStation(decorFolder, "LuckyWheel", START_AREA_CENTER + Vector3.new(86, 0, -28), Color3.fromRGB(95, 160, 255), "LUCKY WHEEL", "SPIN FOR REWARDS")
+	addHubStation(decorFolder, "Rebirth", START_AREA_CENTER + Vector3.new(86, 0, 20), Color3.fromRGB(255, 90, 120), "EVOLUTION CORE", "REBIRTH TO EVOLVE")
+	addAuraShowcase(decorFolder)
+
+	for _, x in ipairs({ -450, -245, -40, 165, 370, 560 }) do
+		addPipeRun(decorFolder, Vector3.new(x, 19, -350), 84, Color3.fromRGB(95, 245, 210))
+	end
+
+	local zoneDecor = {
+		{ center = Vector3.new(-595, 0, 72), color = Color3.fromRGB(120, 205, 255), label = "LAB SAMPLE", kind = "Clean" },
+		{ center = Vector3.new(-425, 0, 72), color = Color3.fromRGB(95, 255, 145), label = "BACTERIA SECTOR", kind = "Bacteria" },
+		{ center = Vector3.new(-255, 0, 72), color = Color3.fromRGB(255, 90, 110), label = "VIRUS CHAMBER", kind = "Virus" },
+		{ center = Vector3.new(-85, 0, 72), color = Color3.fromRGB(150, 255, 70), label = "TOXIC FACILITY", kind = "Toxic" },
+		{ center = Vector3.new(85, 0, 72), color = Color3.fromRGB(160, 235, 255), label = "FROST LAB", kind = "Frost" },
+		{ center = Vector3.new(255, 0, 72), color = Color3.fromRGB(255, 120, 60), label = "MAGMA REACTOR", kind = "Magma" },
+		{ center = Vector3.new(425, 0, 72), color = Color3.fromRGB(95, 220, 255), label = "GLITCH CORE", kind = "Glitch" },
+		{ center = Vector3.new(595, 0, 72), color = Color3.fromRGB(255, 90, 90), label = "FINAL CORE", kind = "Final" },
+	}
+	for _, zone in ipairs(zoneDecor) do
+		addLabTank(decorFolder, zone.center + Vector3.new(-38, 0, 0), zone.color, zone.label)
+		addBioBarrel(decorFolder, zone.center + Vector3.new(44, 0, -8), zone.color)
+		addWarningLight(decorFolder, zone.center + Vector3.new(58, 0, 26), zone.color)
+		if zone.kind == "Toxic" or zone.kind == "Bacteria" or zone.kind == "Virus" then
+			addToxicPuddle(decorFolder, zone.center + Vector3.new(0, 0, 28), zone.color)
+		end
+		if zone.kind == "Frost" then
+			addToxicPuddle(decorFolder, zone.center + Vector3.new(0, 0, 28), Color3.fromRGB(205, 245, 255))
+		end
+		if zone.kind == "Magma" then
+			addToxicPuddle(decorFolder, zone.center + Vector3.new(0, 0, 28), Color3.fromRGB(255, 85, 35))
+		end
+		if zone.kind == "Glitch" then
+			for i, offset in ipairs({ -16, -4, 12, 26 }) do
+				local pixel = makeRoomPart(decorFolder, "FloatingGlitchPixel" .. tostring(i), Vector3.new(5, 5, 0.8), zone.center + Vector3.new(offset, 15 + i * 2, 38), zone.color, Enum.Material.Neon)
+				pixel.CanCollide = false
+				pixel.Transparency = 0.32
+			end
+		end
+		if zone.kind == "Final" then
+			addCartoonVirus(decorFolder, zone.center + Vector3.new(0, 18, 38), Color3.fromRGB(255, 90, 110), 9)
+		end
+	end
+end
+
 function WorldBuilder.build()
 	applyLighting()
 
 	local mapFolder = makeFolder("Map", Workspace)
 	local wallsFolder = makeFolder("Walls", mapFolder)
 	local wallArtFolder = makeFolder("WallArt", mapFolder)
+	local spawnLabFolder = makeFolder("SpawnLab", mapFolder)
+	local zoneSignsFolder = makeFolder("ZoneSigns", mapFolder)
+	local mapLabDecorFolder = makeFolder("LabDecor", mapFolder)
+	local bossGatesFolder = makeFolder("BossGates", mapFolder)
 	local roomFolder = makeFolder("LabRoom", Workspace)
 	local zonesFolder = makeFolder("Zones", Workspace)
 	local portalsFolder = makeFolder("Portals", Workspace)
@@ -1340,6 +1763,10 @@ function WorldBuilder.build()
 	buildLabRoom(roomFolder, wallsFolder)
 	addWallArt(wallArtFolder)
 	buildEggCatchArea(eggAreaFolder)
+	buildSpawnLab(spawnLabFolder)
+	buildZoneSigns(zoneSignsFolder)
+	buildBossGateDisplays(bossGatesFolder)
+	buildLabDecor(mapLabDecorFolder)
 
 	for _, zone in ipairs(ZoneConfig) do
 		buildZone(zone, zonesFolder)

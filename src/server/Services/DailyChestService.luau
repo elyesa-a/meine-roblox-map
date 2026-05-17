@@ -16,6 +16,8 @@ local DataService
 local StatService
 local PetService
 local AntiExploitService
+local DailyQuestService
+local TitleService
 
 function DailyChestService.canClaim(player: Player): (boolean, number)
 	-- Liefert (canClaim, secondsUntilNext).
@@ -63,6 +65,9 @@ function DailyChestService.claim(player: Player)
 	-- Boost auf DNA (Upgrade + Boost) anwenden -- sauberster Weg waere ueber
 	-- StatService, aber Daily Chest geht ueber Profile-Felder direkt.
 	profile.DnaCoins += reward.dna
+	if DailyQuestService then
+		DailyQuestService.record(player, "CollectDna", reward.dna)
+	end
 	if reward.power > 0 then
 		-- Direkt setzen, da addPower-Multiplikatoren hier nicht erwuenscht sind
 		-- (Chest-Belohnung soll fix bleiben).
@@ -71,6 +76,9 @@ function DailyChestService.claim(player: Player)
 
 	profile.DailyChest.LastClaim = os.time()
 	profile.DailyChest.Streak = nextStreak
+	if TitleService then
+		TitleService.evaluatePlayer(player)
+	end
 
 	-- Streak-7 Bonus: ein Random-Pet.
 	if reward.bonusText and PetService then
@@ -98,6 +106,8 @@ function DailyChestService.start(deps)
 	StatService = deps.StatService
 	PetService = deps.PetService
 	AntiExploitService = deps.AntiExploitService
+	DailyQuestService = deps.DailyQuestService
+	TitleService = deps.TitleService
 
 	AntiExploitService.safeBind(RequestClaimDailyChest, 2, function(player)
 		DailyChestService.claim(player)

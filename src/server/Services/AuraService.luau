@@ -21,6 +21,8 @@ local AuraService = {}
 local DataService
 local StatService
 local AntiExploitService
+local DailyQuestService
+local TitleService
 
 local AURA_EFFECTS_FOLDER_NAME = "AuraEffects"
 local ACTIVE_AURA_NAME = "ActiveAuraEffect"
@@ -408,6 +410,9 @@ function AuraService.buyAura(player: Player, auraId: string)
 	profile.DnaCoins -= def.priceDna
 	profile.Auras[auraId] = true
 	ShowPopup:FireClient(player, string.format("%s bought!", def.displayName))
+	if TitleService then
+		TitleService.evaluatePlayer(player)
+	end
 	StatService.broadcastProfile(player)
 	StatService.playSound(player, "Purchase")
 end
@@ -436,6 +441,12 @@ function AuraService.equipAura(player: Player, auraId: string?)
 	end
 	profile.EquippedAura = auraId
 	applyVFX(player, auraId)
+	if DailyQuestService then
+		DailyQuestService.record(player, "EquipAura", 1)
+	end
+	if TitleService then
+		TitleService.evaluatePlayer(player)
+	end
 	ShowPopup:FireClient(player, string.format("%s equipped!", def.displayName))
 	StatService.broadcastProfile(player)
 end
@@ -465,6 +476,8 @@ function AuraService.start(deps)
 	DataService = deps.DataService
 	StatService = deps.StatService
 	AntiExploitService = deps.AntiExploitService
+	DailyQuestService = deps.DailyQuestService
+	TitleService = deps.TitleService
 	buildAuraEffectTemplates()
 
 	AntiExploitService.safeBind(RequestBuyAura, 5, function(player, auraId)

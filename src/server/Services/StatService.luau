@@ -23,6 +23,8 @@ local PetService -- optional, gesetzt in start()
 local AuraService -- optional, gesetzt in start()
 local UpgradeService -- optional, gesetzt in start()
 local BoostService -- optional, gesetzt in start()
+local TitleService -- optional, gesetzt in start()
+local DailyQuestService -- optional, gesetzt in start()
 
 local StatService = {}
 
@@ -50,7 +52,8 @@ function StatService.computeMultiplier(player: Player): number
 	local auraMult = if AuraService then AuraService.getMultiplier(player) else 1
 	local upgradeMult = if UpgradeService then UpgradeService.getMultiplier(player, "PowerBoost") else 1
 	local boostMult = if BoostService then BoostService.getMultiplier(player, "Power") else 1
-	return rebirthMult * petMult * auraMult * zoneMult * boostMult * upgradeMult
+	local titleMult = if TitleService then TitleService.getBonusMultiplier(player, "Power") else 1
+	return rebirthMult * petMult * auraMult * zoneMult * boostMult * upgradeMult * titleMult
 end
 
 -- Sendet das aktuelle Profil-Snapshot an den Client (max 1x/100ms gedrosselt).
@@ -73,6 +76,7 @@ local function sendUpdate(player: Player)
 	UpdateClientData:FireClient(player, {
 		Power = profile.Power,
 		Rebirths = profile.Rebirths,
+		RebirthShards = profile.RebirthShards,
 		DnaCoins = profile.DnaCoins,
 		Level = profile.Level,
 		LevelCost = LevelConfig.getCost(profile.Level),
@@ -90,7 +94,14 @@ local function sendUpdate(player: Player)
 		Upgrades = profile.Upgrades,
 		ActiveBoosts = profile.ActiveBoosts,
 		DailyChest = profile.DailyChest,
+		DailyQuests = profile.DailyQuests,
 		Spin = profile.Spin,
+		Titles = profile.Titles,
+		EquippedTitle = profile.EquippedTitle,
+		TitleStats = profile.TitleStats,
+		TitlePowerMultiplier = if TitleService then TitleService.getBonusMultiplier(player, "Power") else 1,
+		TitleDnaMultiplier = if TitleService then TitleService.getBonusMultiplier(player, "Dna") else 1,
+		TitleLuckMultiplier = if TitleService then TitleService.getBonusMultiplier(player, "Luck") else 1,
 		ServerTime = os.time(),
 		TotalMultiplier = StatService.computeMultiplier(player),
 	})
@@ -157,6 +168,12 @@ function StatService.addPower(player: Player, baseAmount: number)
 	profile.Power = math.floor(profile.Power + total)
 	local levelBefore = profile.Level
 	checkLevelUp(profile)
+	if DailyQuestService then
+		DailyQuestService.recordSet(player, "ReachPower", profile.Power)
+	end
+	if TitleService then
+		TitleService.evaluatePlayer(player)
+	end
 	if profile.Level > levelBefore then
 		PlaySound:FireClient(player, "LevelUp")
 	end
@@ -169,12 +186,16 @@ function StatService.start(deps: {
 	AuraService: any?,
 	UpgradeService: any?,
 	BoostService: any?,
+	TitleService: any?,
+	DailyQuestService: any?,
 })
 	DataService = deps.DataService
 	PetService = deps.PetService
 	AuraService = deps.AuraService
 	UpgradeService = deps.UpgradeService
 	BoostService = deps.BoostService
+	TitleService = deps.TitleService
+	DailyQuestService = deps.DailyQuestService
 
 	-- Beim Beitritt: nach kurzer Wartezeit Initial-Profil schicken.
 	-- (Profil-Load passiert asynchron im DataService.)

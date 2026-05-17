@@ -22,6 +22,8 @@ local DataService
 local StatService
 local AntiExploitService
 local UpgradeService
+local DailyQuestService
+local TitleService
 
 local trainingPulseCounter: { [Player]: number } = {}
 
@@ -75,6 +77,12 @@ local function tick()
 		local zone = getActiveZone(hrp.Position)
 		if zone and profile.Rebirths >= zone.requiredRebirth then
 			StatService.setZoneMultiplier(player, zone.zoneMultiplier)
+			if TitleService then
+				TitleService.setZoneReached(player, zone.id)
+			end
+			if DailyQuestService then
+				DailyQuestService.record(player, "ReachZone", 1, zone.id)
+			end
 		else
 			StatService.setZoneMultiplier(player, 1)
 		end
@@ -93,6 +101,12 @@ local function tick()
 						then UpgradeService.getMultiplier(player, "TrainingSpeed")
 						else 1
 					StatService.addPower(player, rate * speedMult)
+					if DailyQuestService then
+						DailyQuestService.record(player, "Train", 1)
+					end
+					if TitleService then
+						TitleService.addStat(player, "TrainTicks", 1)
+					end
 					-- VFX-Pulse alle 3 Ticks, sofern VFX nicht im Setting deaktiviert.
 					local counter = (trainingPulseCounter[player] or 0) + 1
 					trainingPulseCounter[player] = counter
@@ -111,6 +125,8 @@ function TrainingZoneService.start(deps)
 	StatService = deps.StatService
 	AntiExploitService = deps.AntiExploitService
 	UpgradeService = deps.UpgradeService
+	DailyQuestService = deps.DailyQuestService
+	TitleService = deps.TitleService
 
 	game:GetService("Players").PlayerRemoving:Connect(function(player)
 		trainingPulseCounter[player] = nil
