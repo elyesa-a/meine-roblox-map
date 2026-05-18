@@ -41,6 +41,8 @@ local LAB_WHITE = Color3.fromRGB(208, 214, 218)
 local LAB_PANEL = Color3.fromRGB(190, 198, 202)
 local LAB_TRIM = Color3.fromRGB(150, 160, 166)
 local LAB_DARK = Color3.fromRGB(26, 32, 40)
+local LAB_CYAN = Color3.fromRGB(120, 245, 255)
+local LAB_GREEN = Color3.fromRGB(95, 255, 150)
 local ACCESS_UNLOCKED = Color3.fromRGB(80, 255, 140)
 local ACCESS_UNLOCKED_SOFT = Color3.fromRGB(170, 255, 205)
 local ACCESS_LOCKED = Color3.fromRGB(255, 85, 85)
@@ -125,6 +127,51 @@ local function markAreaVisual(part: BasePart, areaId: string?)
 	end
 end
 
+local function addLabTrim(parent, centerX, lengthX)
+	for _, z in ipairs({ CORRIDOR_MIN_Z + 0.2, CORRIDOR_MAX_Z - 0.2 }) do
+		local panelZ = if z < FLOOR_CENTER_Z then CORRIDOR_MIN_Z + 0.35 else CORRIDOR_MAX_Z - 0.35
+		for i = 0, 3 do
+			local panelWidth = lengthX / 4 - 8
+			local px = centerX - lengthX / 2 + lengthX * (i + 0.5) / 4
+			local panelColor = if i % 2 == 0 then Color3.fromRGB(218, 224, 226) else LAB_WHITE
+			makePart(parent, "WallLabPanel", Vector3.new(panelWidth, 15, 0.35), Vector3.new(px, FLOOR_Y + 14.5, panelZ), panelColor, Enum.Material.SmoothPlastic, false)
+		end
+		for _, y in ipairs({ FLOOR_Y + 4, FLOOR_Y + L.WallHeight - 8 }) do
+			makePart(parent, "WallBlackTrim", Vector3.new(lengthX, 1.1, 0.35), Vector3.new(centerX, y, z), LAB_DARK, Enum.Material.SmoothPlastic, false)
+		end
+		neonStrip(parent, Vector3.new(lengthX - 16, 0.35, 0.35), Vector3.new(centerX, FLOOR_Y + L.WallHeight - 13, panelZ), LAB_CYAN, 0.25)
+		for i = 1, 3 do
+			local px = centerX - lengthX / 2 + lengthX * i / 4
+			makePart(parent, "WallPanelSeam", Vector3.new(0.75, L.WallHeight - 8, 0.35), Vector3.new(px, FLOOR_Y + L.WallHeight / 2, z), LAB_TRIM, Enum.Material.Metal, false)
+		end
+	end
+	for _, z in ipairs({ CORRIDOR_MIN_Z + 4, CORRIDOR_MAX_Z - 4 }) do
+		makePart(parent, "CeilingEdgeTrim", Vector3.new(lengthX, 0.7, 0.7), Vector3.new(centerX, FLOOR_Y + L.WallHeight - 0.65, z), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	end
+end
+
+local function addFloorGuides(parent, centerX, lengthX, color, areaId: string?)
+	for _, z in ipairs({ -48, 48 }) do
+		makePart(parent, "FloorLaneBase", Vector3.new(lengthX - 28, 0.08, 2.8), Vector3.new(centerX, FLOOR_Y + 0.07, z), LAB_DARK, Enum.Material.SmoothPlastic, false)
+		markAreaVisual(neonStrip(parent, Vector3.new(lengthX - 32, 0.14, 0.65), Vector3.new(centerX, FLOOR_Y + 0.16, z), color, 0.18), areaId)
+	end
+end
+
+local function addCeilingLabLights(parent, centerX, lengthX, color)
+	for _, z in ipairs({ CORRIDOR_MIN_Z + 36, FLOOR_CENTER_Z, CORRIDOR_MAX_Z - 36 }) do
+		makePart(parent, "RoofDarkBeam", Vector3.new(lengthX, 0.9, 2.6), Vector3.new(centerX, FLOOR_Y + L.WallHeight - 2.2, z), LAB_DARK, Enum.Material.Metal, false)
+		neonStrip(parent, Vector3.new(lengthX - 24, 0.35, 0.55), Vector3.new(centerX, FLOOR_Y + L.WallHeight - 2.85, z), color, 0.12)
+	end
+	for i = 1, 4 do
+		local px = centerX - lengthX / 2 + lengthX * i / 5
+		makePart(parent, "RoofCrossTruss", Vector3.new(3.5, 1.4, FLOOR_SIZE_Z - 10), Vector3.new(px, FLOOR_Y + L.WallHeight - 1.7, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.Metal, false)
+		for _, z in ipairs({ CORRIDOR_MIN_Z + 34, FLOOR_CENTER_Z, CORRIDOR_MAX_Z - 34 }) do
+			makePart(parent, "RoofLightPanel", Vector3.new(24, 0.28, 10), Vector3.new(px, FLOOR_Y + L.WallHeight - 2.95, z), LAB_CYAN, Enum.Material.Neon, false).Transparency = 0.08
+			makePart(parent, "RoofPanelFrame", Vector3.new(29, 0.22, 14), Vector3.new(px, FLOOR_Y + L.WallHeight - 2.75, z), LAB_DARK, Enum.Material.SmoothPlastic, false)
+		end
+	end
+end
+
 -- ---- Boden, Waende, Decken-Akzent pro Segment ----------------------------
 
 local function buildShellSegment(parent, centerX, lengthX, primary, secondary, withCorridorLines, areaId: string?, startsLocked: boolean?)
@@ -201,6 +248,7 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 		Enum.Material.SmoothPlastic,
 		true
 	)
+	addLabTrim(parent, centerX, lengthX)
 
 	-- Dezente Neon-Leitlinien an den Waenden (Orientierung, keine Disco).
 	markAreaVisual(neonStrip(parent, Vector3.new(lengthX, 0.5, 0.5), Vector3.new(centerX, FLOOR_Y + 6, CORRIDOR_MIN_Z - 0.1), visualPrimary, 0.45), areaId)
@@ -209,7 +257,9 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 	-- Boden-Leitlinie entlang des Laufwegs.
 	if withCorridorLines then
 		markAreaVisual(neonStrip(parent, Vector3.new(lengthX, 0.12, 1.4), Vector3.new(centerX, FLOOR_Y + 0.06, 0), visualPrimary, 0.25), areaId)
+		addFloorGuides(parent, centerX, lengthX, visualPrimary, areaId)
 	end
+	addCeilingLabLights(parent, centerX, lengthX, tint(visualPrimary, LAB_CYAN, 0.55))
 
 	-- Decken-Lichtbalken.
 	for i = 0, 2 do
@@ -473,13 +523,31 @@ local function buildTrainingArea(parent, bedsFolder, gatesFolder, area, x)
 
 	-- Drei klare Trainings-Pads + Beschriftung.
 	local padInfos = {
-		{ name = "POWER TRAINING", dz = -28, c = Color3.fromRGB(255, 120, 120) },
-		{ name = "DNA TRAINING", dz = 0, c = Color3.fromRGB(120, 235, 160) },
-		{ name = "LUCK / BOOST", dz = 30, c = Color3.fromRGB(255, 215, 110) },
+		{ name = "POWER TRAINING", short = "PWR", dz = -28, c = Color3.fromRGB(255, 120, 120) },
+		{ name = "DNA TRAINING", short = "DNA", dz = 0, c = Color3.fromRGB(120, 235, 160) },
+		{ name = "LUCK / BOOST", short = "BOOST", dz = 30, c = Color3.fromRGB(255, 215, 110) },
 	}
 	for _, info in ipairs(padInfos) do
 		local tp = makePart(model, "TrainPad", Vector3.new(16, 0.5, 16), Vector3.new(x, FLOOR_Y + 0.75, FLOOR_CENTER_Z + info.dz), info.c, Enum.Material.Neon, false)
 		tp.Transparency = 0.45
+		local stationBase = makePart(model, "TrainStationBase", Vector3.new(24, 0.25, 22), tp.Position + Vector3.new(0, -0.18, 0), LAB_DARK, Enum.Material.Metal, false)
+		stationBase.Transparency = 0.08
+		for _, edgeZ in ipairs({ -10.8, 10.8 }) do
+			neonStrip(model, Vector3.new(19, 0.16, 0.36), tp.Position + Vector3.new(0, 0.12, edgeZ), info.c, 0.16)
+		end
+		for _, edgeX in ipairs({ -11.8, 11.8 }) do
+			neonStrip(model, Vector3.new(0.36, 0.16, 18), tp.Position + Vector3.new(edgeX, 0.12, 0), info.c, 0.22)
+		end
+		for _, edgeX in ipairs({ -9, 9 }) do
+			local scannerPost = makePart(model, "TrainScannerPost", Vector3.new(0.7, 6.8, 0.7), tp.Position + Vector3.new(edgeX, 3.5, -9.4), LAB_DARK, Enum.Material.Metal, false)
+			neonStrip(model, Vector3.new(0.35, 4.7, 0.28), scannerPost.Position + Vector3.new(0, 0.2, -0.42), info.c, 0.22)
+		end
+		local scannerBeam = makePart(model, "TrainScannerBeam", Vector3.new(19, 0.7, 0.8), tp.Position + Vector3.new(0, 6.9, -9.4), LAB_DARK, Enum.Material.Metal, false)
+		neonStrip(model, Vector3.new(14, 0.22, 0.36), scannerBeam.Position + Vector3.new(0, 0.45, -0.38), info.c, 0.18)
+		local terminal = makePart(model, "TrainTerminal", Vector3.new(5.6, 3.2, 3.8), tp.Position + Vector3.new(23, 1.65, 0), LAB_DARK, Enum.Material.Metal, false)
+		local screen = makePart(model, "TrainTerminalScreen", Vector3.new(0.38, 2.4, 3), terminal.Position + Vector3.new(-2.95, 1.15, 0), info.c, Enum.Material.Neon, false)
+		screen.Transparency = 0.16
+		label(screen, info.short, Color3.fromRGB(255, 255, 255), 32, UDim2.fromOffset(90, 34), Vector3.new(0, 0, 0))
 		local post = makePart(model, "TrainSignPost", Vector3.new(0.6, 6, 0.6), tp.Position + Vector3.new(0, 3, 0), LAB_TRIM, Enum.Material.Metal, false)
 		label(post, info.name, info.c, 40, UDim2.fromOffset(180, 44), Vector3.new(0, 3, 0))
 	end
@@ -586,6 +654,103 @@ local function buildEggStation(parent, areaIndex, stationIndex, eggDef, pos)
 	)
 end
 
+local function buildConsole(parent, name, pos, accent, text)
+	local model = Instance.new("Model")
+	model.Name = name
+	model.Parent = parent
+	local base = makePart(model, "ConsoleBase", Vector3.new(9, 4, 5), pos + Vector3.new(0, 2, 0), LAB_DARK, Enum.Material.Metal, true)
+	makePart(model, "ConsoleTop", Vector3.new(9.5, 0.6, 5.5), pos + Vector3.new(0, 4.3, 0), LAB_TRIM, Enum.Material.Metal, true)
+	local screen = makePart(model, "ConsoleScreen", Vector3.new(6.5, 3.5, 0.45), pos + Vector3.new(0, 6.1, -2.75), accent, Enum.Material.Neon, false)
+	screen.Transparency = 0.18
+	label(screen, text, Color3.fromRGB(255, 255, 255), 35, UDim2.fromOffset(140, 38), Vector3.new(0, 0, 0))
+	neonStrip(model, Vector3.new(6.5, 0.25, 0.35), base.Position + Vector3.new(0, 1.4, -2.75), accent, 0.15)
+end
+
+local function buildTestTubeRack(parent, name, center, accent)
+	local model = Instance.new("Model")
+	model.Name = name
+	model.Parent = parent
+	makePart(model, "TubeRackBase", Vector3.new(20, 1.1, 7), center + Vector3.new(0, 0.55, 0), LAB_DARK, Enum.Material.Metal, true)
+	for i = -2, 2 do
+		local tube = makePart(model, "SampleTube", Vector3.new(2.4, 8, 2.4), center + Vector3.new(i * 3.6, 5, 0), Color3.fromRGB(180, 235, 245), Enum.Material.Glass, false)
+		tube.Shape = Enum.PartType.Cylinder
+		tube.Transparency = 0.45
+		local fluid = makePart(model, "SampleGlow", Vector3.new(1.7, 3.2, 1.7), center + Vector3.new(i * 3.6, 2.9, 0), accent, Enum.Material.Neon, false)
+		fluid.Shape = Enum.PartType.Cylinder
+		fluid.Transparency = 0.2
+	end
+end
+
+local function buildContainmentTube(parent, name, center, accent, text)
+	local model = Instance.new("Model")
+	model.Name = name
+	model.Parent = parent
+	local base = makePart(model, "ContainmentBase", Vector3.new(13, 1.2, 13), center + Vector3.new(0, 0.6, 0), LAB_DARK, Enum.Material.Metal, true)
+	base.Shape = Enum.PartType.Cylinder
+	base.Orientation = Vector3.new(0, 0, 90)
+	local glass = makePart(model, "ContainmentGlass", Vector3.new(9, 18, 9), center + Vector3.new(0, 10, 0), Color3.fromRGB(170, 235, 245), Enum.Material.Glass, false)
+	glass.Shape = Enum.PartType.Cylinder
+	glass.Transparency = 0.55
+	local top = makePart(model, "ContainmentTop", Vector3.new(12, 1.1, 12), center + Vector3.new(0, 19.5, 0), LAB_DARK, Enum.Material.Metal, true)
+	top.Shape = Enum.PartType.Cylinder
+	top.Orientation = Vector3.new(0, 0, 90)
+	for _, ox in ipairs({ -4.8, 4.8 }) do
+		neonStrip(model, Vector3.new(0.4, 16.5, 0.4), center + Vector3.new(ox, 10, 0), accent, 0.2)
+	end
+	local sample = makePart(model, "FloatingSample", Vector3.new(3.5, 3.5, 3.5), center + Vector3.new(0, 10.5, 0), accent, Enum.Material.Neon, false)
+	sample.Shape = Enum.PartType.Ball
+	sample.Transparency = 0.15
+	local sign = makePart(model, "ContainmentSign", Vector3.new(16, 3.4, 0.6), center + Vector3.new(0, 22, -6.8), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	label(sign, text, accent, 45, UDim2.fromOffset(180, 40), Vector3.new(0, 0, 0))
+end
+
+local function buildCrateStack(parent, name, origin, accent)
+	local model = Instance.new("Model")
+	model.Name = name
+	model.Parent = parent
+	local offsets = {
+		Vector3.new(0, 1.5, 0),
+		Vector3.new(6.2, 1.5, 0),
+		Vector3.new(3.1, 4.6, 0),
+		Vector3.new(0, 1.5, 5.8),
+	}
+	for i, off in ipairs(offsets) do
+		local crate = makePart(model, "LabCrate" .. i, Vector3.new(5.6, 3, 5.2), origin + off, LAB_TRIM, Enum.Material.Metal, true)
+		makePart(model, "CrateTrim" .. i, Vector3.new(5.9, 0.35, 5.5), crate.Position + Vector3.new(0, 1.2, 0), LAB_DARK, Enum.Material.SmoothPlastic, false)
+		neonStrip(model, Vector3.new(3.6, 0.25, 0.35), crate.Position + Vector3.new(0, 0.15, -2.75), accent, 0.25)
+	end
+end
+
+local function addSpawnFloorArrows(parent, cx, accent)
+	for i = 0, 4 do
+		local x = cx + 20 + i * 24
+		makePart(parent, "GuideArrowBody", Vector3.new(15, 0.12, 3.6), Vector3.new(x, FLOOR_Y + 0.21, 0), LAB_DARK, Enum.Material.SmoothPlastic, false)
+		local glow = neonStrip(parent, Vector3.new(10, 0.16, 0.8), Vector3.new(x, FLOOR_Y + 0.31, 0), accent, 0.08)
+		glow.Orientation = Vector3.new(0, 0, -20)
+		local tip = makePart(parent, "GuideArrowTip", Vector3.new(5, 0.14, 5), Vector3.new(x + 8, FLOOR_Y + 0.32, 0), accent, Enum.Material.Neon, false)
+		tip.Orientation = Vector3.new(0, 45, 0)
+		tip.Transparency = 0.12
+	end
+end
+
+local function addBackWallLabFeature(parent, cx)
+	local wallX = cx - 147.4
+	for _, z in ipairs({ -54, 0, 54 }) do
+		local panel = makePart(parent, "SpawnFeaturePanel", Vector3.new(0.8, 19, 42), Vector3.new(wallX, FLOOR_Y + 15.5, z), Color3.fromRGB(225, 230, 232), Enum.Material.SmoothPlastic, false)
+		makePart(parent, "FeaturePanelFrame", Vector3.new(1, 20.5, 44), panel.Position + Vector3.new(-0.15, 0, 0), LAB_DARK, Enum.Material.SmoothPlastic, false).Transparency = 0.05
+		neonStrip(parent, Vector3.new(0.55, 0.45, 32), panel.Position + Vector3.new(-0.55, 7.3, 0), LAB_CYAN, 0.15)
+	end
+	local banner = makePart(parent, "SpawnWallBanner", Vector3.new(1, 6, 86), Vector3.new(wallX - 0.4, FLOOR_Y + 27.5, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	label(banner, "VIRUS SIMULATOR LAB", Color3.fromRGB(170, 255, 225), 80, UDim2.fromOffset(380, 64), Vector3.new(0, 0, 0))
+end
+
+local function addCeilingConduits(parent, cx)
+	for _, z in ipairs({ -66, -18, 30, 78 }) do
+		makePart(parent, "CeilingPipe", Vector3.new(230, 1.1, 1.1), Vector3.new(cx - 24, FLOOR_Y + L.WallHeight - 5.4, z), LAB_DARK, Enum.Material.Metal, false)
+		neonStrip(parent, Vector3.new(212, 0.25, 0.25), Vector3.new(cx - 18, FLOOR_Y + L.WallHeight - 4.65, z), LAB_GREEN, 0.35)
+	end
+end
+
 -- ---- Spawn Lab ------------------------------------------------------------
 
 local function buildSpawnLab(parent, bedsFolder)
@@ -598,6 +763,9 @@ local function buildSpawnLab(parent, bedsFolder)
 	local floorLen = math.abs(0 - (cx - 150)) -- (cx-150) .. 0
 	local floorCx = (cx - 150 + 0) / 2
 	buildShellSegment(model, floorCx, floorLen, Color3.fromRGB(95, 230, 200), Color3.fromRGB(150, 255, 220), true)
+	addBackWallLabFeature(model, cx)
+	addCeilingConduits(model, cx)
+	addSpawnFloorArrows(model, cx, LAB_GREEN)
 
 	-- Rueckwand hinter dem Spawn.
 	makePart(model, "SpawnBackWall", Vector3.new(4, L.WallHeight, FLOOR_SIZE_Z), Vector3.new(cx - 150, FLOOR_Y + L.WallHeight / 2, FLOOR_CENTER_Z), LAB_WHITE, Enum.Material.SmoothPlastic, true)
@@ -618,14 +786,62 @@ local function buildSpawnLab(parent, bedsFolder)
 	spawnLoc.Parent = model
 
 	-- Zentraler DNA-Core (Deko).
+	local reactorPad = makePart(model, "ReactorFloorPad", Vector3.new(30, 0.35, 30), Vector3.new(cx, FLOOR_Y + 0.18, -45), LAB_DARK, Enum.Material.Metal, true)
+	reactorPad.Shape = Enum.PartType.Cylinder
+	reactorPad.Orientation = Vector3.new(0, 0, 90)
+	local reactorGlow = makePart(model, "ReactorGlowRing", Vector3.new(31, 0.18, 31), Vector3.new(cx, FLOOR_Y + 0.48, -45), LAB_CYAN, Enum.Material.Neon, false)
+	reactorGlow.Shape = Enum.PartType.Cylinder
+	reactorGlow.Orientation = Vector3.new(0, 0, 90)
+	reactorGlow.Transparency = 0.45
 	local coreBase = makePart(model, "DNACoreBase", Vector3.new(18, 1.4, 18), Vector3.new(cx, FLOOR_Y + 0.7, -45), LAB_PANEL, Enum.Material.Metal, true)
 	coreBase.Shape = Enum.PartType.Cylinder
 	coreBase.Orientation = Vector3.new(0, 0, 90)
+	local coreBaseTrim = makePart(model, "DNACoreBaseTrim", Vector3.new(19.2, 0.45, 19.2), Vector3.new(cx, FLOOR_Y + 1.55, -45), LAB_DARK, Enum.Material.Metal, true)
+	coreBaseTrim.Shape = Enum.PartType.Cylinder
+	coreBaseTrim.Orientation = Vector3.new(0, 0, 90)
 	local glass = makePart(model, "DNACoreGlass", Vector3.new(10, 16, 10), Vector3.new(cx, FLOOR_Y + 9, -45), Color3.fromRGB(120, 255, 200), Enum.Material.Glass, false)
 	glass.Shape = Enum.PartType.Cylinder
 	glass.Transparency = 0.6
+	local coreTop = makePart(model, "DNACoreTopCap", Vector3.new(12, 1.2, 12), Vector3.new(cx, FLOOR_Y + 17.4, -45), LAB_DARK, Enum.Material.Metal, true)
+	coreTop.Shape = Enum.PartType.Cylinder
+	coreTop.Orientation = Vector3.new(0, 0, 90)
+	neonStrip(model, Vector3.new(7.5, 0.35, 0.35), Vector3.new(cx, FLOOR_Y + 17.95, -45), Color3.fromRGB(120, 245, 255), 0.15)
+	for _, ox in ipairs({ -2.2, 2.2 }) do
+		neonStrip(model, Vector3.new(0.35, 13.5, 0.35), Vector3.new(cx + ox, FLOOR_Y + 9, -45), Color3.fromRGB(120, 245, 255), 0.25)
+	end
+	for i = 0, 12 do
+		local angle = i * math.pi / 3
+		local y = FLOOR_Y + 3 + i * 1.05
+		local x1 = cx + math.cos(angle) * 3.2
+		local z1 = -45 + math.sin(angle) * 3.2
+		local x2 = cx - math.cos(angle) * 3.2
+		local z2 = -45 - math.sin(angle) * 3.2
+		local n1 = makePart(model, "DNAHelixNode", Vector3.new(0.9, 0.9, 0.9), Vector3.new(x1, y, z1), LAB_CYAN, Enum.Material.Neon, false)
+		n1.Shape = Enum.PartType.Ball
+		local n2 = makePart(model, "DNAHelixNode", Vector3.new(0.9, 0.9, 0.9), Vector3.new(x2, y, z2), LAB_GREEN, Enum.Material.Neon, false)
+		n2.Shape = Enum.PartType.Ball
+		local rung = makePart(model, "DNAHelixRung", Vector3.new(6.4, 0.18, 0.18), Vector3.new(cx, y, -45), Color3.fromRGB(210, 255, 250), Enum.Material.Neon, false)
+		rung.Orientation = Vector3.new(0, math.deg(-angle), 0)
+		rung.Transparency = 0.15
+	end
 	local core = makePart(model, "DNACore", Vector3.new(5, 5, 5), Vector3.new(cx, FLOOR_Y + 9, -45), Color3.fromRGB(90, 255, 170), Enum.Material.Neon, false)
 	core.Shape = Enum.PartType.Ball
+	local coreLight = Instance.new("PointLight")
+	coreLight.Brightness = 2.1
+	coreLight.Range = 34
+	coreLight.Color = LAB_CYAN
+	coreLight.Parent = core
+	local particles = Instance.new("ParticleEmitter")
+	particles.Name = "ReactorSparkles"
+	particles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	particles.Color = ColorSequence.new(LAB_CYAN, LAB_GREEN)
+	particles.LightEmission = 0.45
+	particles.Rate = 5
+	particles.Lifetime = NumberRange.new(1.1, 1.8)
+	particles.Speed = NumberRange.new(0.8, 1.6)
+	particles.SpreadAngle = Vector2.new(35, 35)
+	particles.Size = NumberSequence.new(0.35, 0.05)
+	particles.Parent = core
 	label(core, "DNA CORE", Color3.fromRGB(255, 255, 255), 50, UDim2.fromOffset(180, 44), Vector3.new(0, 6, 0))
 
 	-- Einfache Glas-Zellen als Labor-Deko.
@@ -634,7 +850,16 @@ local function buildSpawnLab(parent, bedsFolder)
 		local cell = makePart(model, "GlassCell" .. i, Vector3.new(10, 14, 10), Vector3.new(gx, FLOOR_Y + 7, dz * 60), Color3.fromRGB(180, 220, 230), Enum.Material.Glass, false)
 		cell.Transparency = 0.55
 		makePart(model, "CellBase" .. i, Vector3.new(11, 1, 11), Vector3.new(gx, FLOOR_Y + 0.5, dz * 60), LAB_TRIM, Enum.Material.Metal, true)
+		local cellSign = makePart(model, "CellSign" .. i, Vector3.new(16, 4, 0.7), Vector3.new(gx, FLOOR_Y + 15.5, dz * 60), LAB_DARK, Enum.Material.SmoothPlastic, false)
+		label(cellSign, if i == 1 then "RESEARCH" else "VIRUS STORAGE", Color3.fromRGB(160, 245, 255), 45, UDim2.fromOffset(180, 44), Vector3.new(0, 0, 0))
 	end
+	buildContainmentTube(model, "ContainmentTubeA", Vector3.new(cx - 108, FLOOR_Y, -54), LAB_CYAN, "SAMPLE A")
+	buildContainmentTube(model, "ContainmentTubeB", Vector3.new(cx - 108, FLOOR_Y, 20), LAB_GREEN, "MUTATION")
+	buildConsole(model, "MutationConsole", Vector3.new(cx + 34, FLOOR_Y, -48), LAB_CYAN, "CORE")
+	buildConsole(model, "StorageConsole", Vector3.new(cx - 112, FLOOR_Y, 92), LAB_GREEN, "SCAN")
+	buildTestTubeRack(model, "SampleTubeRack", Vector3.new(cx + 42, FLOOR_Y, 96), LAB_GREEN)
+	buildCrateStack(model, "LabStorageCratesA", Vector3.new(cx + 88, FLOOR_Y, -76), LAB_CYAN)
+	buildCrateStack(model, "LabStorageCratesB", Vector3.new(cx + 92, FLOOR_Y, 88), LAB_GREEN)
 
 	-- Dediziertes Pet-Egg (bestehendes System; Main verdrahtet "OpenEgg").
 	local eggBase = makePart(model, "PetEggBase", Vector3.new(12, 1.4, 12), Vector3.new(cx + 70, FLOOR_Y + 0.7, 55), LAB_DARK, Enum.Material.Metal, true)
@@ -653,6 +878,9 @@ local function buildSpawnLab(parent, bedsFolder)
 	-- Wegweiser Richtung Area 1.
 	local arrowSign = makePart(model, "StartArrow", Vector3.new(20, 6, 0.7), Vector3.new(cx + 110, FLOOR_Y + 6, 0), LAB_DARK, Enum.Material.SmoothPlastic, false)
 	label(arrowSign, "→ TRAINING & AREA 1", Color3.fromRGB(150, 255, 200), 60, UDim2.fromOffset(240, 56), Vector3.new(0, 0, 0))
+
+	local headerSign = makePart(model, "SpawnLabHeader", Vector3.new(0.7, 5, 38), Vector3.new(cx - 148, FLOOR_Y + L.WallHeight - 7, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	label(headerSign, "MUTATION LAB", Color3.fromRGB(150, 255, 220), 75, UDim2.fromOffset(300, 54), Vector3.new(0, 0, 0))
 end
 
 -- ---- Lighting -------------------------------------------------------------
