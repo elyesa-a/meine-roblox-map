@@ -108,6 +108,12 @@ local function makePart(parent, name, size, pos, color, material, canCollide)
 	p.Name = name
 	p.Anchored = true
 	p.CanCollide = canCollide == true
+	-- Deko (nicht-kollidierend) wird von Kamera-Popper UND Maus-/Raycasts
+	-- ignoriert -> die Third-Person-Kamera "klemmt" nicht mehr an dunklen
+	-- Panels/Schildern fest (kein schwarzes Sicht-Feld mehr). Echte weisse
+	-- Kollisionswaende blockieren die Kamera weiterhin korrekt. Klickbare
+	-- Parts (EnemyCore/Egg) setzen CanQuery danach wieder auf true.
+	p.CanQuery = canCollide == true
 	p.Size = size
 	p.Position = pos
 	p.Color = color
@@ -348,6 +354,7 @@ local function buildEnemyModel(parent, def, basePos, primary, secondary)
 	end
 
 	local root = makePart(model, "EnemyCore", rootSize, corePos, color, Enum.Material.SmoothPlastic, false)
+	root.CanQuery = true -- anklickbar (AttackClick ClickDetector braucht Maus-Raycast)
 	root.Transparency = 0.05
 	if shape == "Blob" or shape == "Slime" or shape == "Spiky" or shape == "Boss" then
 		root.Shape = Enum.PartType.Ball
@@ -1202,6 +1209,7 @@ local function buildEggStation(parent, areaIndex, stationIndex, eggDef, pos)
 
 	-- Ei / Kapsel in der Mitte (Klick-Ziel; Vertrag unveraendert).
 	local capsule = makePart(model, "EggCapsule", Vector3.new(5, 6.5, 5), pos + Vector3.new(0, 4.5, 0), accent, Enum.Material.SmoothPlastic, false)
+	capsule.CanQuery = true -- anklickbar (OpenEgg ClickDetector)
 	capsule.Shape = Enum.PartType.Ball
 	capsule.Transparency = 0.1
 	local glow = Instance.new("PointLight")
@@ -1505,6 +1513,7 @@ local function buildSpawnLab(parent, bedsFolder)
 	eggBase.Shape = Enum.PartType.Cylinder
 	eggBase.Orientation = Vector3.new(0, 0, 90)
 	local egg = makePart(model, "PetEgg", Vector3.new(7, 9, 7), Vector3.new(cx + 70, FLOOR_Y + 6, 55), Color3.fromRGB(180, 230, 255), Enum.Material.SmoothPlastic, false)
+	egg.CanQuery = true -- anklickbar (OpenEgg ClickDetector; Main verdrahtet)
 	egg.Shape = Enum.PartType.Ball
 	egg.Transparency = 0.05
 	local cd = Instance.new("ClickDetector")
