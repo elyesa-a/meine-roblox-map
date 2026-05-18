@@ -61,6 +61,29 @@ local BACTERIA_CEILING_LIFT = 10
 local BACTERIA_LEFT_LIMIT_Z = -38
 local BACTERIA_RIGHT_LIMIT_Z = 38
 
+-- ---- Pro-Area-Themen ------------------------------------------------------
+-- Jede Area bekommt eine sichtbar eigene Identitaet (Prop-Set, Akzentfarbe,
+-- Kontaminations-Staerke, Wandtext, Seiten-Objekt) -- nicht nur Farbwechsel.
+-- contam: 0..1 organische Verschmutzung; clean->gefaehrlich pro Tiefe.
+-- sideProp: Bestimmt das wiederkehrende Seiten-Hero-Objekt der Halle.
+-- ceilingTone: Akzent fuer Decken-Lichtfilter.
+local AreaThemes = {
+	[1] = { id = "Bacteria", accent = Color3.fromRGB(104, 168, 116), contam = 0.14, sideProp = "BioTank", wallText = "BACTERIA LAB", hazard = "BIOHAZARD LEVEL B" },
+	[2] = { id = "Infected", accent = Color3.fromRGB(120, 178, 184), contam = 0.30, sideProp = "ObsGlass", wallText = "INFECTED CELLS", hazard = "CONTAINMENT ACTIVE" },
+	[3] = { id = "Mutation", accent = Color3.fromRGB(150, 116, 184), contam = 0.42, sideProp = "MutantTank", wallText = "MUTATION SECTOR", hazard = "UNSTABLE GENOME" },
+	[4] = { id = "Toxic", accent = Color3.fromRGB(168, 162, 86), contam = 0.55, sideProp = "ToxicBarrel", wallText = "TOXIC STORAGE", hazard = "TOXIC HAZARD" },
+	[5] = { id = "Virus", accent = Color3.fromRGB(150, 78, 78), contam = 0.40, sideProp = "QuarantinePod", wallText = "VIRUS CHAMBER", hazard = "QUARANTINE LOCKDOWN" },
+	[6] = { id = "Corrupted", accent = Color3.fromRGB(150, 120, 92), contam = 0.55, sideProp = "BrokenServo", wallText = "CORRUPTED LAB", hazard = "SYSTEM FAILURE" },
+	[7] = { id = "Reactor", accent = Color3.fromRGB(120, 176, 120), contam = 0.48, sideProp = "ReactorCore", wallText = "BIOHAZARD CORE", hazard = "HAZARD LEVEL A" },
+	[8] = { id = "DarkMut", accent = Color3.fromRGB(118, 86, 158), contam = 0.70, sideProp = "ParasiteGrowth", wallText = "DARK MUTATION", hazard = "DO NOT ENTER" },
+	[9] = { id = "Omega", accent = Color3.fromRGB(118, 126, 132), contam = 0.22, sideProp = "ControlBank", wallText = "OMEGA VIRUS LAB", hazard = "TOP SECRET" },
+	[10] = { id = "Final", accent = Color3.fromRGB(168, 74, 92), contam = 0.60, sideProp = "FinalReactor", wallText = "FINAL CONTAINMENT", hazard = "CRITICAL CONTAINMENT" },
+}
+
+local function themeFor(index: number)
+	return AreaThemes[index] or AreaThemes[1]
+end
+
 -- ---- kleine Helfer --------------------------------------------------------
 
 local function makeFolder(name: string, parent: Instance): Folder
@@ -95,10 +118,13 @@ local function makePart(parent, name, size, pos, color, material, canCollide)
 	return p
 end
 
+-- Akzent-Streifen: bewusst MATT (kein echtes Neon). Stark zum Labor-Grau
+-- hin entsaettigt + hohe Mindest-Transparenz, damit nie ein Disco-Glow
+-- entsteht -- nur dezente technische Linien.
 local function neonStrip(parent, size, pos, color, transparency)
-	local toned = color:Lerp(Color3.fromRGB(122, 132, 124), 0.45)
+	local toned = color:Lerp(Color3.fromRGB(118, 126, 124), 0.62)
 	local p = makePart(parent, "InsetAccent", size, pos, toned, Enum.Material.SmoothPlastic, false)
-	p.Transparency = math.max(transparency or 0.45, 0.4)
+	p.Transparency = math.max(transparency or 0.55, 0.55)
 	return p
 end
 
@@ -168,14 +194,13 @@ end
 local function addCeilingLabLights(parent, centerX, lengthX, color)
 	for _, z in ipairs({ CORRIDOR_MIN_Z + 36, FLOOR_CENTER_Z, CORRIDOR_MAX_Z - 36 }) do
 		makePart(parent, "RoofDarkBeam", Vector3.new(lengthX, 0.9, 2.6), Vector3.new(centerX, FLOOR_Y + L.WallHeight - 2.2, z), LAB_DARK, Enum.Material.Metal, false)
-		neonStrip(parent, Vector3.new(lengthX - 24, 0.22, 0.5), Vector3.new(centerX, FLOOR_Y + L.WallHeight - 2.85, z), color, 0.72)
 	end
 	for i = 1, 4 do
 		local px = centerX - lengthX / 2 + lengthX * i / 5
 		makePart(parent, "RoofCrossTruss", Vector3.new(3.5, 1.4, FLOOR_SIZE_Z - 10), Vector3.new(px, FLOOR_Y + L.WallHeight - 1.7, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.Metal, false)
 		for _, z in ipairs({ CORRIDOR_MIN_Z + 34, FLOOR_CENTER_Z, CORRIDOR_MAX_Z - 34 }) do
-			local lightPanel = makePart(parent, "RoofLightPanel", Vector3.new(24, 0.28, 10), Vector3.new(px, FLOOR_Y + L.WallHeight - 2.95, z), Color3.fromRGB(222, 232, 230), Enum.Material.Neon, false)
-			lightPanel.Transparency = 0.18
+			local lightPanel = makePart(parent, "RoofLightPanel", Vector3.new(24, 0.28, 10), Vector3.new(px, FLOOR_Y + L.WallHeight - 2.95, z), Color3.fromRGB(228, 234, 232), Enum.Material.Neon, false)
+			lightPanel.Transparency = 0.34
 			makePart(parent, "RoofPanelFrame", Vector3.new(29, 0.22, 14), Vector3.new(px, FLOOR_Y + L.WallHeight - 2.75, z), LAB_DARK, Enum.Material.SmoothPlastic, false)
 			makePart(parent, "RoofVentGrille", Vector3.new(17, 0.2, 3.2), Vector3.new(px, FLOOR_Y + L.WallHeight - 2.55, z - 8.5), Color3.fromRGB(74, 80, 82), Enum.Material.Metal, false)
 		end
@@ -525,59 +550,92 @@ end
 
 -- ---- Gegner-Tunnel Struktur ----------------------------------------------
 
+-- Designt die Wand DIREKT um den Mob/die Gegner-Zelle -- fuer ALLE Areas,
+-- mit Thema-Akzent und mit der Tiefe steigender Kontamination. Cell 10
+-- (Boss) bekommt einen klar staerkeren Containment-Look.
 local function addBacteriaCellWallDetails(parent, def, basePos, primary)
-	if def.AreaIndex ~= 1 then
-		return
-	end
-
 	local cell = def.EnemyIndex
+	local theme = themeFor(def.AreaIndex)
+	local accent = theme.accent
+	local contam = theme.contam
+	local isBoss = def.IsBoss == true
 	local x = basePos.X
-	local z = basePos.Z
 	local leftWallZ = BACTERIA_LEFT_LIMIT_Z + 1.9
 	local rightWallZ = BACTERIA_RIGHT_LIMIT_Z - 1.9
-	local panelColor = Color3.fromRGB(30, 35, 36)
+	local panelColor = tint(Color3.fromRGB(30, 35, 36), accent, 0.12)
 	local frameColor = Color3.fromRGB(86, 92, 92)
 	local cellText = string.format("CELL %02d", cell)
 
-	local rearPanel = makePart(parent, "CellRearWallPanel", Vector3.new(18, 8, 0.45), Vector3.new(x, FLOOR_Y + 10, rightWallZ), panelColor, Enum.Material.Metal, false)
-	label(rearPanel, cellText .. "\nTEST CHAMBER", Color3.fromRGB(210, 216, 212), 34, UDim2.fromOffset(150, 52), Vector3.new(0, 0, 0))
-	makePart(parent, "CellRearFrameTop", Vector3.new(20, 0.55, 0.65), Vector3.new(x, FLOOR_Y + 14.35, rightWallZ), frameColor, Enum.Material.Metal, false)
-	makePart(parent, "CellRearFrameBottom", Vector3.new(20, 0.55, 0.65), Vector3.new(x, FLOOR_Y + 5.65, rightWallZ), frameColor, Enum.Material.Metal, false)
+	-- Rueckwand-Panel direkt hinter dem Mob (Zellnummer + Area-Thema).
+	local rearW = if isBoss then 24 else 18
+	local rearH = if isBoss then 11 else 8
+	local rearPanel = makePart(parent, "CellRearWallPanel", Vector3.new(rearW, rearH, 0.45), Vector3.new(x, FLOOR_Y + (if isBoss then 11 else 10), rightWallZ), panelColor, Enum.Material.Metal, false)
+	label(
+		rearPanel,
+		(if isBoss then "⚠ BOSS CONTAINMENT ⚠\n" else cellText .. "\n") .. theme.wallText,
+		tint(accent, Color3.fromRGB(222, 228, 218), 0.55),
+		if isBoss then 50 else 34,
+		UDim2.fromOffset(if isBoss then 230 else 150, if isBoss then 70 else 52),
+		Vector3.new(0, 0, 0)
+	)
+	makePart(parent, "CellRearFrameTop", Vector3.new(rearW + 2, 0.55, 0.65), Vector3.new(x, FLOOR_Y + (if isBoss then 17 else 14.35), rightWallZ), frameColor, Enum.Material.Metal, false)
+	makePart(parent, "CellRearFrameBottom", Vector3.new(rearW + 2, 0.55, 0.65), Vector3.new(x, FLOOR_Y + 5.65, rightWallZ), frameColor, Enum.Material.Metal, false)
 
-	local bioSign = makePart(parent, "CellBiohazardSign", Vector3.new(8.5, 3.4, 0.5), Vector3.new(x - 8.8, FLOOR_Y + 16.6, rightWallZ), Color3.fromRGB(58, 54, 38), Enum.Material.SmoothPlastic, false)
-	label(bioSign, "BIOHAZARD", LAB_WARNING_YELLOW, 28, UDim2.fromOffset(100, 32), Vector3.new(0, 0, 0))
+	-- Biohazard-Schild mit Thema-spezifischem Warntext.
+	local bioSign = makePart(parent, "CellBiohazardSign", Vector3.new(9, 3.4, 0.5), Vector3.new(x - 8.6, FLOOR_Y + 16.6, rightWallZ), Color3.fromRGB(58, 54, 38), Enum.Material.SmoothPlastic, false)
+	label(bioSign, theme.hazard, LAB_WARNING_YELLOW, 28, UDim2.fromOffset(120, 32), Vector3.new(0, 0, 0))
 
+	-- Linke Seitenwand: Tech-Panel.
 	local leftPanel = makePart(parent, "CellLeftTechPanel", Vector3.new(0.55, 6, 11), Vector3.new(x - 8.5, FLOOR_Y + 8.2, leftWallZ), LAB_DARK, Enum.Material.Metal, false)
 	makePart(parent, "CellLeftPanelStripe", Vector3.new(0.25, 0.7, 9), leftPanel.Position + Vector3.new(-0.35, 2.4, 0), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false).Transparency = 0.28
 	label(leftPanel, "CONTAINMENT", Color3.fromRGB(210, 216, 212), 28, UDim2.fromOffset(120, 34), Vector3.new(0, 0, 0))
 
+	-- Rechte Seitenwand: Kontroll-Modul + Status-/Warnlichter.
 	local rightModule = makePart(parent, "CellRightControlModule", Vector3.new(0.6, 5.2, 8), Vector3.new(x + 9.5, FLOOR_Y + 7.6, rightWallZ), Color3.fromRGB(42, 48, 50), Enum.Material.Metal, false)
 	makePart(parent, "CellGreenStatusLight", Vector3.new(0.3, 1.1, 1.1), rightModule.Position + Vector3.new(0.42, 1.35, -2.1), LAB_GREEN, Enum.Material.SmoothPlastic, false).Shape = Enum.PartType.Ball
-	if cell >= 5 then
+	if isBoss or cell >= 5 or def.AreaIndex >= 5 then
 		makePart(parent, "CellRedWarningLight", Vector3.new(0.3, 1, 1), rightModule.Position + Vector3.new(0.42, 1.35, 2.1), LAB_WARNING_RED, Enum.Material.SmoothPlastic, false).Shape = Enum.PartType.Ball
 	end
 
-	local sample = makePart(parent, "CellWallSampleVial", Vector3.new(0.55, 4.8, 2.1), Vector3.new(x + 10.6, FLOOR_Y + 5.1, leftWallZ), tint(LAB_OLIVE, primary, 0.18), Enum.Material.Glass, false)
+	-- Wand-Probenbehaelter (Thema-Akzent).
+	local sample = makePart(parent, "CellWallSampleVial", Vector3.new(0.55, 4.8, 2.1), Vector3.new(x + 10.6, FLOOR_Y + 5.1, leftWallZ), tint(LAB_OLIVE, accent, 0.35), Enum.Material.Glass, false)
 	sample.Transparency = 0.5
 	makePart(parent, "CellVialCap", Vector3.new(0.65, 0.55, 2.4), sample.Position + Vector3.new(0, 2.65, 0), frameColor, Enum.Material.Metal, false)
 	makePart(parent, "CellVialBase", Vector3.new(0.65, 0.55, 2.4), sample.Position + Vector3.new(0, -2.65, 0), frameColor, Enum.Material.Metal, false)
 
+	-- Lueftungsgitter.
 	local vent = makePart(parent, "CellVentGrille", Vector3.new(9, 2.2, 0.35), Vector3.new(x + 7.5, FLOOR_Y + 17.6, rightWallZ), Color3.fromRGB(66, 72, 74), Enum.Material.Metal, false)
 	for i = -2, 2 do
 		makePart(parent, "CellVentSlat", Vector3.new(7.4, 0.14, 0.2), vent.Position + Vector3.new(0, i * 0.38, 0.28), LAB_DARK, Enum.Material.Metal, false)
 	end
 
-	if cell % 2 == 0 then
-		local drip = makePart(parent, "CellWallBiofilmDrip", Vector3.new(2.6, 5.8, 0.28), Vector3.new(x - 3.8, FLOOR_Y + 7.3, rightWallZ - 0.35), LAB_OLIVE, Enum.Material.SmoothPlastic, false)
-		drip.Transparency = 0.52
-		local patch = makePart(parent, "CellCornerBacteriaPatch", Vector3.new(4.8, 3.2, 0.24), Vector3.new(x + 4.6, FLOOR_Y + 4.2, leftWallZ + 0.35), LAB_OLIVE, Enum.Material.SmoothPlastic, false)
-		patch.Transparency = 0.58
-	elseif cell % 3 == 0 then
-		for i = 1, 3 do
-			local spot = makePart(parent, "CellBacteriaSpot", Vector3.new(1.2 + i * 0.25, 1.2 + i * 0.25, 0.22), Vector3.new(x - 8 + i * 2.1, FLOOR_Y + 4.4 + i * 0.8, rightWallZ - 0.35), LAB_OLIVE, Enum.Material.SmoothPlastic, false)
-			spot.Shape = Enum.PartType.Ball
-			spot.Transparency = 0.55
+	-- Boss-Zelle (Cell 10): schwerer Rahmen + Warnbalken + Alarmlichter.
+	if isBoss then
+		for _, sx in ipairs({ x - rearW / 2 - 1, x + rearW / 2 + 1 }) do
+			makePart(parent, "BossCellFramePost", Vector3.new(1.4, rearH + 4, 1.2), Vector3.new(sx, FLOOR_Y + (rearH + 4) / 2, rightWallZ), LAB_DARK, Enum.Material.Metal, false)
 		end
+		makePart(parent, "BossHazardStripe", Vector3.new(rearW, 0.7, 0.3), Vector3.new(x, FLOOR_Y + 4.4, rightWallZ - 0.4), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false).Transparency = 0.2
+		for _, sx in ipairs({ x - 6, x + 6 }) do
+			makePart(parent, "BossWarnLight", Vector3.new(1.1, 1.1, 0.3), Vector3.new(sx, FLOOR_Y + rearH + 2.4, rightWallZ), LAB_WARNING_RED, Enum.Material.Neon, false).Shape = Enum.PartType.Ball
+		end
+	end
+
+	-- Kontamination skaliert mit der Tiefe: frueh clean, spaet organisch.
+	if contam >= 0.25 or cell % 2 == 0 then
+		local drip = makePart(parent, "CellWallBiofilmDrip", Vector3.new(2.6, 4 + contam * 5, 0.28), Vector3.new(x - 3.8, FLOOR_Y + 7.3, rightWallZ - 0.35), LAB_OLIVE, Enum.Material.SmoothPlastic, false)
+		drip.Transparency = math.clamp(0.62 - contam * 0.3, 0.32, 0.62)
+	end
+	if contam >= 0.4 or cell % 3 == 0 then
+		for i = 1, (if contam >= 0.55 then 4 else 3) do
+			local spot = makePart(parent, "CellBacteriaSpot", Vector3.new(1.1 + i * 0.25, 1.1 + i * 0.25, 0.22), Vector3.new(x - 8 + i * 2.1, FLOOR_Y + 4.2 + i * 0.8, rightWallZ - 0.35), LAB_OLIVE, Enum.Material.SmoothPlastic, false)
+			spot.Shape = Enum.PartType.Ball
+			spot.Transparency = math.clamp(0.6 - contam * 0.25, 0.32, 0.6)
+		end
+	end
+	if contam >= 0.6 then
+		local growth = makePart(parent, "CellOrganicGrowth", Vector3.new(3.4, 3.4, 0.5), Vector3.new(x + 4.6, FLOOR_Y + 4.4, leftWallZ + 0.3), tint(LAB_OLIVE, accent, 0.3), Enum.Material.SmoothPlastic, false)
+		growth.Shape = Enum.PartType.Ball
+		growth.Transparency = 0.42
 	end
 end
 
@@ -587,15 +645,30 @@ local function buildBacteriaEnemyChamber(parent, def, basePos, primary, secondar
 	model.Parent = parent
 
 	local z = basePos.Z
-	local chamberColor = tint(LAB_PANEL, primary, 0.16)
+	local theme = themeFor(def.AreaIndex)
+	local accent = theme.accent
+	local isBoss = def.IsBoss == true
+	local chamberColor = tint(LAB_PANEL, accent, 0.16)
 	local platform = makePart(model, "BacteriaChamberPlatform", Vector3.new(26, 0.5, 50), Vector3.new(basePos.X, FLOOR_Y + 0.25, z), chamberColor, Enum.Material.SmoothPlastic, true)
 	platform.Transparency = 0.02
 	makePart(model, "ChamberSteelInset", Vector3.new(20, 0.08, 34), Vector3.new(basePos.X, FLOOR_Y + 0.56, z), Color3.fromRGB(78, 84, 84), Enum.Material.Metal, false).Transparency = 0.18
 
+	-- Boss-Zelle: eigene erhoehte Plattform + Rahmen (klar besonderer Look).
+	if isBoss then
+		local bossPad = makePart(model, "BossChamberPad", Vector3.new(22, 1, 30), Vector3.new(basePos.X, FLOOR_Y + 0.85, z), tint(LAB_DARK, accent, 0.18), Enum.Material.Metal, true)
+		bossPad.Transparency = 0.02
+		makePart(model, "BossChamberHazardEdge", Vector3.new(24, 0.12, 32), Vector3.new(basePos.X, FLOOR_Y + 1.36, z), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false).Transparency = 0.4
+		for _, cxo in ipairs({ -10.5, 10.5 }) do
+			for _, czo in ipairs({ -15, 15 }) do
+				makePart(model, "BossCornerPillar", Vector3.new(1.6, 16, 1.6), Vector3.new(basePos.X + cxo, FLOOR_Y + 8, z + czo), LAB_DARK, Enum.Material.Metal, false)
+			end
+		end
+	end
+
 	for _, dz in ipairs({ -25, 25 }) do
-		local rail = makePart(model, "GlassSideWall", Vector3.new(24, 7, 0.55), Vector3.new(basePos.X, FLOOR_Y + 4, z + dz), LAB_CYAN, Enum.Material.Glass, false)
+		local rail = makePart(model, "GlassSideWall", Vector3.new(24, 7, 0.55), Vector3.new(basePos.X, FLOOR_Y + 4, z + dz), tint(LAB_CYAN, accent, 0.4), Enum.Material.Glass, false)
 		rail.Transparency = 0.76
-		neonStrip(model, Vector3.new(21, 0.14, 0.2), Vector3.new(basePos.X, FLOOR_Y + 7.7, z + dz), tint(primary, LAB_CYAN, 0.45), 0.74)
+		neonStrip(model, Vector3.new(21, 0.14, 0.2), Vector3.new(basePos.X, FLOOR_Y + 7.7, z + dz), tint(accent, LAB_CYAN, 0.35), 0.74)
 	end
 
 	for _, xOff in ipairs({ -10.5, 10.5 }) do
@@ -620,23 +693,37 @@ local function buildBacteriaEnemyChamber(parent, def, basePos, primary, secondar
 	local info = makePart(model, "ChamberInfoPanel", Vector3.new(10, 4.8, 0.5), Vector3.new(basePos.X - 9, FLOOR_Y + 4.8, infoZ), LAB_DARK, Enum.Material.SmoothPlastic, false)
 	label(
 		info,
-		string.format("CELL %02d\n%s", def.EnemyIndex, string.upper(def.DisplayName)),
-		ACCESS_UNLOCKED_SOFT,
+		string.format("CELL %02d • %s\n%s", def.EnemyIndex, theme.wallText, string.upper(def.DisplayName)),
+		tint(accent, ACCESS_UNLOCKED_SOFT, 0.5),
 		32,
-		UDim2.fromOffset(140, 56),
+		UDim2.fromOffset(150, 56),
 		Vector3.new(0, 0, 0)
 	)
 
-	if def.EnemyIndex % 2 == 0 then
-		local tank = makePart(model, "SpecimenCylinder", Vector3.new(5, 8, 5), Vector3.new(basePos.X + 8, FLOOR_Y + 4.1, z - 18), tint(LAB_OLIVE, primary, 0.22), Enum.Material.Glass, false)
+	if isBoss then
+		-- Boss-Backdrop: grosse Containment-/Reaktor-Kapsel hinter dem Boss.
+		local tank = makePart(model, "BossSpecimenTank", Vector3.new(9, 16, 9), Vector3.new(basePos.X + 9, FLOOR_Y + 8, z - 19), tint(accent, LAB_OLIVE, 0.3), Enum.Material.Glass, false)
+		tank.Shape = Enum.PartType.Cylinder
+		tank.Transparency = 0.42
+		makePart(model, "BossTankBase", Vector3.new(10.5, 1, 10.5), Vector3.new(basePos.X + 9, FLOOR_Y + 0.7, z - 19), LAB_DARK, Enum.Material.Metal, true).Shape = Enum.PartType.Cylinder
+		makePart(model, "BossTankTop", Vector3.new(10.5, 1, 10.5), Vector3.new(basePos.X + 9, FLOOR_Y + 16, z - 19), LAB_DARK, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
+		local bcore = makePart(model, "BossTankCore", Vector3.new(4, 4, 4), Vector3.new(basePos.X + 9, FLOOR_Y + 8, z - 19), tint(accent, Color3.fromRGB(225, 230, 220), 0.25), Enum.Material.Neon, false)
+		bcore.Shape = Enum.PartType.Ball
+		local bl = Instance.new("PointLight")
+		bl.Brightness = 0.6
+		bl.Range = 16
+		bl.Color = tint(accent, Color3.fromRGB(220, 225, 215), 0.4)
+		bl.Parent = bcore
+	elseif def.EnemyIndex % 2 == 0 then
+		local tank = makePart(model, "SpecimenCylinder", Vector3.new(5, 8, 5), Vector3.new(basePos.X + 8, FLOOR_Y + 4.1, z - 18), tint(LAB_OLIVE, accent, 0.32), Enum.Material.Glass, false)
 		tank.Shape = Enum.PartType.Cylinder
 		tank.Orientation = Vector3.new(0, 0, 90)
 		tank.Transparency = 0.46
-		neonStrip(model, Vector3.new(6, 0.12, 6), Vector3.new(basePos.X + 8, FLOOR_Y + 8.4, z - 18), LAB_OLIVE, 0.72)
+		neonStrip(model, Vector3.new(6, 0.12, 6), Vector3.new(basePos.X + 8, FLOOR_Y + 8.4, z - 18), accent, 0.72)
 	else
 		local console = makePart(model, "MiniConsole", Vector3.new(6, 2.5, 4), Vector3.new(basePos.X + 8, FLOOR_Y + 1.45, z + 18), LAB_DARK, Enum.Material.Metal, false)
 		console.Orientation = Vector3.new(0, 0, -8)
-		neonStrip(model, Vector3.new(4.6, 0.12, 2.8), console.Position + Vector3.new(0, 1.4, 0), LAB_GREEN, 0.72)
+		neonStrip(model, Vector3.new(4.6, 0.12, 2.8), console.Position + Vector3.new(0, 1.4, 0), accent, 0.72)
 	end
 
 	if def.EnemyIndex % 3 == 0 then
@@ -690,8 +777,124 @@ local function liftBacteriaLabCeiling(parent)
 	end
 end
 
+-- Wiederkehrendes Thema-Hero-Objekt der Halle. Jede Area hat ein anderes
+-- Set -> die Areale sehen sichtbar unterschiedlich aus (nicht nur Farbe).
+-- Steht seitlich an der Hallenwand (Z = +/-30), blockiert Laufweg nicht.
+local function buildThemeSideProp(deco, theme, x: number, z: number, accent: Color3)
+	local id = theme.sideProp
+	local function p(name, size, pos, color, mat, collide)
+		return makePart(deco, name, size, pos, color, mat, collide == true)
+	end
+
+	if id == "BioTank" then
+		local tank = p("SideSampleTank", Vector3.new(8, 13, 8), Vector3.new(x, FLOOR_Y + 6.5, z), tint(LAB_OLIVE, accent, 0.22), Enum.Material.Glass)
+		tank.Shape = Enum.PartType.Cylinder
+		tank.Orientation = Vector3.new(0, 0, 90)
+		tank.Transparency = 0.5
+		p("TankBase", Vector3.new(9, 0.7, 9), Vector3.new(x, FLOOR_Y + 0.5, z), LAB_TRIM, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		p("TankTop", Vector3.new(9, 0.7, 9), Vector3.new(x, FLOOR_Y + 12.6, z), LAB_TRIM, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+	elseif id == "ObsGlass" then
+		local cap = p("ObsCapsule", Vector3.new(6, 15, 6), Vector3.new(x, FLOOR_Y + 8, z), tint(LAB_CYAN, accent, 0.35), Enum.Material.Glass)
+		cap.Shape = Enum.PartType.Cylinder
+		cap.Orientation = Vector3.new(0, 0, 90)
+		cap.Transparency = 0.62
+		p("ObsCapBase", Vector3.new(8, 1.4, 8), Vector3.new(x, FLOOR_Y + 0.7, z), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		p("ObsCapTop", Vector3.new(8, 1.4, 8), Vector3.new(x, FLOOR_Y + 15.5, z), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		local cell = p("InfectedCellSample", Vector3.new(3, 3, 3), Vector3.new(x, FLOOR_Y + 8, z), tint(accent, LAB_OLIVE, 0.3), Enum.Material.SmoothPlastic)
+		cell.Shape = Enum.PartType.Ball
+		cell.Transparency = 0.2
+	elseif id == "MutantTank" then
+		local tank = p("MutationVat", Vector3.new(9, 12, 9), Vector3.new(x, FLOOR_Y + 6.2, z), tint(accent, LAB_OLIVE, 0.4), Enum.Material.Glass)
+		tank.Shape = Enum.PartType.Cylinder
+		tank.Orientation = Vector3.new(0, 0, 90)
+		tank.Transparency = 0.5
+		p("MutationVatBase", Vector3.new(10, 1, 10), Vector3.new(x, FLOOR_Y + 0.6, z), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		local blob = p("MutantBlob", Vector3.new(4.5, 4, 4.2), Vector3.new(x, FLOOR_Y + 6, z), accent, Enum.Material.SmoothPlastic)
+		blob.Shape = Enum.PartType.Ball
+		blob.Transparency = 0.25
+		local arm = p("MutantTendril", Vector3.new(1, 5, 1), Vector3.new(x + 1.6, FLOOR_Y + 8.5, z), tint(accent, LAB_OLIVE, 0.4), Enum.Material.SmoothPlastic)
+		arm.Orientation = Vector3.new(0, 0, 28)
+	elseif id == "ToxicBarrel" then
+		for i, off in ipairs({ Vector3.new(0, 2, 0), Vector3.new(3.4, 2, 0.6), Vector3.new(1.6, 6, 0) }) do
+			local b = p("ToxicBarrel" .. i, Vector3.new(3.6, 4, 3.6), Vector3.new(x, FLOOR_Y, z) + off, tint(LAB_WARNING_YELLOW, LAB_DARK, 0.45), Enum.Material.Metal)
+			b.Shape = Enum.PartType.Cylinder
+			p("BarrelHazardBand" .. i, Vector3.new(3.8, 0.7, 3.8), b.Position, LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic).Shape = Enum.PartType.Cylinder
+		end
+		local pool = p("ToxicSpill", Vector3.new(8, 0.06, 6), Vector3.new(x, FLOOR_Y + 0.22, z + 3), tint(LAB_OLIVE, LAB_WARNING_YELLOW, 0.3), Enum.Material.SmoothPlastic)
+		pool.Transparency = 0.32
+	elseif id == "QuarantinePod" then
+		p("QuarantinePodFrame", Vector3.new(8, 16, 1), Vector3.new(x, FLOOR_Y + 8, z), LAB_DARK, Enum.Material.Metal)
+		local door = p("QuarantinePodGlass", Vector3.new(6, 13, 0.5), Vector3.new(x, FLOOR_Y + 7.5, z + 0.4), tint(accent, LAB_WHITE, 0.5), Enum.Material.Glass)
+		door.Transparency = 0.55
+		p("PodRedLight", Vector3.new(1, 1, 0.4), Vector3.new(x, FLOOR_Y + 15, z + 0.6), LAB_WARNING_RED, Enum.Material.Neon).Shape = Enum.PartType.Ball
+		local panel = p("PodControlPanel", Vector3.new(2.4, 3, 0.6), Vector3.new(x + 5, FLOOR_Y + 4, z + 0.3), Color3.fromRGB(44, 48, 50), Enum.Material.Metal)
+		label(panel, "QUARANTINE", LAB_WARNING_RED, 22, UDim2.fromOffset(70, 26), Vector3.new(0, 0, 0))
+	elseif id == "BrokenServo" then
+		local box = p("BrokenServoUnit", Vector3.new(7, 9, 5), Vector3.new(x, FLOOR_Y + 4.6, z), tint(LAB_TRIM, LAB_DARK, 0.4), Enum.Material.Metal)
+		box.Orientation = Vector3.new(0, 0, -7)
+		p("ServoBrokenPanel", Vector3.new(5, 4, 0.3), Vector3.new(x - 0.4, FLOOR_Y + 6, z + 2.6), Color3.fromRGB(30, 33, 34), Enum.Material.Metal).Orientation = Vector3.new(12, 0, -7)
+		local spark = p("DeadIndicator", Vector3.new(0.9, 0.9, 0.3), Vector3.new(x + 1.5, FLOOR_Y + 8, z + 2.7), LAB_WARNING_RED, Enum.Material.SmoothPlastic)
+		spark.Shape = Enum.PartType.Ball
+		spark.Transparency = 0.25
+		local rust = p("RustStreak", Vector3.new(3, 4, 0.18), Vector3.new(x, FLOOR_Y + 3, z + 2.7), tint(LAB_OLIVE, Color3.fromRGB(120, 70, 40), 0.5), Enum.Material.SmoothPlastic)
+		rust.Transparency = 0.4
+	elseif id == "ReactorCore" then
+		local col = p("ReactorPillar", Vector3.new(6, 17, 6), Vector3.new(x, FLOOR_Y + 8.5, z), LAB_DARK, Enum.Material.Metal)
+		col.Shape = Enum.PartType.Cylinder
+		col.Orientation = Vector3.new(0, 0, 90)
+		local glass = p("ReactorGlass", Vector3.new(4.4, 11, 4.4), Vector3.new(x, FLOOR_Y + 8.5, z), tint(accent, LAB_WHITE, 0.4), Enum.Material.Glass)
+		glass.Shape = Enum.PartType.Cylinder
+		glass.Orientation = Vector3.new(0, 0, 90)
+		glass.Transparency = 0.5
+		local core = p("ReactorCoreBall", Vector3.new(3.4, 3.4, 3.4), Vector3.new(x, FLOOR_Y + 8.5, z), tint(accent, Color3.fromRGB(225, 232, 220), 0.3), Enum.Material.Neon)
+		core.Shape = Enum.PartType.Ball
+		local rl = Instance.new("PointLight")
+		rl.Brightness = 0.5
+		rl.Range = 14
+		rl.Color = tint(accent, Color3.fromRGB(220, 228, 215), 0.4)
+		rl.Parent = core
+	elseif id == "ParasiteGrowth" then
+		local stalk = p("ParasiteStalk", Vector3.new(4, 14, 4), Vector3.new(x, FLOOR_Y + 7, z), tint(LAB_OLIVE, accent, 0.45), Enum.Material.SmoothPlastic)
+		stalk.Shape = Enum.PartType.Cylinder
+		stalk.Orientation = Vector3.new(0, 0, 90)
+		stalk.Transparency = 0.08
+		for i = 1, 3 do
+			local pod = p("ParasitePod" .. i, Vector3.new(2.6 + i * 0.3, 2.6 + i * 0.3, 2.6 + i * 0.3), Vector3.new(x + (i - 2) * 1.6, FLOOR_Y + 3 + i * 3, z + 1.4), tint(accent, LAB_OLIVE, 0.3), Enum.Material.SmoothPlastic)
+			pod.Shape = Enum.PartType.Ball
+			pod.Transparency = 0.18
+		end
+		local goo = p("ParasiteGoo", Vector3.new(6, 0.07, 5), Vector3.new(x, FLOOR_Y + 0.23, z + 2), tint(LAB_OLIVE, accent, 0.35), Enum.Material.SmoothPlastic)
+		goo.Transparency = 0.3
+	elseif id == "ControlBank" then
+		p("ControlBankBody", Vector3.new(10, 7, 3), Vector3.new(x, FLOOR_Y + 3.7, z), Color3.fromRGB(46, 52, 54), Enum.Material.Metal)
+		for i = -1, 1 do
+			local mon = p("ControlMonitor", Vector3.new(2.6, 2, 0.3), Vector3.new(x + i * 3, FLOOR_Y + 5, z + 1.6), tint(accent, Color3.fromRGB(40, 48, 50), 0.4), Enum.Material.SmoothPlastic)
+			mon.Transparency = 0.18
+		end
+		p("ControlBankTrim", Vector3.new(10.4, 0.5, 3.2), Vector3.new(x, FLOOR_Y + 7.3, z), LAB_DARK, Enum.Material.Metal)
+		p("ControlBankStatus", Vector3.new(0.8, 0.8, 0.3), Vector3.new(x + 4.5, FLOOR_Y + 6.6, z + 1.7), LAB_GREEN, Enum.Material.Neon).Shape = Enum.PartType.Ball
+	else -- FinalReactor
+		local base = p("FinalReactorBase", Vector3.new(12, 1.4, 12), Vector3.new(x, FLOOR_Y + 0.7, z), LAB_DARK, Enum.Material.Metal)
+		base.Shape = Enum.PartType.Cylinder
+		base.Orientation = Vector3.new(0, 0, 90)
+		local glass = p("FinalReactorGlass", Vector3.new(8, 19, 8), Vector3.new(x, FLOOR_Y + 10, z), tint(accent, LAB_WHITE, 0.35), Enum.Material.Glass)
+		glass.Shape = Enum.PartType.Cylinder
+		glass.Transparency = 0.48
+		local core = p("FinalReactorCore", Vector3.new(4.6, 12, 4.6), Vector3.new(x, FLOOR_Y + 10, z), tint(accent, Color3.fromRGB(230, 220, 220), 0.25), Enum.Material.Neon)
+		core.Shape = Enum.PartType.Cylinder
+		local fl = Instance.new("PointLight")
+		fl.Brightness = 0.7
+		fl.Range = 18
+		fl.Color = tint(accent, Color3.fromRGB(225, 215, 215), 0.4)
+		fl.Parent = core
+		p("FinalReactorRedLamp", Vector3.new(1.2, 1.2, 1.2), Vector3.new(x, FLOOR_Y + 20.5, z), LAB_WARNING_RED, Enum.Material.Neon).Shape = Enum.PartType.Ball
+	end
+end
+
 local function addBacteriaLabDetails(parent, area, hallX, primary)
 	local deco = makeFolder("TunnelLabDetails", parent)
+	local theme = themeFor(area.index)
+	local accent = theme.accent
 
 	local wallStartX = hallX + L.GateOffsetX - 10
 	local wallEndX = hallX + (L.EnemySpacing * (L.EnemiesPerArea - 1)) / 2 + 48
@@ -742,7 +945,7 @@ local function addBacteriaLabDetails(parent, area, hallX, primary)
 	for i, x in ipairs({ hallX - 132, hallX - 66, hallX, hallX + 66, hallX + 132 }) do
 		for _, z in ipairs({ CORRIDOR_MIN_Z + 2, CORRIDOR_MAX_Z - 2 }) do
 			local panel = makePart(deco, "ContainmentWallPanel", Vector3.new(34, 9, 0.45), Vector3.new(x, FLOOR_Y + 13, z), LAB_DARK, Enum.Material.SmoothPlastic, false)
-			local text = if i % 3 == 1 then string.upper(area.displayName) .. "\nCONTAINMENT" elseif i % 3 == 2 then "AUTHORIZED\nPERSONNEL ONLY" else string.format("CELL %02d-%02d", math.max(1, i * 2 - 1), math.min(10, i * 2))
+			local text = if i % 3 == 1 then theme.wallText .. "\nCONTAINMENT" elseif i % 3 == 2 then "AUTHORIZED\nPERSONNEL ONLY" else string.format("CELL %02d-%02d", math.max(1, i * 2 - 1), math.min(10, i * 2))
 			label(panel, text, Color3.fromRGB(206, 214, 210), 42, UDim2.fromOffset(190, 62), Vector3.new(0, 0, 0))
 			local module = makePart(deco, "SecurityWallModule", Vector3.new(9, 5.5, 0.55), Vector3.new(x + 24, FLOOR_Y + 7.5, z), Color3.fromRGB(42, 48, 50), Enum.Material.Metal, false)
 			makePart(deco, "StatusLightGreen", Vector3.new(1.2, 1.2, 0.25), module.Position + Vector3.new(-2.4, 1.1, 0.35), LAB_GREEN, Enum.Material.SmoothPlastic, false).Shape = Enum.PartType.Ball
@@ -752,14 +955,10 @@ local function addBacteriaLabDetails(parent, area, hallX, primary)
 		end
 	end
 
+	-- Wiederkehrendes Thema-Hero-Objekt -> jede Area sieht anders aus.
 	for _, x in ipairs({ hallX - 100, hallX + 10, hallX + 120 }) do
 		for _, z in ipairs({ BACTERIA_LEFT_LIMIT_Z + 8, BACTERIA_RIGHT_LIMIT_Z - 8 }) do
-			local tank = makePart(deco, "SideSampleTank", Vector3.new(8, 13, 8), Vector3.new(x, FLOOR_Y + 6.5, z), tint(LAB_OLIVE, primary, 0.18), Enum.Material.Glass, false)
-			tank.Shape = Enum.PartType.Cylinder
-			tank.Orientation = Vector3.new(0, 0, 90)
-			tank.Transparency = 0.5
-			makePart(deco, "TankBase", Vector3.new(9, 0.7, 9), Vector3.new(x, FLOOR_Y + 0.5, z), LAB_TRIM, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
-			makePart(deco, "TankTop", Vector3.new(9, 0.7, 9), Vector3.new(x, FLOOR_Y + 12.6, z), LAB_TRIM, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
+			buildThemeSideProp(deco, theme, x, z, accent)
 		end
 	end
 
@@ -784,7 +983,7 @@ local function addBacteriaLabDetails(parent, area, hallX, primary)
 
 	for _, x in ipairs({ hallX - 155, hallX - 35, hallX + 85, hallX + 175 }) do
 		local warn = makePart(deco, "BioWarningPanel", Vector3.new(12, 5, 0.45), Vector3.new(x, FLOOR_Y + 8, CORRIDOR_MIN_Z + 1.5), Color3.fromRGB(42, 42, 34), Enum.Material.SmoothPlastic, false)
-		label(warn, if area.index <= 3 then "BIOHAZARD\nLOW RISK" else "QUARANTINE\nACTIVE", LAB_WARNING_YELLOW, 38, UDim2.fromOffset(120, 48), Vector3.new(0, 0, 0))
+		label(warn, theme.hazard, LAB_WARNING_YELLOW, 38, UDim2.fromOffset(130, 48), Vector3.new(0, 0, 0))
 	end
 
 	if area.index % 2 == 1 then
@@ -813,68 +1012,101 @@ local function buildTrainingArea(parent, bedsFolder, gatesFolder, area, x)
 	model.Name = "Training_" .. area.id
 	model.Parent = parent
 
-	-- Kompakte Trainings-Plattform.
-	local pad = makePart(model, "TrainingPad", Vector3.new(70, 0.6, 90), Vector3.new(x, FLOOR_Y + 0.35, FLOOR_CENTER_Z), tint(LAB_PANEL, primary, 0.18), Enum.Material.SmoothPlastic, true)
-	for _, dz in ipairs({ -1, 1 }) do
-		neonStrip(model, Vector3.new(70, 0.12, 0.6), Vector3.new(x, FLOOR_Y + 0.7, FLOOR_CENTER_Z + dz * 44), primary, 0.3)
+	-- ---- Seitliche Trainings-Bay (links, -Z) -----------------------------
+	-- Bewusst NICHT mittig im Laufweg: eine eigene, abgesetzte Labor-Nische.
+	-- Der Spieler macht einen kurzen Abstecher zur Seite, um zu trainieren.
+	-- Der Korridor-Mittelweg (Z um 0) bleibt komplett frei.
+	local bayZ = -54
+	local bayDepthZ = 42
+	local bayHalfZ = bayDepthZ / 2
+	local bayMouthZ = bayZ + bayHalfZ -- Richtung Laufweg (offene Seite)
+	local bayBackZ = bayZ - bayHalfZ
+	local bayWidthX = 66
+
+	-- Bay-Boden (klar abgesetzte Plattform).
+	makePart(model, "TrainingBayFloor", Vector3.new(bayWidthX, 0.6, bayDepthZ), Vector3.new(x, FLOOR_Y + 0.32, bayZ), tint(LAB_PANEL, primary, 0.14), Enum.Material.SmoothPlastic, true)
+	makePart(model, "TrainingBayFloorInset", Vector3.new(bayWidthX - 8, 0.1, bayDepthZ - 7), Vector3.new(x, FLOOR_Y + 0.62, bayZ), Color3.fromRGB(80, 86, 86), Enum.Material.Metal, false).Transparency = 0.2
+	-- Gelb-schwarze Schwelle als Eingangsmarkierung zum Laufweg.
+	makePart(model, "TrainingBayThreshold", Vector3.new(bayWidthX, 0.08, 1.8), Vector3.new(x, FLOOR_Y + 0.4, bayMouthZ - 1), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false).Transparency = 0.32
+
+	-- Nischen-Architektur (blockiert den Laufweg nicht; Mund bleibt offen).
+	makePart(model, "TrainingBayBackWall", Vector3.new(bayWidthX, 17, 1.3), Vector3.new(x, FLOOR_Y + 8.5, bayBackZ), LAB_WHITE, Enum.Material.SmoothPlastic, true)
+	makePart(model, "TrainingBayBackBase", Vector3.new(bayWidthX, 1.4, 1.6), Vector3.new(x, FLOOR_Y + 0.9, bayBackZ), LAB_DARK, Enum.Material.Metal, true)
+	makePart(model, "TrainingBayBackTopRail", Vector3.new(bayWidthX, 1.1, 1.6), Vector3.new(x, FLOOR_Y + 16.4, bayBackZ), LAB_DARK, Enum.Material.Metal, true)
+	for _, sx in ipairs({ x - bayWidthX / 2, x + bayWidthX / 2 }) do
+		makePart(model, "TrainingBaySideWall", Vector3.new(1.3, 17, bayDepthZ), Vector3.new(sx, FLOOR_Y + 8.5, bayZ), LAB_WHITE, Enum.Material.SmoothPlastic, true)
+		makePart(model, "TrainingBaySideTrim", Vector3.new(1.5, 1.2, bayDepthZ), Vector3.new(sx, FLOOR_Y + 0.85, bayZ), LAB_DARK, Enum.Material.Metal, true)
+	end
+	-- Glas-Trennscheiben an den Bay-Raendern -> Mitte als Durchgang offen.
+	for _, gx in ipairs({ x - 23, x + 23 }) do
+		local glass = makePart(model, "TrainingBayGlass", Vector3.new(18, 9, 0.4), Vector3.new(gx, FLOOR_Y + 5.2, bayMouthZ), tint(LAB_CYAN, LAB_WHITE, 0.45), Enum.Material.Glass, false)
+		glass.Transparency = 0.68
+	end
+	makePart(model, "TrainingBayPortalHeader", Vector3.new(bayWidthX, 3, 1.4), Vector3.new(x, FLOOR_Y + 15.5, bayMouthZ), LAB_DARK, Enum.Material.Metal, false)
+	for _, ledZ in ipairs({ bayMouthZ }) do
+		neonStrip(model, Vector3.new(bayWidthX - 4, 0.3, 0.3), Vector3.new(x, FLOOR_Y + 13.8, ledZ), primary, 0.5)
 	end
 
-	-- Drei klare Trainings-Pads + Beschriftung.
+	-- Drei klare Trainings-Stationen entlang X, Schilder Richtung Laufweg.
 	local padInfos = {
-		{ name = "POWER TRAINING", short = "PWR", dz = -28, c = LAB_WARNING_RED },
-		{ name = "DNA TRAINING", short = "DNA", dz = 0, c = LAB_GREEN },
-		{ name = "LUCK / BOOST", short = "BOOST", dz = 30, c = LAB_WARNING_YELLOW },
+		{ name = "POWER TRAINING", short = "PWR", dx = -21, c = LAB_WARNING_RED },
+		{ name = "DNA TRAINING", short = "DNA", dx = 0, c = LAB_GREEN },
+		{ name = "LUCK / BOOST", short = "BOOST", dx = 21, c = LAB_WARNING_YELLOW },
 	}
 	for _, info in ipairs(padInfos) do
-		local tp = makePart(model, "TrainPad", Vector3.new(16, 0.5, 16), Vector3.new(x, FLOOR_Y + 0.75, FLOOR_CENTER_Z + info.dz), info.c, Enum.Material.SmoothPlastic, false)
-		tp.Transparency = 0.28
-		local stationBase = makePart(model, "TrainStationBase", Vector3.new(24, 0.25, 22), tp.Position + Vector3.new(0, -0.18, 0), LAB_DARK, Enum.Material.Metal, false)
+		local center = Vector3.new(x + info.dx, FLOOR_Y, bayZ)
+		local tp = makePart(model, "TrainPad", Vector3.new(15, 0.5, 17), center + Vector3.new(0, 0.75, 0), info.c, Enum.Material.SmoothPlastic, false)
+		tp.Transparency = 0.34
+		local stationBase = makePart(model, "TrainStationBase", Vector3.new(19, 0.25, 21), center + Vector3.new(0, 0.5, 0), LAB_DARK, Enum.Material.Metal, false)
 		stationBase.Transparency = 0.08
-		for _, edgeZ in ipairs({ -10.8, 10.8 }) do
-			neonStrip(model, Vector3.new(19, 0.16, 0.36), tp.Position + Vector3.new(0, 0.12, edgeZ), info.c, 0.16)
+		makePart(model, "TrainPadStripe", Vector3.new(13, 0.12, 0.5), center + Vector3.new(0, 0.95, 7.4), info.c, Enum.Material.SmoothPlastic, false).Transparency = 0.3
+		-- Scanner-Bogen ueber dem Pad (Rueckseite zur Bay-Rueckwand).
+		for _, edgeX in ipairs({ -7.5, 7.5 }) do
+			makePart(model, "TrainScannerPost", Vector3.new(0.7, 7.2, 0.7), center + Vector3.new(edgeX, 3.8, -7.6), LAB_DARK, Enum.Material.Metal, false)
 		end
-		for _, edgeX in ipairs({ -11.8, 11.8 }) do
-			neonStrip(model, Vector3.new(0.36, 0.16, 18), tp.Position + Vector3.new(edgeX, 0.12, 0), info.c, 0.22)
-		end
-		for _, edgeX in ipairs({ -9, 9 }) do
-			local scannerPost = makePart(model, "TrainScannerPost", Vector3.new(0.7, 6.8, 0.7), tp.Position + Vector3.new(edgeX, 3.5, -9.4), LAB_DARK, Enum.Material.Metal, false)
-			neonStrip(model, Vector3.new(0.35, 4.7, 0.28), scannerPost.Position + Vector3.new(0, 0.2, -0.42), info.c, 0.22)
-		end
-		local scannerBeam = makePart(model, "TrainScannerBeam", Vector3.new(19, 0.7, 0.8), tp.Position + Vector3.new(0, 6.9, -9.4), LAB_DARK, Enum.Material.Metal, false)
-		neonStrip(model, Vector3.new(14, 0.22, 0.36), scannerBeam.Position + Vector3.new(0, 0.45, -0.38), info.c, 0.18)
-		local terminal = makePart(model, "TrainTerminal", Vector3.new(5.6, 3.2, 3.8), tp.Position + Vector3.new(23, 1.65, 0), LAB_DARK, Enum.Material.Metal, false)
-		local screen = makePart(model, "TrainTerminalScreen", Vector3.new(0.38, 2.4, 3), terminal.Position + Vector3.new(-2.95, 1.15, 0), info.c, Enum.Material.SmoothPlastic, false)
-		screen.Transparency = 0.24
-		label(screen, info.short, Color3.fromRGB(255, 255, 255), 32, UDim2.fromOffset(90, 34), Vector3.new(0, 0, 0))
-		makePart(model, "TrainingSafetyStripe", Vector3.new(20, 0.08, 1.1), tp.Position + Vector3.new(0, 0.22, 12.4), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false).Transparency = 0.36
-		local cabinet = makePart(model, "TrainingBreakerBox", Vector3.new(4.4, 5.8, 1.1), tp.Position + Vector3.new(-23, 3.2, -9.5), Color3.fromRGB(54, 60, 62), Enum.Material.Metal, false)
-		label(cabinet, "SYS\nOK", LAB_GREEN, 24, UDim2.fromOffset(58, 34), Vector3.new(0, 0, 0))
-		local post = makePart(model, "TrainSignPost", Vector3.new(0.6, 6, 0.6), tp.Position + Vector3.new(0, 3, 0), LAB_TRIM, Enum.Material.Metal, false)
-		label(post, info.name, info.c, 40, UDim2.fromOffset(180, 44), Vector3.new(0, 3, 0))
+		local scannerBeam = makePart(model, "TrainScannerBeam", Vector3.new(16, 0.7, 0.8), center + Vector3.new(0, 7.4, -7.6), LAB_DARK, Enum.Material.Metal, false)
+		neonStrip(model, Vector3.new(12, 0.22, 0.34), scannerBeam.Position + Vector3.new(0, -0.45, 0.42), info.c, 0.5)
+		-- Kontroll-Terminal, Schirm Richtung Laufweg (+Z).
+		local terminal = makePart(model, "TrainTerminal", Vector3.new(5, 3.4, 3.4), center + Vector3.new(0, 1.7, -8.2), LAB_DARK, Enum.Material.Metal, false)
+		local screen = makePart(model, "TrainTerminalScreen", Vector3.new(3.6, 2.4, 0.36), terminal.Position + Vector3.new(0, 1, 1.9), info.c, Enum.Material.SmoothPlastic, false)
+		screen.Transparency = 0.22
+		label(screen, info.short, Color3.fromRGB(255, 255, 255), 30, UDim2.fromOffset(90, 34), Vector3.new(0, 0, 0))
+		local cabinet = makePart(model, "TrainingBreakerBox", Vector3.new(3.6, 5.4, 1.1), center + Vector3.new(0, 3.2, -9.3), Color3.fromRGB(54, 60, 62), Enum.Material.Metal, false)
+		label(cabinet, "SYS\nOK", LAB_GREEN, 22, UDim2.fromOffset(56, 34), Vector3.new(0, 0, 0))
+		local post = makePart(model, "TrainSignPost", Vector3.new(0.6, 6.4, 0.6), center + Vector3.new(0, 3.2, 8.4), LAB_TRIM, Enum.Material.Metal, false)
+		label(post, info.name, info.c, 44, UDim2.fromOffset(180, 44), Vector3.new(0, 3, 0))
 	end
 
-	-- Hauptschild.
-	local sign = makePart(model, "TrainingSign", Vector3.new(22, 6.8, 0.8), Vector3.new(x, FLOOR_Y + 8.2, FLOOR_CENTER_Z - 46), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	-- Hauptschild an der Bay-Rueckwand, gut vom Laufweg lesbar.
+	local sign = makePart(model, "TrainingSign", Vector3.new(30, 6, 0.6), Vector3.new(x, FLOOR_Y + 12.5, bayBackZ + 0.9), LAB_DARK, Enum.Material.SmoothPlastic, false)
 	label(
 		sign,
 		string.format(
-			"TRAINING %d\n%s\n%s PWR/s | %s",
+			"TRAINING %d  •  %s\n%s PWR/s  |  %s",
 			area.index,
 			string.upper(area.displayName),
 			NumberFormatter.format(bedDef.powerPerSecond),
 			if bedDef.requiredRebirth > 0 then "Requires Rebirth " .. bedDef.requiredRebirth else "Open"
 		),
 		primary,
-		58,
-		UDim2.fromOffset(240, 72),
+		70,
+		UDim2.fromOffset(300, 64),
 		Vector3.new(0, 0, 0)
 	)
 
+	-- Wegweiser auf dem Laufweg: zeigt zur seitlichen Bay.
+	local guide = makePart(model, "TrainingBayGuideArrow", Vector3.new(10, 0.1, 5), Vector3.new(x, FLOOR_Y + 0.22, -16), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false)
+	guide.Transparency = 0.4
+	local guidePost = makePart(model, "TrainingBayGuidePost", Vector3.new(0.7, 7, 0.7), Vector3.new(x, FLOOR_Y + 3.5, -10), LAB_TRIM, Enum.Material.Metal, false)
+	label(guidePost, "← TRAINING BAY", primary, 38, UDim2.fromOffset(190, 38), Vector3.new(0, 2.6, 0))
+
 	-- Trainings-Bett (Vertrag mit TrainingZoneService): Model + Hitbox-Part.
+	-- Hitbox deckt die Bay ab -> Spieler trainiert, waehrend er in der Bay
+	-- steht (Side-Bay-Verhalten). Attribute UNVERAENDERT.
 	local bedModel = Instance.new("Model")
 	bedModel.Name = bedDef.id
 	bedModel.Parent = bedsFolder
-	local hitbox = makePart(bedModel, "Hitbox", Vector3.new(60, 8, 78), Vector3.new(x, FLOOR_Y + 4, FLOOR_CENTER_Z), primary, Enum.Material.SmoothPlastic, false)
+	local hitbox = makePart(bedModel, "Hitbox", Vector3.new(bayWidthX - 6, 8, bayDepthZ - 4), Vector3.new(x, FLOOR_Y + 4, bayZ), primary, Enum.Material.SmoothPlastic, false)
 	hitbox.Transparency = 1
 	hitbox.CanCollide = false
 	hitbox.CanTouch = false
@@ -912,28 +1144,70 @@ end
 
 -- ---- Egg-Catch-Station ----------------------------------------------------
 
+-- Egg-Catch-Station als Labor-Inkubator (Side-Bay). Seltenheit bestimmt die
+-- Staerke des Containments: Common = einfache Probe, Rare = bessere Glas-
+-- Kammer, Epic = schwere Containment-Kapsel. Vertrag UNVERAENDERT:
+-- Model-Attribute (AreaIndex/EggTier/EggCost) + ClickDetector "OpenEgg".
 local function buildEggStation(parent, areaIndex, stationIndex, eggDef, pos)
 	local model = Instance.new("Model")
 	model.Name = string.format("Egg_A%d_%s", areaIndex, eggDef.tier)
 	model.Parent = parent
 
+	local tier = eggDef.tier
+	local accent = eggDef.color
+
+	-- Eigener Inkubator-Sockel + Rueckpaneel (markiert die Side-Bay).
+	local bayPad = makePart(model, "IncubatorBayPad", Vector3.new(15, 0.4, 15), pos + Vector3.new(0, -0.2, 0), tint(LAB_PANEL, accent, 0.12), Enum.Material.SmoothPlastic, true)
+	bayPad.Transparency = 0.05
+	makePart(model, "IncubatorBayEdge", Vector3.new(15.4, 0.1, 15.4), pos + Vector3.new(0, 0.05, 0), accent:Lerp(LAB_DARK, 0.5), Enum.Material.SmoothPlastic, false).Transparency = 0.4
+	local backPanel = makePart(model, "IncubatorBackPanel", Vector3.new(13, 11, 0.5), pos + Vector3.new(0, 6, 7), Color3.fromRGB(40, 45, 46), Enum.Material.Metal, false)
+	label(backPanel, string.format("%s INCUBATOR", string.upper(tier)), accent:Lerp(Color3.fromRGB(225, 230, 222), 0.5), 30, UDim2.fromOffset(150, 36), Vector3.new(0, 3.6, 0))
+
 	local base = makePart(model, "EggBase", Vector3.new(12, 1.2, 12), pos, LAB_DARK, Enum.Material.Metal, true)
 	base.Shape = Enum.PartType.Cylinder
 	base.Orientation = Vector3.new(0, 0, 90)
 
-	local ring = makePart(model, "EggRing", Vector3.new(12.6, 0.5, 12.6), pos + Vector3.new(0, 0.8, 0), eggDef.color:Lerp(LAB_TRIM, 0.45), Enum.Material.SmoothPlastic, false)
+	local ring = makePart(model, "EggRing", Vector3.new(12.6, 0.5, 12.6), pos + Vector3.new(0, 0.8, 0), accent:Lerp(LAB_TRIM, 0.45), Enum.Material.SmoothPlastic, false)
 	ring.Shape = Enum.PartType.Cylinder
 	ring.Orientation = Vector3.new(0, 0, 90)
 	ring.Transparency = 0.38
 
-	-- Ei / Kapsel in der Mitte.
-	local capsule = makePart(model, "EggCapsule", Vector3.new(5, 6.5, 5), pos + Vector3.new(0, 4.5, 0), eggDef.color, Enum.Material.SmoothPlastic, false)
+	-- Glas-Inkubationskammer um die Probe (Staerke je nach Seltenheit).
+	local glassTransparency = if tier == "Common" then 0.74 elseif tier == "Rare" then 0.66 else 0.58
+	local chamber = makePart(model, "IncubationGlass", Vector3.new(7, 9, 7), pos + Vector3.new(0, 5, 0), tint(accent, LAB_WHITE, 0.55), Enum.Material.Glass, false)
+	chamber.Shape = Enum.PartType.Cylinder
+	chamber.Orientation = Vector3.new(0, 0, 90)
+	chamber.Transparency = glassTransparency
+	makePart(model, "IncubationCapBottom", Vector3.new(8, 0.7, 8), pos + Vector3.new(0, 0.9, 0), LAB_TRIM, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
+	makePart(model, "IncubationCapTop", Vector3.new(8, 0.7, 8), pos + Vector3.new(0, 9.1, 0), LAB_DARK, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
+
+	-- Rare/Epic: zusaetzliche Containment-Streben.
+	if tier ~= "Common" then
+		local posts = if tier == "Rare" then 2 else 4
+		for i = 0, posts - 1 do
+			local a = i * (2 * math.pi / posts) + math.pi / 4
+			makePart(model, "ContainmentStrut", Vector3.new(0.55, 9.5, 0.55), pos + Vector3.new(math.cos(a) * 4.4, 5, math.sin(a) * 4.4), LAB_DARK, Enum.Material.Metal, false)
+		end
+	end
+	if tier == "Epic" then
+		makePart(model, "EpicContainmentCage", Vector3.new(9.4, 0.5, 9.4), pos + Vector3.new(0, 5, 0), accent:Lerp(LAB_DARK, 0.4), Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
+		makePart(model, "EpicStatusLight", Vector3.new(1, 1, 1), pos + Vector3.new(0, 10, 0), LAB_WARNING_RED, Enum.Material.Neon, false).Shape = Enum.PartType.Ball
+	else
+		makePart(model, "IncubatorStatusLight", Vector3.new(0.9, 0.9, 0.3), pos + Vector3.new(4.6, 2.4, 4.6), LAB_GREEN, Enum.Material.Neon, false).Shape = Enum.PartType.Ball
+	end
+
+	-- Kleines Kontroll-Terminal an der Seite.
+	local terminal = makePart(model, "IncubatorTerminal", Vector3.new(3, 3.4, 2), pos + Vector3.new(6.5, 1.7, 0), Color3.fromRGB(44, 50, 52), Enum.Material.Metal, false)
+	makePart(model, "IncubatorTerminalScreen", Vector3.new(0.3, 2, 1.5), terminal.Position + Vector3.new(-1.6, 0.6, 0), accent, Enum.Material.SmoothPlastic, false).Transparency = 0.2
+
+	-- Ei / Kapsel in der Mitte (Klick-Ziel; Vertrag unveraendert).
+	local capsule = makePart(model, "EggCapsule", Vector3.new(5, 6.5, 5), pos + Vector3.new(0, 4.5, 0), accent, Enum.Material.SmoothPlastic, false)
 	capsule.Shape = Enum.PartType.Ball
 	capsule.Transparency = 0.1
 	local glow = Instance.new("PointLight")
 	glow.Brightness = 0.45
 	glow.Range = 9
-	glow.Color = eggDef.color:Lerp(Color3.fromRGB(210, 220, 216), 0.55)
+	glow.Color = accent:Lerp(Color3.fromRGB(210, 220, 216), 0.55)
 	glow.Parent = capsule
 
 	-- Egg-Daten + Klick-Hook (EggCatchService verbindet "OpenEgg").
@@ -948,7 +1222,7 @@ local function buildEggStation(parent, areaIndex, stationIndex, eggDef, pos)
 	label(
 		capsule,
 		string.format("%s EGG\nCost: %s DNA", string.upper(eggDef.tier), NumberFormatter.format(eggDef.cost)),
-		eggDef.color,
+		accent,
 		40,
 		UDim2.fromOffset(200, 70),
 		Vector3.new(0, 5.5, 0)
@@ -1052,6 +1326,125 @@ local function addCeilingConduits(parent, cx)
 	end
 end
 
+-- ---- Hero-Objekt: Virus-Statue (Spawn-Landmarke) -------------------------
+-- Eine grosse, kontrollierte Virus-Probe in einer Glas-Containment-Kuppel
+-- auf dunklem Stufensockel mit Metallrahmen. Bewusst clean + leicht
+-- bedrohlich (Resident-Evil-Biohazard-Look), kein Disco-Neon. Dient als
+-- klarer Mittelpunkt/Orientierung im Spawn, blockiert keinen Laufweg.
+local function buildVirusStatue(parent, center: Vector3, accent: Color3)
+	local model = Instance.new("Model")
+	model.Name = "VirusStatue"
+	model.Parent = parent
+
+	local cx, cz = center.X, center.Z
+
+	-- Runde Plattform + Gefahren-Ring.
+	local plat = makePart(model, "StatuePlatform", Vector3.new(2, 42, 42), Vector3.new(cx, FLOOR_Y + 0.25, cz), LAB_DARK, Enum.Material.Metal, true)
+	plat.Shape = Enum.PartType.Cylinder
+	plat.Orientation = Vector3.new(0, 0, 90)
+	local hazardRing = makePart(model, "StatueHazardRing", Vector3.new(0.4, 43, 43), Vector3.new(cx, FLOOR_Y + 0.55, cz), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false)
+	hazardRing.Shape = Enum.PartType.Cylinder
+	hazardRing.Orientation = Vector3.new(0, 0, 90)
+	hazardRing.Transparency = 0.45
+	makePart(model, "StatuePlatformInlay", Vector3.new(0.6, 30, 30), Vector3.new(cx, FLOOR_Y + 0.6, cz), tint(LAB_PANEL, accent, 0.2), Enum.Material.SmoothPlastic, false).Shape = Enum.PartType.Cylinder
+
+	-- Dunkler Stufensockel.
+	local tiers = { { 26, 1.8 }, { 21, 1.6 }, { 16, 1.4 } }
+	local y = FLOOR_Y + 0.5
+	for i, t in ipairs(tiers) do
+		y += t[2] / 2
+		local tier = makePart(model, "StatuePedestal" .. i, Vector3.new(t[2], t[1], t[1]), Vector3.new(cx, y, cz), if i == 2 then LAB_TRIM else LAB_DARK, Enum.Material.Metal, true)
+		tier.Shape = Enum.PartType.Cylinder
+		tier.Orientation = Vector3.new(0, 0, 90)
+		y += t[2] / 2
+	end
+	local pedTop = y
+	-- Vier gruene Status-Lichter am Sockel.
+	for i = 0, 3 do
+		local a = i * math.pi / 2 + math.pi / 4
+		local lx = cx + math.cos(a) * 9
+		local lz = cz + math.sin(a) * 9
+		makePart(model, "StatusLightGreen", Vector3.new(0.9, 0.9, 0.9), Vector3.new(lx, pedTop + 0.2, lz), LAB_GREEN, Enum.Material.Neon, false).Shape = Enum.PartType.Ball
+	end
+
+	-- Glas-Containment-Kuppel + Rahmen.
+	local domeY = pedTop + 12
+	local glassBaseRing = makePart(model, "DomeBaseRing", Vector3.new(1.4, 24, 24), Vector3.new(cx, pedTop + 0.7, cz), LAB_DARK, Enum.Material.Metal, true)
+	glassBaseRing.Shape = Enum.PartType.Cylinder
+	glassBaseRing.Orientation = Vector3.new(0, 0, 90)
+	local dome = makePart(model, "ContainmentDome", Vector3.new(22, 26, 22), Vector3.new(cx, domeY, cz), tint(LAB_CYAN, Color3.fromRGB(210, 224, 220), 0.5), Enum.Material.Glass, false)
+	dome.Shape = Enum.PartType.Ball
+	dome.Transparency = 0.74
+	for i = 0, 3 do
+		local a = i * math.pi / 2
+		local sx = cx + math.cos(a) * 11
+		local sz = cz + math.sin(a) * 11
+		makePart(model, "DomeStrut", Vector3.new(0.7, 25, 0.7), Vector3.new(sx, pedTop + 12, sz), LAB_TRIM, Enum.Material.Metal, true)
+	end
+	local topRing = makePart(model, "DomeTopRing", Vector3.new(1.4, 7, 7), Vector3.new(cx, pedTop + 24.5, cz), LAB_DARK, Enum.Material.Metal, true)
+	topRing.Shape = Enum.PartType.Cylinder
+	topRing.Orientation = Vector3.new(0, 0, 90)
+	makePart(model, "DomeStatusLamp", Vector3.new(1, 1, 1), Vector3.new(cx, pedTop + 25.6, cz), LAB_GREEN, Enum.Material.Neon, false).Shape = Enum.PartType.Ball
+
+	-- Die Virus-Probe: Kapsid + Spike-Proteine + leuchtender Kern.
+	local virusY = domeY
+	local shell = makePart(model, "VirusCapsid", Vector3.new(8.4, 8.4, 8.4), Vector3.new(cx, virusY, cz), tint(accent, LAB_OLIVE, 0.35), Enum.Material.Glass, false)
+	shell.Shape = Enum.PartType.Ball
+	shell.Transparency = 0.34
+	local coreBall = makePart(model, "VirusInnerCore", Vector3.new(4.6, 4.6, 4.6), Vector3.new(cx, virusY, cz), tint(accent, Color3.fromRGB(225, 235, 220), 0.25), Enum.Material.Neon, false)
+	coreBall.Shape = Enum.PartType.Ball
+	coreBall.Transparency = 0.15
+	local vlight = Instance.new("PointLight")
+	vlight.Brightness = 0.7
+	vlight.Range = 18
+	vlight.Color = tint(accent, Color3.fromRGB(210, 230, 210), 0.5)
+	vlight.Parent = coreBall
+
+	-- Spike-Proteine (ikosaedrisch verteilt, Stiel + Knopf).
+	local dirs = {
+		Vector3.new(0, 1, 0), Vector3.new(0, -1, 0),
+		Vector3.new(1, 0.5, 0), Vector3.new(-1, 0.5, 0),
+		Vector3.new(0, 0.5, 1), Vector3.new(0, 0.5, -1),
+		Vector3.new(1, -0.4, 1), Vector3.new(-1, -0.4, 1),
+		Vector3.new(1, -0.4, -1), Vector3.new(-1, -0.4, -1),
+		Vector3.new(0.8, 0.9, 0.8), Vector3.new(-0.8, 0.9, -0.8),
+		Vector3.new(0.8, 0.9, -0.8), Vector3.new(-0.8, 0.9, 0.8),
+		Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0),
+		Vector3.new(0, 0, 1), Vector3.new(0, 0, -1),
+	}
+	for _, d in ipairs(dirs) do
+		local u = d.Unit
+		local stalkPos = Vector3.new(cx, virusY, cz) + u * 5.4
+		local stalk = makePart(model, "VirusSpike", Vector3.new(0.6, 3.2, 0.6), stalkPos, tint(accent, LAB_TRIM, 0.3), Enum.Material.SmoothPlastic, false)
+		-- Up-Vektor wechseln, falls Richtung ~ senkrecht (sonst NaN-CFrame).
+		local up = if math.abs(u.Y) > 0.99 then Vector3.new(0, 0, 1) else Vector3.new(0, 1, 0)
+		stalk.CFrame = CFrame.lookAt(stalkPos, stalkPos + u, up) * CFrame.Angles(math.rad(90), 0, 0)
+		local knob = makePart(model, "VirusSpikeTip", Vector3.new(1.5, 1.5, 1.5), Vector3.new(cx, virusY, cz) + u * 7.2, tint(accent, Color3.fromRGB(220, 228, 218), 0.4), Enum.Material.SmoothPlastic, false)
+		knob.Shape = Enum.PartType.Ball
+	end
+
+	-- Sehr dezente "lebende Probe"-Partikel (kein Spam).
+	local spore = Instance.new("ParticleEmitter")
+	spore.Name = "SpecimenSpores"
+	spore.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	spore.Color = ColorSequence.new(tint(accent, LAB_OLIVE, 0.3), accent)
+	spore.LightEmission = 0.1
+	spore.Rate = 1.5
+	spore.Lifetime = NumberRange.new(1.4, 2.2)
+	spore.Speed = NumberRange.new(0.4, 1)
+	spore.SpreadAngle = Vector2.new(40, 40)
+	spore.Size = NumberSequence.new(0.3, 0.04)
+	spore.Parent = coreBall
+
+	-- Biohazard-Plakette auf Standfuss (Richtung Laufweg/Spieler, +Z).
+	local plaqueZ = cz + 23
+	makePart(model, "PlaqueStand", Vector3.new(1.4, 5, 1.4), Vector3.new(cx, FLOOR_Y + 2.5, plaqueZ), LAB_DARK, Enum.Material.Metal, true)
+	local plaque = makePart(model, "StatuePlaque", Vector3.new(14, 4.6, 0.5), Vector3.new(cx, FLOOR_Y + 6.6, plaqueZ), Color3.fromRGB(34, 38, 38), Enum.Material.Metal, false)
+	label(plaque, "SPECIMEN VIRUS-01\n⚠ BIOHAZARD — CONTAINED", tint(accent, Color3.fromRGB(220, 230, 210), 0.45), 60, UDim2.fromOffset(240, 60), Vector3.new(0, 0, 0))
+
+	return model
+end
+
 -- ---- Spawn Lab ------------------------------------------------------------
 
 local function buildSpawnLab(parent, bedsFolder)
@@ -1086,64 +1479,9 @@ local function buildSpawnLab(parent, bedsFolder)
 	spawnLoc.TopSurface = Enum.SurfaceType.Smooth
 	spawnLoc.Parent = model
 
-	-- Zentraler DNA-Core (Deko).
-	local reactorPad = makePart(model, "ReactorFloorPad", Vector3.new(30, 0.35, 30), Vector3.new(cx, FLOOR_Y + 0.18, -45), LAB_DARK, Enum.Material.Metal, true)
-	reactorPad.Shape = Enum.PartType.Cylinder
-	reactorPad.Orientation = Vector3.new(0, 0, 90)
-	local reactorGlow = makePart(model, "ReactorGlowRing", Vector3.new(31, 0.18, 31), Vector3.new(cx, FLOOR_Y + 0.48, -45), LAB_CYAN, Enum.Material.SmoothPlastic, false)
-	reactorGlow.Shape = Enum.PartType.Cylinder
-	reactorGlow.Orientation = Vector3.new(0, 0, 90)
-	reactorGlow.Transparency = 0.62
-	local coreBase = makePart(model, "DNACoreBase", Vector3.new(18, 1.4, 18), Vector3.new(cx, FLOOR_Y + 0.7, -45), LAB_PANEL, Enum.Material.Metal, true)
-	coreBase.Shape = Enum.PartType.Cylinder
-	coreBase.Orientation = Vector3.new(0, 0, 90)
-	local coreBaseTrim = makePart(model, "DNACoreBaseTrim", Vector3.new(19.2, 0.45, 19.2), Vector3.new(cx, FLOOR_Y + 1.55, -45), LAB_DARK, Enum.Material.Metal, true)
-	coreBaseTrim.Shape = Enum.PartType.Cylinder
-	coreBaseTrim.Orientation = Vector3.new(0, 0, 90)
-	local glass = makePart(model, "DNACoreGlass", Vector3.new(10, 16, 10), Vector3.new(cx, FLOOR_Y + 9, -45), Color3.fromRGB(158, 198, 176), Enum.Material.Glass, false)
-	glass.Shape = Enum.PartType.Cylinder
-	glass.Transparency = 0.6
-	local coreTop = makePart(model, "DNACoreTopCap", Vector3.new(12, 1.2, 12), Vector3.new(cx, FLOOR_Y + 17.4, -45), LAB_DARK, Enum.Material.Metal, true)
-	coreTop.Shape = Enum.PartType.Cylinder
-	coreTop.Orientation = Vector3.new(0, 0, 90)
-	neonStrip(model, Vector3.new(7.5, 0.35, 0.35), Vector3.new(cx, FLOOR_Y + 17.95, -45), Color3.fromRGB(120, 245, 255), 0.15)
-	for _, ox in ipairs({ -2.2, 2.2 }) do
-		neonStrip(model, Vector3.new(0.35, 13.5, 0.35), Vector3.new(cx + ox, FLOOR_Y + 9, -45), LAB_CYAN, 0.78)
-	end
-	for i = 0, 12 do
-		local angle = i * math.pi / 3
-		local y = FLOOR_Y + 3 + i * 1.05
-		local x1 = cx + math.cos(angle) * 3.2
-		local z1 = -45 + math.sin(angle) * 3.2
-		local x2 = cx - math.cos(angle) * 3.2
-		local z2 = -45 - math.sin(angle) * 3.2
-		local n1 = makePart(model, "DNAHelixNode", Vector3.new(0.9, 0.9, 0.9), Vector3.new(x1, y, z1), LAB_CYAN, Enum.Material.SmoothPlastic, false)
-		n1.Shape = Enum.PartType.Ball
-		local n2 = makePart(model, "DNAHelixNode", Vector3.new(0.9, 0.9, 0.9), Vector3.new(x2, y, z2), LAB_GREEN, Enum.Material.SmoothPlastic, false)
-		n2.Shape = Enum.PartType.Ball
-		local rung = makePart(model, "DNAHelixRung", Vector3.new(6.4, 0.18, 0.18), Vector3.new(cx, y, -45), Color3.fromRGB(190, 205, 200), Enum.Material.SmoothPlastic, false)
-		rung.Orientation = Vector3.new(0, math.deg(-angle), 0)
-		rung.Transparency = 0.15
-	end
-	local core = makePart(model, "DNACore", Vector3.new(5, 5, 5), Vector3.new(cx, FLOOR_Y + 9, -45), LAB_GREEN, Enum.Material.Glass, false)
-	core.Shape = Enum.PartType.Ball
-	local coreLight = Instance.new("PointLight")
-	coreLight.Brightness = 0.8
-	coreLight.Range = 20
-	coreLight.Color = Color3.fromRGB(184, 214, 202)
-	coreLight.Parent = core
-	local particles = Instance.new("ParticleEmitter")
-	particles.Name = "ReactorSparkles"
-	particles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-	particles.Color = ColorSequence.new(LAB_CYAN, LAB_GREEN)
-	particles.LightEmission = 0.12
-	particles.Rate = 2
-	particles.Lifetime = NumberRange.new(1.1, 1.8)
-	particles.Speed = NumberRange.new(0.8, 1.6)
-	particles.SpreadAngle = Vector2.new(35, 35)
-	particles.Size = NumberSequence.new(0.35, 0.05)
-	particles.Parent = core
-	label(core, "DNA CORE", Color3.fromRGB(255, 255, 255), 50, UDim2.fromOffset(180, 44), Vector3.new(0, 6, 0))
+	-- Hero-Objekt: zentrale Virus-Statue als Spawn-Landmarke (off-path, -Z).
+	local heroFolder = makeFolder("HeroObjects", parent)
+	buildVirusStatue(heroFolder, Vector3.new(cx, FLOOR_Y, -45), Color3.fromRGB(108, 196, 134))
 
 	-- Einfache Glas-Zellen als Labor-Deko.
 	for i, dz in ipairs({ -1, 1 }) do
