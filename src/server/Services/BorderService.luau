@@ -11,6 +11,7 @@
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local ShowPopup = Remotes:WaitForChild("ShowPopup") :: RemoteEvent
@@ -22,6 +23,8 @@ local BorderService = {}
 
 local DataService
 local lastBlock: { [Player]: number } = {}
+local barrierGuards: { BasePart } = {}
+local guardAccum = 0
 
 local function findPlayerFromPart(part: BasePart): Player?
 	local model = part:FindFirstAncestorOfClass("Model")
@@ -43,21 +46,7 @@ local function pushBack(player: Player, barrier: BasePart)
 	hrp.CFrame = CFrame.new(backX, barrier.Position.Y + 2, z)
 end
 
-local function onBarrierTouched(barrier: BasePart, otherPart: BasePart)
-	local player = findPlayerFromPart(otherPart)
-	if not player then
-		return
-	end
-	local now = os.clock()
-	if lastBlock[player] and now - lastBlock[player] < 1.25 then
-		return
-	end
-
-	local profile = DataService.getProfile(player)
-	if not profile then
-		return
-	end
-
+local function getRequirements(barrier: BasePart): (number, number)
 	local requiredDna = barrier:GetAttribute("RequiredDNA")
 	local requiredRebirth = barrier:GetAttribute("RequiredRebirth")
 	if type(requiredDna) ~= "number" then
@@ -66,22 +55,73 @@ local function onBarrierTouched(barrier: BasePart, otherPart: BasePart)
 	if type(requiredRebirth) ~= "number" then
 		requiredRebirth = 0
 	end
+	return requiredDna, requiredRebirth
+end
 
+local function hasAccess(profile, requiredDna: number, requiredRebirth: number): boolean
+	return profile.Rebirths >= requiredRebirth and profile.DnaCoins >= requiredDna
+end
+
+local function blockPlayer(player: Player, profile, barrier: BasePart, requiredDna: number, requiredRebirth: number)
+	local now = os.clock()
+	local shouldNotify = not lastBlock[player] or now - lastBlock[player] >= 1.25
+	if shouldNotify then
+		lastBlock[player] = now
+	end
 	if profile.Rebirths < requiredRebirth then
-		lastBlock[player] = now
-		ShowPopup:FireClient(player, string.format("🔒 Requires Rebirth %d!", requiredRebirth))
-		pushBack(player, barrier)
-	elseif profile.DnaCoins < requiredDna then
-		lastBlock[player] = now
+		if shouldNotify then
+			ShowPopup:FireClient(player, string.format("🔒 Requires Rebirth %d!", requiredRebirth))
+		end
+	else
 		local missing = requiredDna - profile.DnaCoins
-		ShowPopup:FireClient(player, string.format(
-			"🔒 Need %s DNA to pass! (%s more)",
-			NumberFormatter.format(requiredDna),
-			NumberFormatter.format(missing)
-		))
-		pushBack(player, barrier)
+		if shouldNotify then
+			ShowPopup:FireClient(player, string.format(
+				"🔒 Need %s DNA to pass! (%s more)",
+				NumberFormatter.format(requiredDna),
+				NumberFormatter.format(missing)
+			))
+		end
+	end
+	pushBack(player, barrier)
+end
+
+local function onBarrierTouched(barrier: BasePart, otherPart: BasePart)
+	local player = findPlayerFromPart(otherPart)
+	if not player then
+		return
+	end
+
+	local profile = DataService.getProfile(player)
+	if not profile then
+		return
+	end
+
+	local requiredDna, requiredRebirth = getRequirements(barrier)
+	if not hasAccess(profile, requiredDna, requiredRebirth) then
+		blockPlayer(player, profile, barrier, requiredDna, requiredRebirth)
 	end
 	-- Anforderung erfuellt -> Spieler darf ungehindert durchlaufen.
+end
+
+local function guardLockedAreas()
+	for _, player in ipairs(Players:GetPlayers()) do
+		local profile = DataService.getProfile(player)
+		local char = player.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if not profile or not hrp then
+			continue
+		end
+		for _, barrier in ipairs(barrierGuards) do
+			if not barrier.Parent then
+				continue
+			end
+			local requiredDna, requiredRebirth = getRequirements(barrier)
+			if hrp.Position.X > barrier.Position.X + 6 and not hasAccess(profile, requiredDna, requiredRebirth) then
+				blockPlayer(player, profile, barrier, requiredDna, requiredRebirth)
+				break
+			end
+		end
+	end
 end
 
 local function bindFolder(folderName: string)
@@ -91,6 +131,7 @@ local function bindFolder(folderName: string)
 	end
 	for _, desc in ipairs(folder:GetDescendants()) do
 		if desc:IsA("BasePart") and desc:GetAttribute("RequiredDNA") ~= nil then
+			table.insert(barrierGuards, desc)
 			desc.Touched:Connect(function(other)
 				onBarrierTouched(desc, other)
 			end)
@@ -103,6 +144,18 @@ function BorderService.start(deps)
 
 	bindFolder("EnemyBorders")
 	bindFolder("AreaGates")
+	table.sort(barrierGuards, function(a, b)
+		return a.Position.X < b.Position.X
+	end)
+
+	RunService.Heartbeat:Connect(function(dt)
+		guardAccum += dt
+		if guardAccum < 0.5 then
+			return
+		end
+		guardAccum = 0
+		guardLockedAreas()
+	end)
 
 	Players.PlayerRemoving:Connect(function(player)
 		lastBlock[player] = nil

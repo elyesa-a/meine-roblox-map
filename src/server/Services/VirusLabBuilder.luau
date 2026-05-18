@@ -50,6 +50,7 @@ local CORRIDOR_MIN_Z = -85
 local CORRIDOR_MAX_Z = 130 -- inkl. Egg-Catch-Alkoven (+Z Seite)
 local FLOOR_CENTER_Z = (CORRIDOR_MIN_Z + CORRIDOR_MAX_Z) / 2
 local FLOOR_SIZE_Z = CORRIDOR_MAX_Z - CORRIDOR_MIN_Z
+local BARRIER_SIZE_Z = FLOOR_SIZE_Z + 8
 
 -- ---- kleine Helfer --------------------------------------------------------
 
@@ -385,19 +386,18 @@ local function buildBorder(parent, def, x, primary)
 
 	-- Schmale Labor-Sicherheitsbarriere (Glas/Neon), nicht riesig.
 	local height = 15
-	local zHalf = 72
-	for _, side in ipairs({ -1, 1 }) do
-		makePart(model, "BorderPillar", Vector3.new(2, height + 4, 2), Vector3.new(x, FLOOR_Y + (height + 4) / 2, side * zHalf), LAB_TRIM, Enum.Material.Metal, true)
+	for _, z in ipairs({ CORRIDOR_MIN_Z - 2, CORRIDOR_MAX_Z + 2 }) do
+		makePart(model, "BorderPillar", Vector3.new(2, height + 4, 2), Vector3.new(x, FLOOR_Y + (height + 4) / 2, z), LAB_TRIM, Enum.Material.Metal, true)
 	end
-	makePart(model, "BorderBeam", Vector3.new(2.4, 2, zHalf * 2 + 4), Vector3.new(x, FLOOR_Y + height + 3, 0), LAB_TRIM, Enum.Material.Metal, true)
+	makePart(model, "BorderBeam", Vector3.new(2.4, 2, BARRIER_SIZE_Z), Vector3.new(x, FLOOR_Y + height + 3, FLOOR_CENTER_Z), LAB_TRIM, Enum.Material.Metal, true)
 
 	-- Glas-/Neon-Wand = Trigger (CanCollide=false, BorderService prueft DNA).
-	local wall = makePart(model, "BorderField", Vector3.new(1.2, height, zHalf * 2), Vector3.new(x, FLOOR_Y + height / 2 + 0.5, 0), ACCESS_LOCKED, Enum.Material.ForceField, false)
+	local wall = makePart(model, "BorderField", Vector3.new(1.2, height, BARRIER_SIZE_Z), Vector3.new(x, FLOOR_Y + height / 2 + 0.5, FLOOR_CENTER_Z), ACCESS_LOCKED, Enum.Material.ForceField, false)
 	wall.Transparency = 0.45
 	wall.CanTouch = true
 	wall:SetAttribute("RequiredDNA", def.RequiredDNA)
 
-	local sign = makePart(model, "BorderSign", Vector3.new(12, 4, 0.6), Vector3.new(x, FLOOR_Y + height + 4, 0), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	local sign = makePart(model, "BorderSign", Vector3.new(12, 4, 0.6), Vector3.new(x, FLOOR_Y + height + 4, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.SmoothPlastic, false)
 	label(
 		sign,
 		string.format("⚠ DNA GATE\nRequired: %s DNA", NumberFormatter.format(def.RequiredDNA)),
@@ -418,17 +418,17 @@ local function buildGate(parent, area, x, requiredDna)
 
 	local primary = if area.index == 1 then ACCESS_UNLOCKED else ACCESS_LOCKED
 	local height = 22
-	local zHalf = 74
 
 	-- Zwei seitliche Saeulen + oberer Balken.
-	for _, side in ipairs({ -1, 1 }) do
-		local col = makePart(model, "GatePillar", Vector3.new(6, height, 6), Vector3.new(x, FLOOR_Y + height / 2, side * zHalf), LAB_WHITE, Enum.Material.Metal, true)
-		neonStrip(model, Vector3.new(0.6, height - 4, 0.6), col.Position + Vector3.new(0, 0, -3.2), primary, 0.3)
+	for _, z in ipairs({ CORRIDOR_MIN_Z - 3, CORRIDOR_MAX_Z + 3 }) do
+		local col = makePart(model, "GatePillar", Vector3.new(6, height, 6), Vector3.new(x, FLOOR_Y + height / 2, z), LAB_WHITE, Enum.Material.Metal, true)
+		local inwardZ = if z < FLOOR_CENTER_Z then 3.2 else -3.2
+		neonStrip(model, Vector3.new(0.6, height - 4, 0.6), col.Position + Vector3.new(0, 0, inwardZ), primary, 0.3)
 	end
-	makePart(model, "GateTopBeam", Vector3.new(8, 6, zHalf * 2 + 12), Vector3.new(x, FLOOR_Y + height + 2, 0), LAB_WHITE, Enum.Material.Metal, true)
+	makePart(model, "GateTopBeam", Vector3.new(8, 6, BARRIER_SIZE_Z + 8), Vector3.new(x, FLOOR_Y + height + 2, FLOOR_CENTER_Z), LAB_WHITE, Enum.Material.Metal, true)
 
 	-- Glas-Schleuse als Trigger.
-	local field = makePart(model, "GateField", Vector3.new(1.6, height - 2, zHalf * 2), Vector3.new(x, FLOOR_Y + (height - 2) / 2 + 0.5, 0), primary, Enum.Material.ForceField, false)
+	local field = makePart(model, "GateField", Vector3.new(1.6, height - 2, BARRIER_SIZE_Z), Vector3.new(x, FLOOR_Y + (height - 2) / 2 + 0.5, FLOOR_CENTER_Z), primary, Enum.Material.ForceField, false)
 	field.Transparency = 0.5
 	field.CanTouch = true
 	field:SetAttribute("RequiredDNA", requiredDna)
@@ -436,11 +436,11 @@ local function buildGate(parent, area, x, requiredDna)
 	field:SetAttribute("AreaName", area.displayName)
 
 	-- Kleines Kontrollpanel.
-	local panel = makePart(model, "GateControlPanel", Vector3.new(6, 7, 1), Vector3.new(x - 3, FLOOR_Y + 5, -zHalf + 6), LAB_DARK, Enum.Material.Metal, true)
+	local panel = makePart(model, "GateControlPanel", Vector3.new(6, 7, 1), Vector3.new(x - 3, FLOOR_Y + 5, CORRIDOR_MIN_Z + 8), LAB_DARK, Enum.Material.Metal, true)
 	neonStrip(model, Vector3.new(4.4, 4.4, 0.3), panel.Position + Vector3.new(0, 0.4, -0.7), primary, 0.25)
 
 	-- Beschriftung.
-	local sign = makePart(model, "GateSign", Vector3.new(20, 7, 0.7), Vector3.new(x, FLOOR_Y + height + 7, 0), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	local sign = makePart(model, "GateSign", Vector3.new(20, 7, 0.7), Vector3.new(x, FLOOR_Y + height + 7, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.SmoothPlastic, false)
 	label(
 		sign,
 		string.format(
@@ -518,19 +518,18 @@ local function buildTrainingArea(parent, bedsFolder, gatesFolder, area, x)
 		local gm = Instance.new("Model")
 		gm.Name = "TrainingGate_" .. area.id
 		gm.Parent = gatesFolder
-		local zHalf = 74
-		for _, side in ipairs({ -1, 1 }) do
-			makePart(gm, "TGatePillar", Vector3.new(5, 20, 5), Vector3.new(gateX, FLOOR_Y + 10, side * zHalf), LAB_WHITE, Enum.Material.Metal, true)
+		for _, z in ipairs({ CORRIDOR_MIN_Z - 3, CORRIDOR_MAX_Z + 3 }) do
+			makePart(gm, "TGatePillar", Vector3.new(5, 20, 5), Vector3.new(gateX, FLOOR_Y + 10, z), LAB_WHITE, Enum.Material.Metal, true)
 		end
-		makePart(gm, "TGateBeam", Vector3.new(6, 5, zHalf * 2 + 10), Vector3.new(gateX, FLOOR_Y + 21, 0), LAB_WHITE, Enum.Material.Metal, true)
-		local field = makePart(gm, "TrainingGateField", Vector3.new(1.6, 18, zHalf * 2), Vector3.new(gateX, FLOOR_Y + 9.5, 0), Color3.fromRGB(255, 170, 90), Enum.Material.ForceField, false)
+		makePart(gm, "TGateBeam", Vector3.new(6, 5, BARRIER_SIZE_Z + 8), Vector3.new(gateX, FLOOR_Y + 21, FLOOR_CENTER_Z), LAB_WHITE, Enum.Material.Metal, true)
+		local field = makePart(gm, "TrainingGateField", Vector3.new(1.6, 18, BARRIER_SIZE_Z), Vector3.new(gateX, FLOOR_Y + 9.5, FLOOR_CENTER_Z), Color3.fromRGB(255, 170, 90), Enum.Material.ForceField, false)
 		field.Color = ACCESS_LOCKED
 		field.Transparency = 0.5
 		field.CanTouch = true
 		field:SetAttribute("RequiredDNA", 0)
 		field:SetAttribute("RequiredRebirth", bedDef.requiredRebirth)
 		field:SetAttribute("AreaName", area.displayName .. " Training")
-		local s = makePart(gm, "TGateSign", Vector3.new(18, 6, 0.7), Vector3.new(gateX, FLOOR_Y + 26, 0), LAB_DARK, Enum.Material.SmoothPlastic, false)
+		local s = makePart(gm, "TGateSign", Vector3.new(18, 6, 0.7), Vector3.new(gateX, FLOOR_Y + 26, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.SmoothPlastic, false)
 		label(
 			s,
 			string.format("TRAINING LOCK\nRequires Rebirth %d", bedDef.requiredRebirth),
