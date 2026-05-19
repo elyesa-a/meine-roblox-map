@@ -156,16 +156,7 @@ local function checkLevelUp(profile)
 	end
 end
 
-function StatService.addPower(player: Player, baseAmount: number)
-	if baseAmount <= 0 then
-		return
-	end
-	local profile = DataService.getProfile(player)
-	if not profile then
-		return
-	end
-	local total = baseAmount * StatService.computeMultiplier(player)
-	profile.Power = math.floor(profile.Power + total)
+local function afterPowerChanged(player: Player, profile)
 	local levelBefore = profile.Level
 	checkLevelUp(profile)
 	if DailyQuestService then
@@ -178,6 +169,31 @@ function StatService.addPower(player: Player, baseAmount: number)
 		PlaySound:FireClient(player, "LevelUp")
 	end
 	sendUpdate(player)
+end
+
+function StatService.addPower(player: Player, baseAmount: number)
+	if baseAmount <= 0 then
+		return
+	end
+	local profile = DataService.getProfile(player)
+	if not profile then
+		return
+	end
+	local total = baseAmount * StatService.computeMultiplier(player)
+	profile.Power = math.floor(profile.Power + total)
+	afterPowerChanged(player, profile)
+end
+
+function StatService.addPowerReward(player: Player, amount: number)
+	if amount <= 0 then
+		return
+	end
+	local profile = DataService.getProfile(player)
+	if not profile then
+		return
+	end
+	profile.Power = math.floor(profile.Power + amount)
+	afterPowerChanged(player, profile)
 end
 
 function StatService.start(deps: {

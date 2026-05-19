@@ -228,10 +228,7 @@ local function grantBossBonus(player: Player, state: EnemyState)
 		return
 	end
 	local powerBonus = math.max(100, math.floor(state.def.RequiredPower * 0.025))
-	profile.Power = math.floor(profile.Power + powerBonus)
-	if DailyQuestService then
-		DailyQuestService.recordSet(player, "ReachPower", profile.Power)
-	end
+	StatService.addPowerReward(player, powerBonus)
 	ShowPopup:FireClient(player, "+" .. NumberFormatter.format(powerBonus) .. " Power")
 	if rng:NextNumber() <= 0.18 then
 		local now = os.time()
