@@ -67,12 +67,18 @@ local function updateEnemy(state: EnemyState)
 	if barFill then
 		local maxWidth = barFill:GetAttribute("MaxWidth")
 		local fullCenterX = barFill:GetAttribute("FullCenterX")
-		if type(maxWidth) == "number" and type(fullCenterX) == "number" then
+		if type(maxWidth) == "number" then
+			-- Anker = aktuelle Mitte des HealthBarBack (Geschwister). Dadurch
+			-- bleibt die Leiste korrekt, auch wenn der Gegner sich durch den
+			-- EnemyMovementController bewegt (Model:PivotTo). Stationaer
+			-- identisch zum alten Verhalten (Back-Mitte == FullCenterX).
+			local barBack = state.model:FindFirstChild("HealthBarBack", true) :: BasePart?
+			local centerX = if barBack then barBack.Position.X elseif type(fullCenterX) == "number" then fullCenterX else barFill.Position.X
 			local ratio = math.clamp(state.health / state.def.MaxHealth, 0, 1)
 			local newWidth = math.max(0.05, maxWidth * ratio)
 			local currentSize = barFill.Size
 			barFill.Size = Vector3.new(newWidth, currentSize.Y, currentSize.Z)
-			barFill.Position = Vector3.new(fullCenterX - (maxWidth - newWidth) / 2, barFill.Position.Y, barFill.Position.Z)
+			barFill.Position = Vector3.new(centerX - (maxWidth - newWidth) / 2, barFill.Position.Y, barFill.Position.Z)
 		end
 	end
 	EnemyUpdate:FireAllClients({
