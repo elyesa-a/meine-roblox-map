@@ -30,6 +30,7 @@ type EnemyState = {
 	prompt: ProximityPrompt?,
 	battleOwner: Player?,
 	battleToken: number,
+	battleOrigin: Vector3?,
 	battleHumanoidDiedConn: RBXScriptConnection?,
 }
 
@@ -73,6 +74,31 @@ local function horizontalDistance(a: Vector3, b: Vector3): number
 	local dx = a.X - b.X
 	local dz = a.Z - b.Z
 	return math.sqrt(dx * dx + dz * dz)
+end
+
+local function getHomePosition(state: EnemyState): Vector3
+	local hx = state.model:GetAttribute("HomeX")
+	local hy = state.model:GetAttribute("HomeY")
+	local hz = state.model:GetAttribute("HomeZ")
+	if type(hx) == "number" and type(hy) == "number" and type(hz) == "number" then
+		return Vector3.new(hx, hy, hz)
+	end
+	return state.root.Position
+end
+
+local function getBattleOrigin(state: EnemyState): Vector3
+	return state.battleOrigin or getHomePosition(state)
+end
+
+local function getBattleLeashDistance(state: EnemyState): number
+	return if state.def.IsBoss then EnemyConfig.BossBattleLeashDistance else EnemyConfig.BattleLeashDistance
+end
+
+local function isInsideBattleLeash(state: EnemyState, hrp: BasePart): boolean
+	local origin = getBattleOrigin(state)
+	local leash = getBattleLeashDistance(state)
+	return horizontalDistance(hrp.Position, origin) <= leash
+		and horizontalDistance(state.root.Position, origin) <= leash
 end
 
 local function updateEnemy(state: EnemyState)
@@ -282,6 +308,7 @@ local function endBattle(state: EnemyState, message: string?)
 	end
 	state.battleOwner = nil
 	state.battleToken += 1
+	state.battleOrigin = nil
 	state.model:SetAttribute("BattleChasing", false)
 	if state.battleHumanoidDiedConn then
 		state.battleHumanoidDiedConn:Disconnect()
@@ -313,6 +340,13 @@ local function stepEnemyTowardPlayer(state: EnemyState, player: Player, dt: numb
 	end
 
 	local nextPos = enemyPos + flatDelta.Unit * stepDistance
+	local origin = getBattleOrigin(state)
+	local leash = getBattleLeashDistance(state)
+	local fromOrigin = Vector3.new(nextPos.X - origin.X, 0, nextPos.Z - origin.Z)
+	if fromOrigin.Magnitude > leash then
+		local clamped = fromOrigin.Unit * leash
+		nextPos = Vector3.new(origin.X + clamped.X, nextPos.Y, origin.Z + clamped.Z)
+	end
 	state.model:PivotTo(CFrame.new(nextPos))
 end
 
@@ -330,7 +364,7 @@ local function startEnemyChaseLoop(state: EnemyState, player: Player, token: num
 				endBattle(state)
 				break
 			end
-			if horizontalDistance(hrp.Position, state.root.Position) > EnemyConfig.BattleLeashDistance then
+			if not isInsideBattleLeash(state, hrp) then
 				endBattle(state, "Battle ended: enemy too far away.")
 				break
 			end
@@ -355,7 +389,7 @@ local function startEnemyAttackLoop(state: EnemyState, player: Player, token: nu
 				break
 			end
 			local distance = horizontalDistance(hrp.Position, state.root.Position)
-			if distance > EnemyConfig.BattleLeashDistance then
+			if not isInsideBattleLeash(state, hrp) then
 				endBattle(state, "Battle ended: enemy too far away.")
 				break
 			end
@@ -525,6 +559,7 @@ local function startBattle(player: Player, state: EnemyState)
 
 	state.battleOwner = player
 	state.battleToken += 1
+	state.battleOrigin = getHomePosition(state)
 	battlesByPlayer[player] = state
 	state.model:SetAttribute("BattleChasing", true)
 	setBattlePromptEnabled(state, false)
@@ -562,6 +597,7 @@ local function registerEnemy(model: Model)
 		prompt = prompt,
 		battleOwner = nil,
 		battleToken = 0,
+		battleOrigin = nil,
 		battleHumanoidDiedConn = nil,
 	}
 	statesByModel[model] = state
