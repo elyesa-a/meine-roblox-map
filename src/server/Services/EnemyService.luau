@@ -69,6 +69,12 @@ local function isCloseEnough(player: Player, state: EnemyState, maxDistance: num
 	return (hrp.Position - state.root.Position).Magnitude <= maxDistance
 end
 
+local function horizontalDistance(a: Vector3, b: Vector3): number
+	local dx = a.X - b.X
+	local dz = a.Z - b.Z
+	return math.sqrt(dx * dx + dz * dz)
+end
+
 local function updateEnemy(state: EnemyState)
 	state.model:SetAttribute("CurrentHealth", state.health)
 	state.model:SetAttribute("Alive", state.alive)
@@ -276,6 +282,7 @@ local function endBattle(state: EnemyState, message: string?)
 	end
 	state.battleOwner = nil
 	state.battleToken += 1
+	state.model:SetAttribute("BattleChasing", false)
 	if state.battleHumanoidDiedConn then
 		state.battleHumanoidDiedConn:Disconnect()
 		state.battleHumanoidDiedConn = nil
@@ -284,6 +291,53 @@ local function endBattle(state: EnemyState, message: string?)
 	if message and owner and owner.Parent then
 		ShowPopup:FireClient(owner, message)
 	end
+end
+
+local function stepEnemyTowardPlayer(state: EnemyState, player: Player, dt: number)
+	local hrp = getCharacterRoot(player)
+	if not hrp or not state.model.PrimaryPart then
+		return
+	end
+
+	local enemyPos = state.root.Position
+	local targetPos = hrp.Position
+	local flatDelta = Vector3.new(targetPos.X - enemyPos.X, 0, targetPos.Z - enemyPos.Z)
+	local distance = flatDelta.Magnitude
+	if distance <= EnemyConfig.EnemyAttackRange or distance <= 0.05 then
+		return
+	end
+
+	local stepDistance = math.min(distance - EnemyConfig.EnemyAttackRange, EnemyConfig.EnemyChaseSpeed * dt)
+	if stepDistance <= 0 then
+		return
+	end
+
+	local nextPos = enemyPos + flatDelta.Unit * stepDistance
+	state.model:PivotTo(CFrame.new(nextPos))
+end
+
+local function startEnemyChaseLoop(state: EnemyState, player: Player, token: number)
+	task.spawn(function()
+		while state.alive and state.battleOwner == player and state.battleToken == token do
+			local dt = task.wait(EnemyConfig.EnemyChaseUpdateInterval)
+			if not state.alive or state.battleOwner ~= player or state.battleToken ~= token then
+				break
+			end
+
+			local humanoid = getCharacterHumanoid(player)
+			local hrp = getCharacterRoot(player)
+			if not humanoid or humanoid.Health <= 0 or not hrp then
+				endBattle(state)
+				break
+			end
+			if horizontalDistance(hrp.Position, state.root.Position) > EnemyConfig.BattleLeashDistance then
+				endBattle(state, "Battle ended: enemy too far away.")
+				break
+			end
+
+			stepEnemyTowardPlayer(state, player, dt)
+		end
+	end)
 end
 
 local function startEnemyAttackLoop(state: EnemyState, player: Player, token: number)
@@ -295,13 +349,18 @@ local function startEnemyAttackLoop(state: EnemyState, player: Player, token: nu
 			end
 
 			local humanoid = getCharacterHumanoid(player)
-			if not humanoid or humanoid.Health <= 0 then
+			local hrp = getCharacterRoot(player)
+			if not humanoid or humanoid.Health <= 0 or not hrp then
 				endBattle(state)
 				break
 			end
-			if not isCloseEnough(player, state, EnemyConfig.BattleLeashDistance) then
+			local distance = horizontalDistance(hrp.Position, state.root.Position)
+			if distance > EnemyConfig.BattleLeashDistance then
 				endBattle(state, "Battle ended: enemy too far away.")
 				break
+			end
+			if distance > EnemyConfig.EnemyAttackRange then
+				continue
 			end
 
 			humanoid:TakeDamage(getEnemyAttackDamage(state))
@@ -467,6 +526,7 @@ local function startBattle(player: Player, state: EnemyState)
 	state.battleOwner = player
 	state.battleToken += 1
 	battlesByPlayer[player] = state
+	state.model:SetAttribute("BattleChasing", true)
 	setBattlePromptEnabled(state, false)
 	state.battleHumanoidDiedConn = humanoid.Died:Connect(function()
 		if state.battleOwner == player then
@@ -475,6 +535,7 @@ local function startBattle(player: Player, state: EnemyState)
 	end)
 
 	ShowPopup:FireClient(player, "Battle started!")
+	startEnemyChaseLoop(state, player, state.battleToken)
 	startEnemyAttackLoop(state, player, state.battleToken)
 end
 
@@ -490,6 +551,7 @@ local function registerEnemy(model: Model)
 	end
 	captureOriginalTransparency(model)
 	local prompt = ensureBattlePrompt(root, def)
+	model:SetAttribute("BattleChasing", false)
 	local state: EnemyState = {
 		model = model,
 		root = root,

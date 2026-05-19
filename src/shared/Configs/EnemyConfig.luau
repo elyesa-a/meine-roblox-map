@@ -47,10 +47,13 @@ EnemyConfig.AttackDistance = 18
 EnemyConfig.BossPromptDistance = 10
 EnemyConfig.BattlePromptDistance = 10
 EnemyConfig.BattleLeashDistance = 36
+EnemyConfig.EnemyAttackRange = 9
 EnemyConfig.EnemyAttackCooldownSec = 1.6
 EnemyConfig.EnemyAttackDamageBase = 3
 EnemyConfig.EnemyAttackDamagePerArea = 1
 EnemyConfig.EnemyBossDamageMultiplier = 1.5
+EnemyConfig.EnemyChaseSpeed = 11
+EnemyConfig.EnemyChaseUpdateInterval = 0.12
 
 -- 9 Namen pro Area (Gegner 1..9). Gegner 10 = Boss (AreaConfig.bossName).
 local areaEnemyNames = {

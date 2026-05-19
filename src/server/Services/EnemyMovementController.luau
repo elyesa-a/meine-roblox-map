@@ -41,6 +41,7 @@ type MoveState = {
 	target: Vector3,
 	pos: Vector3,
 	lastAlive: boolean,
+	wasChasing: boolean,
 }
 
 local states: { MoveState } = {}
@@ -86,6 +87,7 @@ local function register(model: Model)
 		target = home,
 		pos = home,
 		lastAlive = true,
+		wasChasing = false,
 	}
 	pickTarget(st)
 	byModel[model] = true
@@ -123,6 +125,16 @@ local function stepState(st: MoveState, dt: number)
 		st.lastAlive = true
 		st.pos = st.home
 		pickTarget(st)
+	end
+	if model:GetAttribute("BattleChasing") == true then
+		st.wasChasing = true
+		return
+	end
+	if st.wasChasing then
+		local current = model.PrimaryPart.Position
+		st.pos = Vector3.new(current.X, st.home.Y, current.Z)
+		pickTarget(st)
+		st.wasChasing = false
 	end
 
 	if not anyPlayerNear(st.home) then
