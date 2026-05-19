@@ -27,7 +27,10 @@ type EnemyState = {
 	health: number,
 	alive: boolean,
 	rewardGiven: boolean,
-	startedPlayers: { [Player]: boolean },
+	prompt: ProximityPrompt?,
+	battleOwner: Player?,
+	battleToken: number,
+	battleHumanoidDiedConn: RBXScriptConnection?,
 }
 
 local EnemyService = {}
@@ -44,12 +47,18 @@ local TitleService
 local statesByModel: { [Model]: EnemyState } = {}
 local statesByRoot: { [BasePart]: EnemyState } = {}
 local statesById: { [string]: EnemyState } = {}
+local battlesByPlayer: { [Player]: EnemyState } = {}
 local lastAttackAt: { [Player]: number } = {}
 local rng = Random.new()
 
 local function getCharacterRoot(player: Player): BasePart?
 	local char = player.Character
 	return char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+local function getCharacterHumanoid(player: Player): Humanoid?
+	local char = player.Character
+	return char and char:FindFirstChildOfClass("Humanoid") :: Humanoid?
 end
 
 local function isCloseEnough(player: Player, state: EnemyState, maxDistance: number): boolean
@@ -117,6 +126,12 @@ local function captureOriginalTransparency(model: Model)
 		if obj:IsA("BasePart") then
 			obj:SetAttribute("OriginalTransparency", obj.Transparency)
 		end
+	end
+end
+
+local function setBattlePromptEnabled(state: EnemyState, enabled: boolean)
+	if state.prompt then
+		state.prompt.Enabled = enabled and state.alive
 	end
 end
 
@@ -245,16 +260,66 @@ local function grantBossBonus(player: Player, state: EnemyState)
 	StatService.broadcastProfile(player)
 end
 
+local function getEnemyAttackDamage(state: EnemyState): number
+	local areaIndex = if type(state.def.AreaIndex) == "number" then state.def.AreaIndex else 1
+	local damage = EnemyConfig.EnemyAttackDamageBase + (areaIndex - 1) * EnemyConfig.EnemyAttackDamagePerArea
+	if state.def.IsBoss then
+		damage *= EnemyConfig.EnemyBossDamageMultiplier
+	end
+	return math.max(1, math.floor(damage))
+end
+
+local function endBattle(state: EnemyState, message: string?)
+	local owner = state.battleOwner
+	if owner and battlesByPlayer[owner] == state then
+		battlesByPlayer[owner] = nil
+	end
+	state.battleOwner = nil
+	state.battleToken += 1
+	if state.battleHumanoidDiedConn then
+		state.battleHumanoidDiedConn:Disconnect()
+		state.battleHumanoidDiedConn = nil
+	end
+	setBattlePromptEnabled(state, state.alive)
+	if message and owner and owner.Parent then
+		ShowPopup:FireClient(owner, message)
+	end
+end
+
+local function startEnemyAttackLoop(state: EnemyState, player: Player, token: number)
+	task.spawn(function()
+		while state.alive and state.battleOwner == player and state.battleToken == token do
+			task.wait(EnemyConfig.EnemyAttackCooldownSec)
+			if not state.alive or state.battleOwner ~= player or state.battleToken ~= token then
+				break
+			end
+
+			local humanoid = getCharacterHumanoid(player)
+			if not humanoid or humanoid.Health <= 0 then
+				endBattle(state)
+				break
+			end
+			if not isCloseEnough(player, state, EnemyConfig.BattleLeashDistance) then
+				endBattle(state, "Battle ended: enemy too far away.")
+				break
+			end
+
+			humanoid:TakeDamage(getEnemyAttackDamage(state))
+		end
+	end)
+end
+
 local function respawnEnemy(state: EnemyState)
 	task.delay(state.def.RespawnTime, function()
 		if not state.model.Parent then
 			return
 		end
+		endBattle(state)
 		state.health = state.def.MaxHealth
 		state.alive = true
 		state.rewardGiven = false
-		state.startedPlayers = {}
 		setModelVisible(state, true)
+		setBattlePromptEnabled(state, true)
 		updateEnemy(state)
 	end)
 end
@@ -266,6 +331,7 @@ local function defeatEnemy(player: Player, state: EnemyState)
 	state.rewardGiven = true
 	state.alive = false
 	state.health = 0
+	endBattle(state)
 	updateEnemy(state)
 	grantDna(player, state.def.DNAReward)
 	ShowPopup:FireClient(player, string.format("%s defeated! +%s DNA", state.def.DisplayName, NumberFormatter.format(state.def.DNAReward)))
@@ -307,8 +373,12 @@ function EnemyService.attack(player: Player, state: EnemyState?)
 		ShowPopup:FireClient(player, "You need more Power!")
 		return
 	end
-	if state.def.IsBoss and not state.startedPlayers[player] then
-		ShowPopup:FireClient(player, "Start the boss fight first!")
+	if state.battleOwner ~= player then
+		if state.battleOwner then
+			ShowPopup:FireClient(player, "This enemy is already in battle!")
+		else
+			ShowPopup:FireClient(player, "Press E to start the battle first!")
+		end
 		return
 	end
 
@@ -340,11 +410,32 @@ local function findStateFromInstance(instance: Instance?): EnemyState?
 	return model and statesByModel[model] or nil
 end
 
-local function onBossPrompt(player: Player, state: EnemyState)
+local function ensureBattlePrompt(root: BasePart, def): ProximityPrompt
+	local prompt = root:FindFirstChild("StartBattle") :: ProximityPrompt?
+	if not prompt then
+		prompt = root:FindFirstChild("StartBossFight") :: ProximityPrompt?
+	end
+	if not prompt then
+		prompt = Instance.new("ProximityPrompt")
+		prompt.Parent = root
+	end
+
+	prompt.Name = "StartBattle"
+	prompt.ActionText = "Start Battle"
+	prompt.ObjectText = def.DisplayName
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.HoldDuration = 0.75
+	prompt.MaxActivationDistance = EnemyConfig.BattlePromptDistance
+	prompt.RequiresLineOfSight = false
+	prompt.Enabled = true
+	return prompt
+end
+
+local function startBattle(player: Player, state: EnemyState)
 	if not state.alive then
 		return
 	end
-	if not isCloseEnough(player, state, EnemyConfig.BossPromptDistance + 3) then
+	if not isCloseEnough(player, state, EnemyConfig.BattlePromptDistance + 3) then
 		return
 	end
 	local profile = DataService.getProfile(player)
@@ -355,8 +446,36 @@ local function onBossPrompt(player: Player, state: EnemyState)
 		ShowPopup:FireClient(player, "You need more Power!")
 		return
 	end
-	state.startedPlayers[player] = true
-	ShowPopup:FireClient(player, "Boss fight started!")
+	local humanoid = getCharacterHumanoid(player)
+	if not humanoid or humanoid.Health <= 0 then
+		return
+	end
+	if state.battleOwner == player then
+		ShowPopup:FireClient(player, "Battle already started!")
+		return
+	end
+	if state.battleOwner then
+		ShowPopup:FireClient(player, "This enemy is already in battle!")
+		return
+	end
+
+	local previousBattle = battlesByPlayer[player]
+	if previousBattle and previousBattle ~= state then
+		endBattle(previousBattle, "Previous battle ended.")
+	end
+
+	state.battleOwner = player
+	state.battleToken += 1
+	battlesByPlayer[player] = state
+	setBattlePromptEnabled(state, false)
+	state.battleHumanoidDiedConn = humanoid.Died:Connect(function()
+		if state.battleOwner == player then
+			endBattle(state)
+		end
+	end)
+
+	ShowPopup:FireClient(player, "Battle started!")
+	startEnemyAttackLoop(state, player, state.battleToken)
 end
 
 local function registerEnemy(model: Model)
@@ -370,6 +489,7 @@ local function registerEnemy(model: Model)
 		return
 	end
 	captureOriginalTransparency(model)
+	local prompt = ensureBattlePrompt(root, def)
 	local state: EnemyState = {
 		model = model,
 		root = root,
@@ -377,7 +497,10 @@ local function registerEnemy(model: Model)
 		health = def.MaxHealth,
 		alive = true,
 		rewardGiven = false,
-		startedPlayers = {},
+		prompt = prompt,
+		battleOwner = nil,
+		battleToken = 0,
+		battleHumanoidDiedConn = nil,
 	}
 	statesByModel[model] = state
 	statesByRoot[root] = state
@@ -391,10 +514,9 @@ local function registerEnemy(model: Model)
 		end)
 	end
 
-	local prompt = root:FindFirstChild("StartBossFight") :: ProximityPrompt?
 	if prompt then
 		prompt.Triggered:Connect(function(player)
-			onBossPrompt(player, state)
+			startBattle(player, state)
 		end)
 	end
 end
@@ -435,8 +557,14 @@ function EnemyService.start(deps)
 
 	Players.PlayerRemoving:Connect(function(player)
 		lastAttackAt[player] = nil
+		local activeBattle = battlesByPlayer[player]
+		if activeBattle then
+			endBattle(activeBattle)
+		end
 		for _, state in pairs(statesByModel) do
-			state.startedPlayers[player] = nil
+			if state.battleOwner == player then
+				endBattle(state)
+			end
 		end
 	end)
 end
