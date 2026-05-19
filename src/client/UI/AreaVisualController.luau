@@ -10,6 +10,14 @@ local UNLOCKED_TEXT = Color3.fromRGB(170, 255, 205)
 local LOCKED = Color3.fromRGB(255, 85, 85)
 local LOCKED_TEXT = Color3.fromRGB(255, 170, 170)
 
+local TINTABLE_FIELD_NAMES = {
+	GateField = true,
+	TunnelGateScanField = true,
+	BorderField = true,
+	TrainingGateField = true,
+	Neon = true,
+}
+
 local function num(value: any): number
 	return if type(value) == "number" then value else 0
 end
@@ -44,7 +52,7 @@ local function tintModelVisuals(model: Instance, unlocked: boolean)
 	local textColor = if unlocked then UNLOCKED_TEXT else LOCKED_TEXT
 	for _, desc in ipairs(model:GetDescendants()) do
 		if desc:IsA("BasePart") then
-			if desc.Name == "GateField" or desc.Name == "BorderField" or desc.Name == "TrainingGateField" or desc.Name == "Neon" then
+			if TINTABLE_FIELD_NAMES[desc.Name] then
 				tintPart(desc, partColor)
 			end
 		elseif desc:IsA("TextLabel") then

@@ -8,7 +8,8 @@ local Theme = require(script.Parent:WaitForChild("Theme"))
 local NumberFormatter = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("NumberFormatter"))
 
 local Configs = ReplicatedStorage:WaitForChild("Configs")
-local ZoneConfig = require(Configs:WaitForChild("ZoneConfig"))
+local AreaConfig = require(Configs:WaitForChild("AreaConfig"))
+local EnemyConfig = require(Configs:WaitForChild("EnemyConfig"))
 local DailyQuestConfig = require(Configs:WaitForChild("DailyQuestConfig"))
 
 local ProgressionPanel = {}
@@ -104,21 +105,59 @@ local function rewardText(reward): string
 	return if #parts > 0 then table.concat(parts, " | ") else "+50 DNA"
 end
 
-local function findNextZone(state)
-	local power = state.Power or 0
-	local rebirths = state.Rebirths or 0
-	local fallback = nil
+local function getAreaGateRequirement(area): (number, number)
+	local enemies = EnemyConfig.getByArea(area.id)
+	local firstEnemy = enemies[1]
+	local requiredDna = if firstEnemy then firstEnemy.RequiredDNA else 0
+	return requiredDna, 0
+end
 
-	for _, zone in ipairs(ZoneConfig) do
-		if zone.enabled and zone.id ~= "StartZone" then
-			fallback = zone
-			if power < zone.requiredPower or rebirths < zone.requiredRebirth then
-				return zone
-			end
+local function hasAreaAccess(state, requiredDna: number, requiredRebirth: number): boolean
+	return (state.DnaCoins or 0) >= requiredDna and (state.Rebirths or 0) >= requiredRebirth
+end
+
+local function findNextArea(state)
+	for _, area in ipairs(AreaConfig.Areas) do
+		local requiredDna, requiredRebirth = getAreaGateRequirement(area)
+		if not hasAreaAccess(state, requiredDna, requiredRebirth) then
+			return {
+				displayName = area.displayName,
+				requiredDna = requiredDna,
+				requiredRebirth = requiredRebirth,
+			}
 		end
 	end
 
-	return fallback
+	return nil
+end
+
+local function requirementText(requiredDna: number, requiredRebirth: number): string
+	local parts = {}
+	table.insert(parts, NumberFormatter.format(requiredDna) .. " DNA")
+	if requiredRebirth > 0 then
+		table.insert(parts, "Rebirth " .. tostring(requiredRebirth))
+	end
+	return "Required: " .. table.concat(parts, " + ")
+end
+
+local function currentRequirementText(state, requiredDna: number, requiredRebirth: number): string
+	local parts = {}
+	table.insert(parts, NumberFormatter.format(state.DnaCoins or 0) .. " / " .. NumberFormatter.format(requiredDna) .. " DNA")
+	if requiredRebirth > 0 then
+		table.insert(parts, "RB " .. tostring(state.Rebirths or 0) .. " / " .. tostring(requiredRebirth))
+	end
+	return table.concat(parts, " | ")
+end
+
+local function requirementProgress(state, requiredDna: number, requiredRebirth: number): number
+	local progress = 1
+	if requiredDna > 0 then
+		progress = math.min(progress, (state.DnaCoins or 0) / requiredDna)
+	end
+	if requiredRebirth > 0 then
+		progress = math.min(progress, (state.Rebirths or 0) / requiredRebirth)
+	end
+	return math.clamp(progress, 0, 1)
 end
 
 local function getMission(state)
@@ -268,18 +307,16 @@ function ProgressionPanel.create(parent: ScreenGui): Refs
 end
 
 function ProgressionPanel.update(refs: Refs, state)
-	local zone = findNextZone(state)
-	if zone then
-		local power = state.Power or 0
-		local required = math.max(zone.requiredPower or 0, 1)
-		local progress = math.clamp(power / required, 0, 1)
-		refs.zoneName.Text = zone.displayName
-		refs.zoneReq.Text = "Required: " .. NumberFormatter.format(zone.requiredPower or 0) .. " PWR"
-		local currentText = NumberFormatter.format(power) .. " / " .. NumberFormatter.format(zone.requiredPower or 0)
+	local area = findNextArea(state)
+	if area then
+		local progress = requirementProgress(state, area.requiredDna, area.requiredRebirth)
+		refs.zoneName.Text = area.displayName
+		refs.zoneReq.Text = requirementText(area.requiredDna, area.requiredRebirth)
+		local currentText = currentRequirementText(state, area.requiredDna, area.requiredRebirth)
 		refs.zoneCurrent.Text = if progress >= 0.9 and progress < 1 then currentText .. "  Almost unlocked!" else currentText
 		refs.zoneFill.Size = UDim2.new(progress, 0, 1, 0)
 	else
-		refs.zoneName.Text = "All Zones Unlocked"
+		refs.zoneName.Text = "All Areas Unlocked"
 		refs.zoneReq.Text = "Keep evolving your mutation"
 		refs.zoneCurrent.Text = "MAX"
 		refs.zoneFill.Size = UDim2.fromScale(1, 1)
