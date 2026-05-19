@@ -27,6 +27,7 @@ local DailyChestService = require(Services:WaitForChild("DailyChestService"))
 local SpinService = require(Services:WaitForChild("SpinService"))
 local GamepassService = require(Services:WaitForChild("GamepassService"))
 local EnemyService = require(Services:WaitForChild("EnemyService"))
+local EnemyMovementController = require(Services:WaitForChild("EnemyMovementController"))
 local TitleService = require(Services:WaitForChild("TitleService"))
 local DailyQuestService = require(Services:WaitForChild("DailyQuestService"))
 local CollectibleService = require(Services:WaitForChild("CollectibleService"))
@@ -146,6 +147,8 @@ EnemyService.start({
 	DailyQuestService = DailyQuestService,
 	TitleService = TitleService,
 })
+-- Gegner-Bewegung (additiv, beruehrt EnemyService/Respawn nicht).
+EnemyMovementController.start()
 DailyQuestService.start({
 	DataService = DataService,
 	StatService = StatService,
