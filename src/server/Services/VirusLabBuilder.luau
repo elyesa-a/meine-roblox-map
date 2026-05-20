@@ -2054,6 +2054,481 @@ local function buildTutorialSign(parent, name, pos, text, accent)
 	label(board, text, accent:Lerp(Color3.fromRGB(228, 242, 235), 0.45), 55, UDim2.fromOffset(220, 60), Vector3.new(0, 0, 0))
 end
 
+-- ---- Spawn-Boden-Detail ---------------------------------------------------
+-- Macht aus den grossen leeren Boden-Flaechen im Spawn ein erkennbar
+-- detailliertes Bio-Tech-Labor (Main Hub):
+--   * Labor-Bodenplatten in verschiedenen Groessen (heller Grau-Mix).
+--   * Dunkle Fugenlinien als Plattenraster.
+--   * Eingelassene Kabelkanaele (Tech-Trenches) mit matter Akzentlinie.
+--   * Wartungsdeckel (runde Service-Hatches mit Bolzen und Kreuzgriff).
+--   * Bodenbeschriftungen via SurfaceGui auf dem Boden:
+--     CENTRAL LAB / SPAWN LAB / TO BACTERIA LAB -> / DNA CORE / UPGRADE STATION.
+--   * Kleine Biohazard-Markierungen.
+--   * Wenige, kontrollierte Slime-Lecks (NICHT ueberall).
+--   * Duenne cyan/gruene Wegfuehrungslinien (matt, kein Disco).
+--
+-- Layer-Hygiene: alle neuen Boden-Decals liegen ueber LAYER_CONTAM (0.58)
+-- auf jeweils EINDEUTIGEN Y-Layern mit +0.06 Separation -> kein Z-Fighting
+-- gegen bestehende Boden-Decals (LAYER_PATH..LAYER_CONTAM) oder den
+-- HubPad-Belag (Y-Range -0.02..0.14).
+-- XZ-Hygiene: Hub-Achteck-Region, SpawnLocation, NPC-Kiosks, Pet-Egg und
+-- Guide-Arrows werden gemieden -> nichts steht im Laufweg, nichts
+-- ueberdeckt eine bestehende Deko.
+local LAYER_SPAWN_TILE = FLOOR_Y + 0.66
+local LAYER_SPAWN_SEAM = FLOOR_Y + 0.72
+local LAYER_SPAWN_CABLE = FLOOR_Y + 0.78
+local LAYER_SPAWN_CABLE_GLOW = FLOOR_Y + 0.84
+local LAYER_SPAWN_HATCH = FLOOR_Y + 0.90
+local LAYER_SPAWN_BOLT = FLOOR_Y + 0.96
+local LAYER_SPAWN_LABEL = FLOOR_Y + 1.02
+local LAYER_SPAWN_BIO = FLOOR_Y + 1.08
+local LAYER_SPAWN_LEAK = FLOOR_Y + 1.14
+local LAYER_SPAWN_ACCENT = FLOOR_Y + 1.20
+
+local LAB_FLOOR_TILE_LIGHT = Color3.fromRGB(220, 224, 224)
+local LAB_FLOOR_TILE_MID = Color3.fromRGB(202, 207, 208)
+local LAB_FLOOR_TILE_DARK = Color3.fromRGB(184, 190, 192)
+local LAB_FLOOR_SEAM_COLOR = Color3.fromRGB(74, 80, 82)
+local LAB_HATCH_BASE = Color3.fromRGB(58, 62, 64)
+local LAB_HATCH_INNER = Color3.fromRGB(40, 44, 46)
+local LAB_HATCH_BOLT = Color3.fromRGB(28, 30, 32)
+local LAB_SLIME_OUTER = Color3.fromRGB(94, 136, 102)
+local LAB_SLIME_INNER = Color3.fromRGB(132, 184, 132)
+
+-- Boden-Beschriftung: SurfaceGui auf der Top-Flaeche, damit der Text wirklich
+-- auf dem Boden gelesen wird (BillboardGui dreht sich zur Kamera -> falsch).
+local function buildFloorLabel(parent, name, px, pz, sx, sz, text, color, rotateY)
+	local plate = makePart(
+		parent,
+		"FloorLabelPlate_" .. name,
+		Vector3.new(sx, 0.04, sz),
+		Vector3.new(px, LAYER_SPAWN_LABEL, pz),
+		Color3.fromRGB(32, 36, 38),
+		Enum.Material.SmoothPlastic,
+		false
+	)
+	plate.Transparency = 0.12
+	if rotateY then
+		plate.Orientation = Vector3.new(0, rotateY, 0)
+	end
+
+	local sg = Instance.new("SurfaceGui")
+	sg.Name = "FloorLabelSurface"
+	sg.Face = Enum.NormalId.Top
+	sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	sg.PixelsPerStud = 50
+	sg.LightInfluence = 1
+	sg.AlwaysOnTop = false
+	sg.Adornee = plate
+	sg.Parent = plate
+
+	local tl = Instance.new("TextLabel")
+	tl.BackgroundTransparency = 1
+	tl.Size = UDim2.fromScale(0.94, 0.78)
+	tl.Position = UDim2.fromScale(0.03, 0.11)
+	tl.Text = text
+	tl.Font = Enum.Font.GothamBold
+	tl.TextScaled = true
+	tl.TextColor3 = color
+	tl.TextStrokeColor3 = Color3.new(0, 0, 0)
+	tl.TextStrokeTransparency = 0.35
+	tl.Parent = sg
+	return plate
+end
+
+local function buildMaintenanceHatch(parent, name, px, pz, radius, accent)
+	-- Roblox-Cylinder: Achse entlang LOKALER X. Mit Orientation (0,0,90) wird
+	-- die lokale X-Achse zur Welt-Y-Achse -> Size.X ist die Hoehe der Scheibe,
+	-- Size.Y/Z bilden den Durchmesser. Daher Size = (Hoehe, Durchmesser, Durchmesser).
+	local outer = makePart(
+		parent,
+		"Hatch_" .. name,
+		Vector3.new(0.10, radius * 2, radius * 2),
+		Vector3.new(px, LAYER_SPAWN_HATCH, pz),
+		LAB_HATCH_BASE,
+		Enum.Material.Metal,
+		false
+	)
+	outer.Shape = Enum.PartType.Cylinder
+	outer.Orientation = Vector3.new(0, 0, 90)
+
+	local inner = makePart(
+		parent,
+		"HatchInner_" .. name,
+		Vector3.new(0.10, radius * 1.5, radius * 1.5),
+		Vector3.new(px, LAYER_SPAWN_HATCH + 0.02, pz),
+		LAB_HATCH_INNER,
+		Enum.Material.Metal,
+		false
+	)
+	inner.Shape = Enum.PartType.Cylinder
+	inner.Orientation = Vector3.new(0, 0, 90)
+
+	-- Kreuzgriff (T-handle) als zwei duenne Block-Riegel.
+	makePart(
+		parent,
+		"HatchHandleX_" .. name,
+		Vector3.new(radius * 1.2, 0.10, 0.45),
+		Vector3.new(px, LAYER_SPAWN_BOLT, pz),
+		accent:Lerp(LAB_DARK, 0.4),
+		Enum.Material.Metal,
+		false
+	)
+	makePart(
+		parent,
+		"HatchHandleZ_" .. name,
+		Vector3.new(0.45, 0.10, radius * 1.2),
+		Vector3.new(px, LAYER_SPAWN_BOLT, pz),
+		accent:Lerp(LAB_DARK, 0.4),
+		Enum.Material.Metal,
+		false
+	)
+
+	-- Vier Bolzen am Rand (flache Bolt-Scheiben).
+	for i = 0, 3 do
+		local a = i * math.pi / 2 + math.pi / 4
+		local bx = px + math.cos(a) * (radius - 0.55)
+		local bz = pz + math.sin(a) * (radius - 0.55)
+		local bolt = makePart(
+			parent,
+			"HatchBolt_" .. name .. i,
+			Vector3.new(0.10, 0.55, 0.55),
+			Vector3.new(bx, LAYER_SPAWN_BOLT, bz),
+			LAB_HATCH_BOLT,
+			Enum.Material.Metal,
+			false
+		)
+		bolt.Shape = Enum.PartType.Cylinder
+		bolt.Orientation = Vector3.new(0, 0, 90)
+	end
+end
+
+local function buildCableTrench(parent, name, px, pz, length, axis, accent)
+	local sx, sz, glowSx, glowSz
+	if axis == "x" then
+		sx, sz = length, 1.4
+		glowSx, glowSz = length - 1.6, 0.32
+	else
+		sx, sz = 1.4, length
+		glowSx, glowSz = 0.32, length - 1.6
+	end
+	makePart(
+		parent,
+		"CableTrench_" .. name,
+		Vector3.new(sx, 0.08, sz),
+		Vector3.new(px, LAYER_SPAWN_CABLE, pz),
+		Color3.fromRGB(48, 52, 54),
+		Enum.Material.Metal,
+		false
+	)
+	neonStrip(
+		parent,
+		Vector3.new(glowSx, 0.06, glowSz),
+		Vector3.new(px, LAYER_SPAWN_CABLE_GLOW, pz),
+		accent,
+		0.55
+	)
+end
+
+local function buildFloorBiohazardMark(parent, name, px, pz)
+	local plate = makePart(
+		parent,
+		"BioMark_" .. name,
+		Vector3.new(2.6, 0.05, 2.6),
+		Vector3.new(px, LAYER_SPAWN_BIO, pz),
+		LAB_WARNING_YELLOW,
+		Enum.Material.SmoothPlastic,
+		false
+	)
+	plate.Transparency = 0.12
+	local core = makePart(
+		parent,
+		"BioMarkCore_" .. name,
+		Vector3.new(1.6, 0.05, 1.6),
+		Vector3.new(px, LAYER_SPAWN_BIO + 0.02, pz),
+		LAB_DARK,
+		Enum.Material.SmoothPlastic,
+		false
+	)
+	core.Transparency = 0.06
+	-- Drei kleine "Petals" symbolisieren das Biohazard-Zeichen ohne Bildtextur.
+	for i = 0, 2 do
+		local a = i * (math.pi * 2 / 3) + math.pi / 2
+		local petalX = px + math.cos(a) * 0.85
+		local petalZ = pz + math.sin(a) * 0.85
+		local petal = makePart(
+			parent,
+			"BioMarkPetal_" .. name .. i,
+			Vector3.new(0.05, 0.75, 0.75),
+			Vector3.new(petalX, LAYER_SPAWN_BIO + 0.03, petalZ),
+			LAB_WARNING_YELLOW,
+			Enum.Material.SmoothPlastic,
+			false
+		)
+		petal.Shape = Enum.PartType.Cylinder
+		petal.Orientation = Vector3.new(0, 0, 90)
+	end
+end
+
+local function buildSlimeLeak(parent, name, px, pz, sx, sz)
+	local pool = makePart(
+		parent,
+		"SlimeLeak_" .. name,
+		Vector3.new(sx, 0.05, sz),
+		Vector3.new(px, LAYER_SPAWN_LEAK, pz),
+		LAB_SLIME_OUTER,
+		Enum.Material.SmoothPlastic,
+		false
+	)
+	pool.Transparency = 0.16
+	local core = makePart(
+		parent,
+		"SlimeLeakCore_" .. name,
+		Vector3.new(sx * 0.6, 0.05, sz * 0.6),
+		Vector3.new(px, LAYER_SPAWN_LEAK + 0.02, pz),
+		LAB_SLIME_INNER,
+		Enum.Material.SmoothPlastic,
+		false
+	)
+	core.Transparency = 0.10
+end
+
+local function buildSpawnFloorDetail(parent, cx)
+	local model = Instance.new("Model")
+	model.Name = "SpawnFloorDetail"
+	model.Parent = parent
+
+	-- ===== 1) Labor-Bodenplatten =========================================
+	-- Hand-gepflegte Liste mit Mix aus Groessen. Liegen ausserhalb des
+	-- Hub-Achtecks (cx +/- 39, hubZ=-45 +/- 39), des SpawnLocation
+	-- (cx +/- 7, z=0 +/- 7) und der Kiosk-Reihe (z ~ 76..88).
+	local tiles = {
+		-- ---- BACK ZONE (links vom Hub: x < cx-39 = -219) ----
+		-- Schmale Randstreifen direkt vor der Rueckwand
+		{ n = "TileBackEdgeA", x = cx - 140, z = -65, sx = 8, sz = 36, c = LAB_FLOOR_TILE_DARK },
+		{ n = "TileBackEdgeB", x = cx - 140, z = 0, sx = 8, sz = 26, c = LAB_FLOOR_TILE_MID },
+		{ n = "TileBackEdgeC", x = cx - 140, z = 60, sx = 8, sz = 70, c = LAB_FLOOR_TILE_DARK },
+		{ n = "TileBackEdgeD", x = cx - 140, z = 115, sx = 8, sz = 28, c = LAB_FLOOR_TILE_MID },
+		-- Grosse Hauptplatten des Hinter-Bereichs
+		{ n = "TileBackA", x = cx - 110, z = -65, sx = 50, sz = 36, c = LAB_FLOOR_TILE_LIGHT },
+		{ n = "TileBackB", x = cx - 110, z = 0, sx = 50, sz = 26, c = LAB_FLOOR_TILE_MID },
+		{ n = "TileBackC", x = cx - 110, z = 60, sx = 50, sz = 70, c = LAB_FLOOR_TILE_LIGHT },
+		{ n = "TileBackD", x = cx - 110, z = 115, sx = 50, sz = 24, c = LAB_FLOOR_TILE_DARK },
+		-- Mittelband zwischen Back-Hauptplatten und Hub-Achteck
+		-- HINWEIS: x ueberlappt UpgradeLab-Kiosk-Spalte (cx-64) -> z-Bereich
+		-- muss um Kiosk-Body z[79,85] (inkl. NPC z[~74,76]) freibleiben.
+		{ n = "TileBackInnerA", x = cx - 65, z = -65, sx = 32, sz = 30, c = LAB_FLOOR_TILE_MID },
+		{ n = "TileBackInnerB", x = cx - 65, z = 48, sx = 32, sz = 40, c = LAB_FLOOR_TILE_MID },
+		{ n = "TileBackInnerC", x = cx - 65, z = 110, sx = 32, sz = 22, c = LAB_FLOOR_TILE_LIGHT },
+
+		-- ---- ABOVE-HUB / BETWEEN HUB UND KIOSK (z 14..70) ----
+		-- Liegt im Hub-x-Band, aber AUSSERHALB des Hub-z-Bereichs (-84..-6).
+		-- SpawnLocation z[-7..7] meiden -> Tile bei z=22 ist sicher.
+		{ n = "TileAboveHubA", x = cx, z = 22, sx = 70, sz = 18, c = LAB_FLOOR_TILE_LIGHT },
+		{ n = "TileAboveHubB", x = cx, z = 50, sx = 70, sz = 22, c = LAB_FLOOR_TILE_MID },
+
+		-- ---- FRONT ZONE (rechts vom Hub: x > cx+39 = -141) ----
+		-- Spalte cx+62 (zwischen Hub-rechts und Mittel-Spalte). Pet-Egg bei
+		-- (cx+70, _, 55), daher Spalte hier auf z != 50..62 setzen.
+		{ n = "TileFrontA1", x = cx + 62, z = -55, sx = 30, sz = 50, c = LAB_FLOOR_TILE_LIGHT },
+		{ n = "TileFrontA2", x = cx + 62, z = -15, sx = 30, sz = 18, c = LAB_FLOOR_TILE_MID },
+		{ n = "TileFrontA3", x = cx + 62, z = 25, sx = 30, sz = 20, c = LAB_FLOOR_TILE_LIGHT },
+		{ n = "TileFrontA4", x = cx + 62, z = 100, sx = 30, sz = 28, c = LAB_FLOOR_TILE_DARK },
+		-- Mittel-Spalte cx+100
+		{ n = "TileFrontB1", x = cx + 100, z = -55, sx = 44, sz = 50, c = LAB_FLOOR_TILE_MID },
+		{ n = "TileFrontB2", x = cx + 100, z = -15, sx = 44, sz = 18, c = LAB_FLOOR_TILE_LIGHT },
+		{ n = "TileFrontB3", x = cx + 100, z = 25, sx = 44, sz = 20, c = LAB_FLOOR_TILE_MID },
+		{ n = "TileFrontB4", x = cx + 100, z = 105, sx = 44, sz = 22, c = LAB_FLOOR_TILE_LIGHT },
+		-- Vorder-Spalte cx+150 (kurz vor Area 1)
+		{ n = "TileFrontC1", x = cx + 150, z = -55, sx = 40, sz = 50, c = LAB_FLOOR_TILE_LIGHT },
+		{ n = "TileFrontC2", x = cx + 150, z = -15, sx = 40, sz = 18, c = LAB_FLOOR_TILE_MID },
+		{ n = "TileFrontC3", x = cx + 150, z = 25, sx = 40, sz = 20, c = LAB_FLOOR_TILE_LIGHT },
+		{ n = "TileFrontC4", x = cx + 150, z = 70, sx = 40, sz = 20, c = LAB_FLOOR_TILE_MID },
+		{ n = "TileFrontC5", x = cx + 150, z = 110, sx = 40, sz = 20, c = LAB_FLOOR_TILE_DARK },
+	}
+	for _, t in ipairs(tiles) do
+		local p = makePart(
+			model,
+			t.n,
+			Vector3.new(t.sx, 0.06, t.sz),
+			Vector3.new(t.x, LAYER_SPAWN_TILE, t.z),
+			t.c,
+			Enum.Material.SmoothPlastic,
+			false
+		)
+		p.Transparency = 0.06
+	end
+
+	-- ===== 2) Fugenlinien (dunkler Plattenraster) ========================
+	-- Vertikale Fugen (parallel zu Z) und horizontale Fugen (parallel zu X).
+	local seams = {
+		-- Hinter-Bereich Vertikale: zwischen Edge-Streifen und Hauptplatten
+		{ n = "SeamBackV1", x = cx - 135, z = 22, sx = 0.45, sz = 220 },
+		-- Hinter-Bereich Vertikale: zwischen Hauptplatten und Mittelband
+		{ n = "SeamBackV2", x = cx - 84, z = 22, sx = 0.45, sz = 220 },
+		-- Hinter-Bereich Vertikale: zwischen Mittelband und Hub
+		{ n = "SeamBackV3", x = cx - 48, z = 22, sx = 0.45, sz = 220 },
+		-- Hinter-Bereich Horizontale (auf Hoehe der Tile-Grenzen)
+		{ n = "SeamBackH1", x = cx - 92, z = -47, sx = 100, sz = 0.4 },
+		{ n = "SeamBackH2", x = cx - 92, z = 14, sx = 100, sz = 0.4 },
+		{ n = "SeamBackH3", x = cx - 92, z = 95, sx = 100, sz = 0.4 },
+		{ n = "SeamBackH4", x = cx - 92, z = 128, sx = 100, sz = 0.4 },
+		-- Above-Hub Band (in x-Mitte zwischen Hub und Kiosks)
+		{ n = "SeamAboveH1", x = cx, z = 13, sx = 76, sz = 0.4 },
+		{ n = "SeamAboveH2", x = cx, z = 39, sx = 76, sz = 0.4 },
+		{ n = "SeamAboveH3", x = cx, z = 62, sx = 76, sz = 0.4 },
+		-- Front-Bereich Vertikale
+		{ n = "SeamFrontV1", x = cx + 78, z = 25, sx = 0.45, sz = 220 },
+		{ n = "SeamFrontV2", x = cx + 124, z = 25, sx = 0.45, sz = 220 },
+		{ n = "SeamFrontV3", x = cx + 172, z = 25, sx = 0.45, sz = 220 },
+		-- Front-Bereich Horizontale (Z-Werte 90+ liegen NACH den Kiosks z[79,85])
+		{ n = "SeamFrontH1", x = cx + 110, z = -32, sx = 130, sz = 0.4 },
+		{ n = "SeamFrontH2", x = cx + 110, z = 4, sx = 130, sz = 0.4 },
+		{ n = "SeamFrontH3", x = cx + 110, z = 44, sx = 130, sz = 0.4 },
+		{ n = "SeamFrontH4", x = cx + 110, z = 92, sx = 130, sz = 0.4 },
+	}
+	for _, s in ipairs(seams) do
+		makePart(
+			model,
+			s.n,
+			Vector3.new(s.sx, 0.06, s.sz),
+			Vector3.new(s.x, LAYER_SPAWN_SEAM, s.z),
+			LAB_FLOOR_SEAM_COLOR,
+			Enum.Material.SmoothPlastic,
+			false
+		)
+	end
+
+	-- ===== 3) Eingelassene Kabelkanaele ==================================
+	-- Verbinden den Hub visuell mit Back-Bereich, Kiosk-Reihe und Area-1.
+	-- Liegen seitlich vom Laufweg (z != 0) -> blockieren keinen Weg.
+	buildCableTrench(model, "BackToHubTop", cx - 80, 14, 80, "x", LAB_GREEN)
+	buildCableTrench(model, "BackToHubBot", cx - 80, -42, 80, "x", LAB_CYAN)
+	buildCableTrench(model, "HubToFrontTop", cx + 80, 14, 80, "x", LAB_GREEN)
+	buildCableTrench(model, "HubToFrontBot", cx + 80, -42, 80, "x", LAB_CYAN)
+	buildCableTrench(model, "HubToKioskA", cx - 64, 50, 56, "z", LAB_GREEN)
+	buildCableTrench(model, "HubToKioskB", cx + 16, 50, 56, "z", LAB_CYAN)
+	buildCableTrench(model, "FrontEdgeNorth", cx + 158, 50, 90, "z", LAB_CYAN)
+	buildCableTrench(model, "BackEdgeNorth", cx - 130, 50, 90, "z", LAB_GREEN)
+
+	-- ===== 4) Wartungsdeckel =============================================
+	-- Verteilt in unauffaelligen Boden-Ecken; nie unter Spawn/Hub/Kiosk.
+	buildMaintenanceHatch(model, "BackLeft", cx - 122, -55, 2.4, LAB_CYAN)
+	buildMaintenanceHatch(model, "BackRight", cx - 122, 80, 2.4, LAB_GREEN)
+	buildMaintenanceHatch(model, "MidBack", cx - 60, -60, 2.0, LAB_GREEN)
+	buildMaintenanceHatch(model, "FrontLeft", cx + 50, -50, 2.0, LAB_CYAN)
+	buildMaintenanceHatch(model, "FrontMid", cx + 100, -50, 2.4, LAB_GREEN)
+	buildMaintenanceHatch(model, "FarFrontLeft", cx + 150, -50, 2.2, LAB_CYAN)
+	buildMaintenanceHatch(model, "FarFrontRight", cx + 150, 65, 2.2, LAB_GREEN)
+	buildMaintenanceHatch(model, "FrontNearArea1", cx + 158, 35, 2.0, LAB_CYAN)
+
+	-- ===== 5) Bodenbeschriftungen ========================================
+	-- SurfaceGui auf der Top-Flaeche -> Text liegt wirklich auf dem Boden.
+	-- Y-Layer 1.02 ist sicher ueber HubPad (Y-Top 0.14), SpawnLocation
+	-- (Y-Top 1.0) und allen bestehenden Boden-Decals (max LAYER_CONTAM=0.58).
+
+	-- CENTRAL LAB: gross, zentral zwischen Spawn-Pad und Kiosk-Reihe.
+	-- z=40..60 -> klar zwischen SpawnLocation (z[-7,7]) und Kiosk-Body (z[79,85]).
+	buildFloorLabel(model, "CentralLab", cx, 50, 56, 8, "CENTRAL LAB", Color3.fromRGB(170, 230, 220))
+
+	-- SPAWN LAB: direkt vor dem Spawn-Pad (z=14, sz=5 -> z[11.5,16.5]).
+	-- Meidet Spawn-Pad (z[-7,7]) und Guide-Arrows (z[-2.5,2.5]).
+	buildFloorLabel(model, "SpawnLab", cx, 14, 22, 5, "SPAWN LAB", Color3.fromRGB(170, 230, 220))
+
+	-- TO BACTERIA LAB ->: vorn-rechts, zeigt Richtung Area 1 (+X).
+	-- z=14 statt z=4 -> NICHT auf den Guide-Arrows bei z[-2.5,2.5].
+	buildFloorLabel(
+		model,
+		"ToBacteriaLab",
+		cx + 130,
+		14,
+		60,
+		8,
+		"TO BACTERIA LAB \xE2\x86\x92",
+		Color3.fromRGB(174, 240, 188)
+	)
+
+	-- DNA CORE: auf dem Hub-Pad, aber AUSSERHALB der Virus-Statuen-Basis
+	-- (Statue bei (cx, -45) mit Sockel-Radius 15 -> Distanz >=20 sicher).
+	-- z=-22 -> Distanz 23 zum Statuen-Center, klar ausserhalb des Sockels.
+	-- HubPad-Y-Top liegt bei 0.14; Label-Y bei 1.02 -> kein Z-Fighting.
+	buildFloorLabel(model, "DnaCore", cx, -22, 22, 6, "DNA CORE", Color3.fromRGB(160, 220, 230))
+
+	-- UPGRADE STATION: vor dem Upgrade-Kiosk (cx-64, _, 82) -> z=68, sz=6.
+	-- Kiosk-Body bei z[79,85]; Label z[65,71] -> keine Ueberlappung.
+	buildFloorLabel(
+		model,
+		"UpgradeStation",
+		cx - 64,
+		68,
+		28,
+		6,
+		"UPGRADE STATION",
+		Color3.fromRGB(174, 240, 188)
+	)
+
+	-- ===== 6) Biohazard-Markierungen =====================================
+	-- Klein, sparsam, nahe Fass-/Tank-Deko bzw. an Kanal-Knotenpunkten.
+	buildFloorBiohazardMark(model, "BackLeft", cx - 90, -75)
+	buildFloorBiohazardMark(model, "BackRight", cx - 90, 95)
+	buildFloorBiohazardMark(model, "FrontLeftEdge", cx + 80, -75)
+	buildFloorBiohazardMark(model, "FrontRightEdge", cx + 80, 75)
+	buildFloorBiohazardMark(model, "FarFront", cx + 168, -70)
+
+	-- ===== 7) Kontrollierte Slime-Lecks ==================================
+	-- Nur DREI Stellen, jeweils nahe Bio-/Mutation-Deko. Kein "Disco".
+	buildSlimeLeak(model, "NearDrums", cx - 92, -68, 4.4, 3.2)
+	buildSlimeLeak(model, "NearMutationTube", cx - 95, 28, 3.8, 2.8)
+	buildSlimeLeak(model, "FrontEdge", cx + 92, -68, 3.6, 2.6)
+
+	-- ===== 8) Cyan/gruene Akzent-Wegfuehrung =============================
+	-- Schmale matte Linien (neonStrip -> hohe Mindest-Transparenz) flankieren
+	-- den Laufweg vom Hub bis Area 1 und markieren die Kiosk-Reihe.
+
+	-- Walk-Path-Begleitung: zwei gruene Parallel-Linien beiderseits des
+	-- Laufwegs (z=+/-8) von Spawn (x=cx) bis kurz vor Area 1 (x=-20).
+	-- Liegen z-seitig knapp neben den Guide-Arrows (z[-2.5, 2.5]) -> keine
+	-- XZ-Ueberlappung mit Arrow-Decals.
+	neonStrip(
+		model,
+		Vector3.new(160, 0.05, 0.45),
+		Vector3.new(cx + 80, LAYER_SPAWN_ACCENT, 8),
+		LAB_GREEN,
+		0.45
+	)
+	neonStrip(
+		model,
+		Vector3.new(160, 0.05, 0.45),
+		Vector3.new(cx + 80, LAYER_SPAWN_ACCENT, -8),
+		LAB_GREEN,
+		0.45
+	)
+
+	-- Kiosk-Reihen-Akzent: lange duenne cyan Linie vor der Kiosk-Reihe
+	-- (z=68, knapp vor Kiosk-Body z[79, 85]).
+	neonStrip(
+		model,
+		Vector3.new(220, 0.05, 0.45),
+		Vector3.new(cx - 4, LAYER_SPAWN_ACCENT, 68),
+		LAB_CYAN,
+		0.55
+	)
+
+	-- Hub-Eingangs-Akzent: kurze cyan Querlinie zwischen Hub-Vorderkante
+	-- und Spawn-Pad (z=-10, x-Spann 30 zentriert auf cx).
+	-- Hub-z geht bis -6, SpawnLocation z=-7..7 -> z=-10 ist ON hub pad,
+	-- aber Y=1.20 ist sicher ueber HubPad (Y-Top 0.14).
+	neonStrip(
+		model,
+		Vector3.new(30, 0.05, 0.45),
+		Vector3.new(cx, LAYER_SPAWN_ACCENT, -10),
+		LAB_CYAN,
+		0.55
+	)
+
+	return model
+end
+
 -- ---- Spawn Lab ------------------------------------------------------------
 
 local function buildSpawnLab(parent, bedsFolder, orgFolders)
@@ -2069,6 +2544,11 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	addBackWallLabFeature(model, cx)
 	addCeilingConduits(model, cx)
 	addSpawnFloorArrows(model, cx, LAB_GREEN)
+
+	-- Boden-Detail (Hub fertig wirken lassen): Labor-Bodenplatten, Fugen,
+	-- Kabelkanaele, Wartungsdeckel, Bodenbeschriftungen, Biohazard-Marken,
+	-- kontrollierte Slime-Lecks, dezente cyan/gruene Wegfuehrung.
+	buildSpawnFloorDetail(orgFolders.floorDetail, cx)
 
 	-- Decken-Stufen-Bulkhead am Übergang Spawn -> Area 1 (X = 0). Die
 	-- Spawn-Shell endet mit Decke auf Y = L.WallHeight (Slab 34..36), die
@@ -2307,6 +2787,7 @@ function VirusLabBuilder.build()
 		deco = makeFolder("SpawnDecor", mapFolder),
 		terminals = makeFolder("SpawnTerminals", mapFolder),
 		directions = makeFolder("SpawnDirections", mapFolder),
+		floorDetail = makeFolder("SpawnFloorDetail", spawnHub),
 		npcStations = makeFolder("NPCStations", spawnHub),
 		stationNPCs = makeFolder("StationNPCs", spawnHub),
 		stationSigns = makeFolder("StationSigns", spawnHub),
