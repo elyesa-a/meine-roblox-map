@@ -99,13 +99,16 @@ local rarityBonus = {
 	Mythic = 1.0,
 } :: { [Rarity]: number }
 
+-- Rarity-Suffixe: virus-/lab-thematisch und progressiv staerker.
+-- Saved-Daten referenzieren PET-IDs, NICHT displayName -> Aenderungen hier
+-- sind safe.
 local rarityName = {
 	Common = "Microbe",
-	Uncommon = "Sprout",
+	Uncommon = "Spore",
 	Rare = "Strain",
 	Epic = "Mutant",
-	Legendary = "Beast",
-	Mythic = "Overlord",
+	Legendary = "Apex",
+	Mythic = "Overmind",
 } :: { [Rarity]: string }
 
 local areaPetRoots = {
