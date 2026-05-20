@@ -225,9 +225,11 @@ local function getCharacterRoot(player: Player): BasePart?
 end
 
 local function desiredPetPosition(hrp: BasePart, slot: number, t: number): Vector3
-	local side = if slot == 1 then 3 else -3
+	local side = if slot == 1 then 3 elseif slot == 2 then -3 else 0
+	local behind = if slot == 3 then 6.3 else 5
+	local height = if slot == 3 then 2.75 else 2.2
 	local bob = math.sin(t * 2.2 + slot * 1.7) * 0.35
-	return hrp.Position - hrp.CFrame.LookVector * 5 + hrp.CFrame.RightVector * side + Vector3.new(0, 2.2 + bob, 0)
+	return hrp.Position - hrp.CFrame.LookVector * behind + hrp.CFrame.RightVector * side + Vector3.new(0, height + bob, 0)
 end
 
 local function clearPetVisuals(player: Player)

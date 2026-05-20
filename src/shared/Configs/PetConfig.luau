@@ -36,7 +36,7 @@ export type EggDef = {
 local PetConfig = {}
 
 PetConfig.MaxInventorySize = 100
-PetConfig.MaxEquipped = 2
+PetConfig.MaxEquipped = 3
 PetConfig.EggCooldownSec = 2
 
 -- Compatibility fallback for the old spawn egg click.

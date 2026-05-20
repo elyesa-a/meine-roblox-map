@@ -356,7 +356,13 @@ function PetFrame.create(parent: ScreenGui): Refs
 	infoRow.ZIndex = 7
 	infoRow.Parent = root
 
-	local countLabel = makeSmallLabel(infoRow, "0/100 Inventory  |  0/2 Equipped", UDim2.new(0, 0, 0, 0), UDim2.new(0.5, -4, 1, 0), 15)
+	local countLabel = makeSmallLabel(
+		infoRow,
+		string.format("0/%d Inventory  |  0/%d Equipped", PetConfig.MaxInventorySize, PetConfig.MaxEquipped),
+		UDim2.new(0, 0, 0, 0),
+		UDim2.new(0.5, -4, 1, 0),
+		15
+	)
 	countLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 	local multLabel = makeSmallLabel(infoRow, "Pet Power: 1x", UDim2.new(0.5, 4, 0, 0), UDim2.new(0.5, -4, 1, 0), 15)
