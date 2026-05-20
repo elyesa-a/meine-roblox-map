@@ -4,6 +4,10 @@
 export type UpgradeDef = {
 	id: string,
 	displayName: string,
+	description: string?,
+	iconText: string?,
+	bonusText: string?,
+	statType: string?,
 	-- Pro Level wird der Effekt um perLevelDelta erhoeht (additiv).
 	-- Level 0 = 1x, Level 1 = 1+delta, ...
 	perLevelDelta: number,
@@ -17,13 +21,55 @@ local UpgradeConfig = {}
 UpgradeConfig.MaxLevel = 50
 
 UpgradeConfig.Upgrades = {
-	{ id = "PowerBoost", displayName = "More Power", perLevelDelta = 0.1, color = Color3.fromRGB(255, 90, 90) },
-	{ id = "DnaBoost", displayName = "More DNA", perLevelDelta = 0.1, color = Color3.fromRGB(80, 160, 255) },
-	{ id = "LuckBoost", displayName = "More Luck", perLevelDelta = 0.15, color = Color3.fromRGB(255, 215, 60) },
-	{ id = "TrainingSpeed", displayName = "Faster Training", perLevelDelta = 0.1, color = Color3.fromRGB(80, 220, 130) },
+	{
+		id = "Health",
+		displayName = "Health",
+		description = "Increase your max HP",
+		iconText = "HP",
+		bonusText = "+100 HP per level",
+		statType = "Health",
+		perLevelDelta = 0,
+		maxLevel = 5,
+		costs = { 250, 500, 1000, 2500, 5000 },
+		color = Color3.fromRGB(90, 210, 140),
+	},
+	{
+		id = "PowerBoost",
+		displayName = "More Power",
+		description = "Increase Power gains",
+		iconText = "PWR",
+		perLevelDelta = 0.1,
+		color = Color3.fromRGB(255, 90, 90),
+	},
+	{
+		id = "DnaBoost",
+		displayName = "More DNA",
+		description = "Increase DNA rewards",
+		iconText = "DNA",
+		perLevelDelta = 0.1,
+		color = Color3.fromRGB(80, 160, 255),
+	},
+	{
+		id = "LuckBoost",
+		displayName = "More Luck",
+		description = "Increase luck rewards",
+		iconText = "LCK",
+		perLevelDelta = 0.15,
+		color = Color3.fromRGB(255, 215, 60),
+	},
+	{
+		id = "TrainingSpeed",
+		displayName = "Faster Training",
+		description = "Train faster",
+		iconText = "TRN",
+		perLevelDelta = 0.1,
+		color = Color3.fromRGB(80, 220, 130),
+	},
 	{
 		id = "SpeedBoost",
 		displayName = "Speed",
+		description = "Increase walk speed",
+		iconText = "SPD",
 		perLevelDelta = 0.5,
 		maxLevel = 4,
 		costs = { 300, 1000, 6000, 15000 },

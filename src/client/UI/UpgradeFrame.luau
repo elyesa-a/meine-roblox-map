@@ -1,5 +1,5 @@
 --!strict
--- Upgrade-Fenster: 4 Karten (Mehr Kraft / DNA / Glueck / Training-Speed).
+-- Upgrade-Fenster: Skills/Upgrades, gekauft mit DNA.
 -- Pro Karte: Level, aktueller Mult, naechster Mult, Preis, Kaufen-Button.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,6 +18,7 @@ local UpgradeFrame = {}
 
 type CardRefs = {
 	card: Frame,
+	descriptionLabel: TextLabel,
 	levelLabel: TextLabel,
 	progressLabel: TextLabel,
 	button: TextButton,
@@ -33,14 +34,27 @@ type Refs = {
 local function makeCard(parent: ScrollingFrame, def): CardRefs
 	local card = Instance.new("Frame")
 	card.Name = "Upgrade_" .. def.id
-	card.Size = UDim2.new(1, 0, 0, 96)
+	card.Size = UDim2.new(1, 0, 0, 118)
 	Theme.applyPanelStyle(card, def.color)
 	card.ZIndex = 7
 	card.Parent = parent
 
+	local icon = Instance.new("TextLabel")
+	icon.Name = "Icon"
+	icon.Size = UDim2.new(0, 44, 0, 44)
+	icon.Position = UDim2.new(0, 12, 0, 12)
+	Theme.applyPanelStyle(icon, def.color)
+	icon.Text = def.iconText or "UP"
+	icon.TextColor3 = Theme.Colors.White
+	icon.TextSize = 14
+	icon.TextScaled = false
+	icon.Font = Enum.Font.GothamBlack
+	icon.ZIndex = 8
+	icon.Parent = card
+
 	local name = Instance.new("TextLabel")
-	name.Size = UDim2.new(0, 240, 0, 32)
-	name.Position = UDim2.new(0, 12, 0, 8)
+	name.Size = UDim2.new(1, -270, 0, 28)
+	name.Position = UDim2.new(0, 66, 0, 8)
 	Theme.applyLabelStyle(name)
 	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.Text = def.displayName
@@ -49,20 +63,32 @@ local function makeCard(parent: ScrollingFrame, def): CardRefs
 	name.ZIndex = 8
 	name.Parent = card
 
+	local description = Instance.new("TextLabel")
+	description.Size = UDim2.new(1, -270, 0, 20)
+	description.Position = UDim2.new(0, 66, 0, 36)
+	Theme.applyLabelStyle(description)
+	description.TextXAlignment = Enum.TextXAlignment.Left
+	description.Text = def.description or "Permanent upgrade"
+	description.TextSize = 14
+	description.TextScaled = false
+	description.TextTransparency = 0.15
+	description.ZIndex = 8
+	description.Parent = card
+
 	local level = Instance.new("TextLabel")
-	level.Size = UDim2.new(0, 240, 0, 22)
-	level.Position = UDim2.new(0, 12, 0, 42)
+	level.Size = UDim2.new(1, -270, 0, 22)
+	level.Position = UDim2.new(0, 66, 0, 62)
 	Theme.applyLabelStyle(level)
 	level.TextXAlignment = Enum.TextXAlignment.Left
-	level.Text = "Level 0"
+	level.Text = "Level: 0 / 5"
 	level.TextSize = 16
 	level.TextScaled = false
 	level.ZIndex = 8
 	level.Parent = card
 
 	local progress = Instance.new("TextLabel")
-	progress.Size = UDim2.new(0, 240, 0, 22)
-	progress.Position = UDim2.new(0, 12, 0, 66)
+	progress.Size = UDim2.new(1, -270, 0, 22)
+	progress.Position = UDim2.new(0, 66, 0, 88)
 	Theme.applyLabelStyle(progress)
 	progress.TextXAlignment = Enum.TextXAlignment.Left
 	progress.Text = "1x -> 1.1x"
@@ -74,7 +100,7 @@ local function makeCard(parent: ScrollingFrame, def): CardRefs
 	local button = Instance.new("TextButton")
 	button.Name = "Action"
 	button.AnchorPoint = Vector2.new(1, 0.5)
-	button.Size = UDim2.new(0, 180, 0, 64)
+	button.Size = UDim2.new(0, 160, 0, 64)
 	button.Position = UDim2.new(1, -12, 0.5, 0)
 	Theme.applyButtonStyle(button, Theme.Colors.Green)
 	button.Text = "BUY\n100 DNA"
@@ -83,7 +109,7 @@ local function makeCard(parent: ScrollingFrame, def): CardRefs
 	button.ZIndex = 9
 	button.Parent = card
 
-	return { card = card, levelLabel = level, progressLabel = progress, button = button }
+	return { card = card, descriptionLabel = description, levelLabel = level, progressLabel = progress, button = button }
 end
 
 function UpgradeFrame.create(parent: ScreenGui): Refs
@@ -202,16 +228,25 @@ function UpgradeFrame.update(refs: Refs, state)
 		end
 		local level = upgrades[def.id] or 0
 		local maxLevel = UpgradeConfig.getMaxLevel(def)
-		cardRefs.levelLabel.Text = string.format("Level %d", level)
+		cardRefs.descriptionLabel.Text = def.description or "Permanent upgrade"
+		cardRefs.levelLabel.Text = string.format("Level: %d / %d", level, maxLevel)
 		local currMult = UpgradeConfig.getMultiplier(level, def.perLevelDelta)
 		if level >= maxLevel then
-			cardRefs.progressLabel.Text = string.format("%.2gx (Max Level)", currMult)
-			cardRefs.button.Text = "MAX LEVEL"
+			if def.id == "Health" then
+				cardRefs.progressLabel.Text = string.format("MAX HEALTH BONUS: +%s HP", NumberFormatter.format(level * 100))
+			else
+				cardRefs.progressLabel.Text = string.format("%.2gx (Max Level)", currMult)
+			end
+			cardRefs.button.Text = "MAX"
 			cardRefs.button.BackgroundColor3 = Theme.Colors.PanelMedium
 		else
 			local nextMult = UpgradeConfig.getMultiplier(level + 1, def.perLevelDelta)
 			local cost = UpgradeConfig.getCost(level, def)
-			cardRefs.progressLabel.Text = string.format("%.2gx -> %.2gx", currMult, nextMult)
+			if def.id == "Health" then
+				cardRefs.progressLabel.Text = def.bonusText or "+100 HP per level"
+			else
+				cardRefs.progressLabel.Text = string.format("%.2gx -> %.2gx", currMult, nextMult)
+			end
 			cardRefs.button.Text = string.format("BUY\n%s DNA", NumberFormatter.format(cost))
 			cardRefs.button.BackgroundColor3 = if dna >= cost then Theme.Colors.Green else Theme.Colors.PanelMedium
 		end
