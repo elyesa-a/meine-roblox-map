@@ -14,6 +14,47 @@ local RequestEquipTitle = Remotes:WaitForChild("RequestEquipTitle") :: RemoteEve
 
 local TitleFrame = {}
 
+local LAB_BASE = Color3.fromRGB(10, 14, 22)
+local LAB_PANEL = Color3.fromRGB(18, 24, 35)
+local LAB_PANEL_2 = Color3.fromRGB(25, 32, 46)
+local LAB_STROKE = Color3.fromRGB(0, 210, 190)
+local TEXT_MAIN = Color3.fromRGB(245, 248, 255)
+local TEXT_SECONDARY = Color3.fromRGB(175, 185, 200)
+local TEXT_MUTED = Color3.fromRGB(110, 120, 135)
+local DNA_GREEN = Color3.fromRGB(0, 220, 120)
+local CYAN = Color3.fromRGB(0, 190, 255)
+local REWARD_GOLD = Color3.fromRGB(255, 220, 80)
+local DANGER_RED = Color3.fromRGB(255, 70, 75)
+
+local function restyleStroke(gui: GuiObject, color: Color3, thickness: number?, transparency: number?)
+	local stroke = gui:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = color
+		stroke.Thickness = thickness or 1.5
+		stroke.Transparency = transparency or 0.35
+	end
+end
+
+local BONUS_ORDER = {
+	Power = 1,
+	Luck = 2,
+	Dna = 3,
+	Rebirth = 4,
+	Mixed = 5,
+	Other = 6,
+}
+
+local RARITY_ORDER = {
+	Common = 1,
+	Rare = 2,
+	Epic = 3,
+	Legendary = 4,
+	Mythic = 5,
+	Secret = 6,
+	Exclusive = 7,
+	Other = 8,
+}
+
 type CardRefs = {
 	card: Frame,
 	status: TextLabel,
@@ -44,14 +85,66 @@ local function bonusText(def): string
 	return "Bonus: " .. table.concat(parts, " | ")
 end
 
+local function getBonusCategory(def): string
+	local bonus = def.bonus
+	if not bonus then
+		if def.category == "Rebirth" then
+			return "Rebirth"
+		end
+		return "Other"
+	end
+
+	local keys = {}
+	if bonus.Power then
+		table.insert(keys, "Power")
+	end
+	if bonus.Luck then
+		table.insert(keys, "Luck")
+	end
+	if bonus.Dna then
+		table.insert(keys, "Dna")
+	end
+
+	if #keys > 1 then
+		return "Mixed"
+	end
+	if #keys == 1 then
+		return keys[1]
+	end
+	if def.category == "Rebirth" then
+		return "Rebirth"
+	end
+	return "Other"
+end
+
+local function sortedTitleDefs(): { any }
+	local list = table.clone(TitleConfig.Titles)
+	table.sort(list, function(a, b)
+		local aCategory = BONUS_ORDER[getBonusCategory(a)] or BONUS_ORDER.Other
+		local bCategory = BONUS_ORDER[getBonusCategory(b)] or BONUS_ORDER.Other
+		if aCategory ~= bCategory then
+			return aCategory < bCategory
+		end
+
+		local aRarity = RARITY_ORDER[a.rarity] or RARITY_ORDER.Other
+		local bRarity = RARITY_ORDER[b.rarity] or RARITY_ORDER.Other
+		if aRarity ~= bRarity then
+			return aRarity < bRarity
+		end
+
+		return string.lower(a.displayName or a.id) < string.lower(b.displayName or b.id)
+	end)
+	return list
+end
+
 local function makeCard(parent: ScrollingFrame, def): CardRefs
 	local card = Instance.new("Frame")
 	card.Name = "Title_" .. def.id
 	card.Size = UDim2.new(1, 0, 0, 92)
-	card.LayoutOrder = table.find(TitleConfig.Titles, def) or 1
-	Theme.applyPanelStyle(card, def.color)
+	Theme.applyPanelStyle(card, LAB_PANEL)
 	card.ZIndex = 7
 	card.Parent = parent
+	restyleStroke(card, def.color, 1.4, 0.28)
 
 	local name = Instance.new("TextLabel")
 	name.Size = UDim2.new(0, 260, 0, 28)
@@ -59,6 +152,7 @@ local function makeCard(parent: ScrollingFrame, def): CardRefs
 	Theme.applyLabelStyle(name)
 	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.Text = def.displayName
+	name.TextColor3 = TEXT_MAIN
 	name.TextSize = 22
 	name.TextScaled = false
 	name.ZIndex = 8
@@ -82,6 +176,7 @@ local function makeCard(parent: ScrollingFrame, def): CardRefs
 	Theme.applyLabelStyle(unlock)
 	unlock.TextXAlignment = Enum.TextXAlignment.Left
 	unlock.Text = def.unlockText .. "  |  " .. bonusText(def)
+	unlock.TextColor3 = TEXT_SECONDARY
 	unlock.TextSize = 13
 	unlock.TextScaled = false
 	unlock.ZIndex = 8
@@ -95,6 +190,7 @@ local function makeCard(parent: ScrollingFrame, def): CardRefs
 	Theme.applyLabelStyle(status)
 	status.TextXAlignment = Enum.TextXAlignment.Right
 	status.Text = "LOCKED"
+	status.TextColor3 = TEXT_MUTED
 	status.TextSize = 15
 	status.TextScaled = false
 	status.ZIndex = 8
@@ -105,7 +201,7 @@ local function makeCard(parent: ScrollingFrame, def): CardRefs
 	button.AnchorPoint = Vector2.new(1, 1)
 	button.Size = UDim2.new(0, 146, 0, 42)
 	button.Position = UDim2.new(1, -12, 1, -10)
-	Theme.applyButtonStyle(button, Theme.Colors.PanelMedium)
+	Theme.applyButtonStyle(button, LAB_PANEL_2)
 	button.Text = "LOCKED"
 	button.TextSize = 16
 	button.TextScaled = false
@@ -137,15 +233,17 @@ function TitleFrame.create(parent: ScreenGui): Refs
 	root.AnchorPoint = Vector2.new(0.5, 0.5)
 	root.Position = UDim2.fromScale(0.5, 0.5)
 	root.Size = UDim2.new(0, 700, 0, 560)
-	Theme.applyPanelStyle(root, Theme.Colors.Yellow)
+	Theme.applyPanelStyle(root, LAB_BASE)
 	root.ZIndex = 6
 	root.Parent = backdrop
+	restyleStroke(root, LAB_STROKE, 2, 0.18)
 
 	local header = Instance.new("TextLabel")
 	header.Size = UDim2.new(1, -16, 0, 40)
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
 	header.Text = "TITLES"
+	header.TextColor3 = TEXT_MAIN
 	header.TextSize = 28
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -156,7 +254,7 @@ function TitleFrame.create(parent: ScreenGui): Refs
 	closeButton.Position = UDim2.new(1, -8, 0, 8)
 	closeButton.Size = UDim2.new(0, 36, 0, 36)
 	closeButton.Text = "X"
-	Theme.applyButtonStyle(closeButton, Theme.Colors.Red)
+	Theme.applyButtonStyle(closeButton, DANGER_RED)
 	closeButton.TextSize = 22
 	closeButton.TextScaled = false
 	closeButton.ZIndex = 8
@@ -170,6 +268,7 @@ function TitleFrame.create(parent: ScreenGui): Refs
 	infoLabel.Position = UDim2.new(0, 16, 0, 52)
 	Theme.applyLabelStyle(infoLabel)
 	infoLabel.Text = "Current Title: Rookie"
+	infoLabel.TextColor3 = TEXT_SECONDARY
 	infoLabel.TextSize = 17
 	infoLabel.TextScaled = false
 	infoLabel.ZIndex = 7
@@ -179,7 +278,7 @@ function TitleFrame.create(parent: ScreenGui): Refs
 	scroll.Name = "TitleList"
 	scroll.Size = UDim2.new(1, -32, 1, -96)
 	scroll.Position = UDim2.new(0, 16, 0, 86)
-	scroll.BackgroundColor3 = Theme.Colors.PanelDark
+	scroll.BackgroundColor3 = LAB_BASE
 	scroll.BorderSizePixel = 0
 	scroll.ScrollBarThickness = 8
 	scroll.CanvasSize = UDim2.fromOffset(0, 0)
@@ -205,8 +304,9 @@ function TitleFrame.create(parent: ScreenGui): Refs
 	padding.Parent = scroll
 
 	local cards = {}
-	for _, def in ipairs(TitleConfig.Titles) do
+	for order, def in ipairs(sortedTitleDefs()) do
 		cards[def.id] = makeCard(scroll, def)
+		cards[def.id].card.LayoutOrder = order
 	end
 
 	return { backdrop = backdrop, root = root, infoLabel = infoLabel, cards = cards }
@@ -231,18 +331,27 @@ function TitleFrame.update(refs: Refs, state)
 		local isEquipped = equipped == def.id
 		if isEquipped then
 			card.status.Text = "EQUIPPED"
+			card.status.TextColor3 = DNA_GREEN
 			card.button.Text = "EQUIPPED"
-			card.button.BackgroundColor3 = Theme.Colors.Yellow
+			card.button.BackgroundColor3 = DNA_GREEN
+			card.button.TextColor3 = TEXT_MAIN
+			restyleStroke(card.card, CYAN, 2, 0.08)
 			card.button:SetAttribute("Action", "None")
 		elseif owned then
 			card.status.Text = "UNLOCKED"
+			card.status.TextColor3 = CYAN
 			card.button.Text = "EQUIP"
-			card.button.BackgroundColor3 = Theme.Colors.Blue
+			card.button.BackgroundColor3 = CYAN
+			card.button.TextColor3 = TEXT_MAIN
+			restyleStroke(card.card, def.color, 1.4, 0.24)
 			card.button:SetAttribute("Action", "Equip")
 		else
 			card.status.Text = "LOCKED"
+			card.status.TextColor3 = TEXT_MUTED
 			card.button.Text = "LOCKED"
-			card.button.BackgroundColor3 = Theme.Colors.PanelMedium
+			card.button.BackgroundColor3 = LAB_PANEL_2
+			card.button.TextColor3 = TEXT_MUTED
+			restyleStroke(card.card, def.color, 1.1, 0.55)
 			card.button:SetAttribute("Action", "None")
 		end
 	end

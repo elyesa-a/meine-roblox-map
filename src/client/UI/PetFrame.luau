@@ -51,6 +51,26 @@ type Refs = {
 
 local PET_CARD_SIZE = Vector2.new(136, 104)
 local EGG_CARD_SIZE = Vector2.new(158, 72)
+local LAB_BASE = Color3.fromRGB(10, 14, 22)
+local LAB_PANEL = Color3.fromRGB(18, 24, 35)
+local LAB_PANEL_2 = Color3.fromRGB(25, 32, 46)
+local LAB_STROKE = Color3.fromRGB(0, 210, 190)
+local LAB_STROKE_DARK = Color3.fromRGB(0, 120, 115)
+local TEXT_MAIN = Color3.fromRGB(245, 248, 255)
+local TEXT_SECONDARY = Color3.fromRGB(175, 185, 200)
+local TEXT_MUTED = Color3.fromRGB(110, 120, 135)
+local DNA_GREEN = Color3.fromRGB(0, 220, 120)
+local REWARD_GOLD = Color3.fromRGB(255, 220, 80)
+local DANGER_RED = Color3.fromRGB(255, 70, 75)
+
+local function restyleStroke(gui: GuiObject, color: Color3, thickness: number?, transparency: number?)
+	local stroke = gui:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = color
+		stroke.Thickness = thickness or 1.5
+		stroke.Transparency = transparency or 0.35
+	end
+end
 
 local function petMultiplier(def): number
 	local value = if def then (def.powerMultiplier or def.multiplier or 1) else 1
@@ -164,9 +184,9 @@ local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): Tex
 	local selected = refs.selectedEggId == egg.id
 	local accent = egg.color
 	local titleColor = if unlocked then accent else accent:Lerp(Color3.fromRGB(125, 125, 135), 0.45)
-	local cardColor = if selected then accent:Lerp(Color3.fromRGB(18, 22, 32), 0.35) else Color3.fromRGB(31, 38, 52)
+	local cardColor = if selected then LAB_PANEL_2 else LAB_PANEL
 	if not unlocked then
-		cardColor = if selected then Color3.fromRGB(72, 56, 62) else Color3.fromRGB(35, 36, 44)
+		cardColor = if selected then Color3.fromRGB(40, 36, 42) else Color3.fromRGB(17, 20, 28)
 	end
 
 	local card = Instance.new("TextButton")
@@ -178,11 +198,13 @@ local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): Tex
 	card.TextScaled = false
 	card.ZIndex = 7
 	card.Parent = parent
+	restyleStroke(card, if selected then LAB_STROKE else (if unlocked then LAB_STROKE_DARK else Color3.fromRGB(60, 70, 85)), if selected then 2 else 1.25, if selected then 0.12 else 0.45)
 
 	makeSmallLabel(card, egg.tier .. " Egg", UDim2.new(0, 6, 0, 5), UDim2.new(1, -12, 0, 18), 12, titleColor)
 	local area = makeSmallLabel(card, egg.areaDisplayName, UDim2.new(0, 6, 0, 23), UDim2.new(1, -12, 0, 16), 11)
+	area.TextColor3 = if unlocked then TEXT_SECONDARY else TEXT_MUTED
 	area.TextXAlignment = Enum.TextXAlignment.Left
-	local cost = makeSmallLabel(card, NumberFormatter.format(egg.cost) .. " DNA", UDim2.new(0, 6, 0, 41), UDim2.new(1, -12, 0, 14), 11, Theme.Colors.Yellow)
+	local cost = makeSmallLabel(card, NumberFormatter.format(egg.cost) .. " DNA", UDim2.new(0, 6, 0, 41), UDim2.new(1, -12, 0, 14), 11, REWARD_GOLD)
 	cost.TextXAlignment = Enum.TextXAlignment.Left
 	local status = makeSmallLabel(
 		card,
@@ -190,7 +212,7 @@ local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): Tex
 		UDim2.new(0, 6, 0, 56),
 		UDim2.new(1, -12, 0, 13),
 		10,
-		if unlocked then Theme.Colors.Green else Theme.Colors.Red
+		if unlocked then DNA_GREEN else DANGER_RED
 	)
 	status.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -211,24 +233,27 @@ local function buildPetCard(parent: ScrollingFrame, instanceId: string, def, equ
 	card.Name = "Pet_" .. instanceId
 	card.LayoutOrder = (if equipped then 0 else 100000) - math.floor(petMultiplier(def) * 1000)
 	card.Size = UDim2.fromOffset(PET_CARD_SIZE.X, PET_CARD_SIZE.Y)
-	Theme.applyPanelStyle(card, petColor)
+	Theme.applyPanelStyle(card, if equipped then Color3.fromRGB(20, 34, 32) else LAB_PANEL)
 	card.ZIndex = 7
 	card.Parent = parent
+	restyleStroke(card, petColor, if equipped then 2 else 1.35, if equipped then 0.12 else 0.35)
 
 	local name = makeSmallLabel(card, def.displayName, UDim2.new(0, 4, 0, 4), UDim2.new(1, -8, 0, 20), 13)
+	name.TextColor3 = TEXT_MAIN
 	name.TextXAlignment = Enum.TextXAlignment.Center
 
 	local rarity = makeSmallLabel(card, def.rarity, UDim2.new(0, 4, 0, 26), UDim2.new(1, -8, 0, 16), 11, petColor)
 	rarity.TextXAlignment = Enum.TextXAlignment.Center
 
 	local multi = makeSmallLabel(card, string.format("%.2gx Power", petMultiplier(def)), UDim2.new(0, 4, 0, 45), UDim2.new(1, -8, 0, 22), 16)
+	multi.TextColor3 = REWARD_GOLD
 	multi.TextXAlignment = Enum.TextXAlignment.Center
 
 	local action = Instance.new("TextButton")
 	action.Name = "Action"
 	action.Size = UDim2.new(1, -8, 0, 26)
 	action.Position = UDim2.new(0, 4, 1, -30)
-	Theme.applyButtonStyle(action, if equipped then Theme.Colors.Red else Theme.Colors.Green)
+	Theme.applyButtonStyle(action, if equipped then DANGER_RED else DNA_GREEN)
 	action.Text = if equipped then "UNEQUIP" else "EQUIP"
 	action.TextSize = 13
 	action.TextScaled = false
@@ -263,11 +288,13 @@ function PetFrame.create(parent: ScreenGui): Refs
 	root.AnchorPoint = Vector2.new(0.5, 0.5)
 	root.Position = UDim2.fromScale(0.5, 0.5)
 	root.Size = UDim2.new(0, 760, 0, 560)
-	Theme.applyPanelStyle(root, Theme.Colors.Blue)
+	Theme.applyPanelStyle(root, LAB_BASE)
 	root.ZIndex = 6
 	root.Parent = backdrop
+	restyleStroke(root, LAB_STROKE, 2, 0.18)
 
 	local header = makeSmallLabel(root, "PETS & EGGS", UDim2.new(0, 8, 0, 8), UDim2.new(1, -16, 0, 34), 26)
+	header.TextColor3 = TEXT_MAIN
 	header.TextXAlignment = Enum.TextXAlignment.Center
 
 	local closeButton = Instance.new("TextButton")
@@ -275,7 +302,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	closeButton.Position = UDim2.new(1, -8, 0, 8)
 	closeButton.Size = UDim2.new(0, 36, 0, 36)
 	closeButton.Text = "X"
-	Theme.applyButtonStyle(closeButton, Theme.Colors.Red)
+	Theme.applyButtonStyle(closeButton, DANGER_RED)
 	closeButton.TextSize = 22
 	closeButton.TextScaled = false
 	closeButton.ZIndex = 9
@@ -288,15 +315,16 @@ function PetFrame.create(parent: ScreenGui): Refs
 	eggPanel.Name = "EggPanel"
 	eggPanel.Size = UDim2.new(1, -32, 0, 166)
 	eggPanel.Position = UDim2.new(0, 16, 0, 52)
-	Theme.applyPanelStyle(eggPanel, Color3.fromRGB(24, 28, 42))
+	Theme.applyPanelStyle(eggPanel, LAB_PANEL)
 	eggPanel.ZIndex = 7
 	eggPanel.Parent = root
+	restyleStroke(eggPanel, LAB_STROKE_DARK, 1.25, 0.42)
 
 	local eggScroll = Instance.new("ScrollingFrame")
 	eggScroll.Name = "EggGrid"
 	eggScroll.Size = UDim2.new(0, 360, 1, -16)
 	eggScroll.Position = UDim2.new(0, 8, 0, 8)
-	eggScroll.BackgroundColor3 = Theme.Colors.PanelDark
+	eggScroll.BackgroundColor3 = LAB_BASE
 	eggScroll.BorderSizePixel = 0
 	eggScroll.ScrollBarThickness = 8
 	eggScroll.CanvasSize = UDim2.fromOffset(0, 0)
@@ -319,12 +347,13 @@ function PetFrame.create(parent: ScreenGui): Refs
 	eggPad.Parent = eggScroll
 
 	local eggNameLabel = makeSmallLabel(eggPanel, "Select an egg", UDim2.new(0, 384, 0, 10), UDim2.new(1, -400, 0, 24), 18)
+	eggNameLabel.TextColor3 = TEXT_MAIN
 	eggNameLabel.TextXAlignment = Enum.TextXAlignment.Left
-	local eggReqLabel = makeSmallLabel(eggPanel, "Requirement: -", UDim2.new(0, 384, 0, 38), UDim2.new(1, -400, 0, 20), 13, Color3.fromRGB(200, 230, 235))
+	local eggReqLabel = makeSmallLabel(eggPanel, "Requirement: -", UDim2.new(0, 384, 0, 38), UDim2.new(1, -400, 0, 20), 13, TEXT_SECONDARY)
 	eggReqLabel.TextXAlignment = Enum.TextXAlignment.Left
-	local eggCostLabel = makeSmallLabel(eggPanel, "Cost: -", UDim2.new(0, 384, 0, 62), UDim2.new(1, -400, 0, 20), 13, Theme.Colors.Yellow)
+	local eggCostLabel = makeSmallLabel(eggPanel, "Cost: -", UDim2.new(0, 384, 0, 62), UDim2.new(1, -400, 0, 20), 13, REWARD_GOLD)
 	eggCostLabel.TextXAlignment = Enum.TextXAlignment.Left
-	local eggChanceLabel = makeSmallLabel(eggPanel, rarityChanceText(), UDim2.new(0, 384, 0, 88), UDim2.new(1, -400, 0, 34), 11, Color3.fromRGB(190, 210, 220))
+	local eggChanceLabel = makeSmallLabel(eggPanel, rarityChanceText(), UDim2.new(0, 384, 0, 88), UDim2.new(1, -400, 0, 34), 11, TEXT_SECONDARY)
 	eggChanceLabel.RichText = true
 	eggChanceLabel.TextWrapped = true
 	eggChanceLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -334,7 +363,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	hatchButton.Size = UDim2.new(0, 170, 0, 34)
 	hatchButton.Position = UDim2.new(0, 384, 1, -42)
 	hatchButton.Text = "HATCH"
-	Theme.applyButtonStyle(hatchButton, Theme.Colors.Green)
+	Theme.applyButtonStyle(hatchButton, DNA_GREEN)
 	hatchButton.TextSize = 16
 	hatchButton.TextScaled = false
 	hatchButton.ZIndex = 8
@@ -344,7 +373,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	resultPanel.Name = "HatchResultPanel"
 	resultPanel.Size = UDim2.new(1, -566, 0, 54)
 	resultPanel.Position = UDim2.new(0, 564, 1, -62)
-	Theme.applyPanelStyle(resultPanel, Color3.fromRGB(18, 23, 32))
+	Theme.applyPanelStyle(resultPanel, LAB_PANEL_2)
 	resultPanel.Visible = false
 	resultPanel.ZIndex = 8
 	resultPanel.Parent = eggPanel
@@ -355,7 +384,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	resultPreview.Name = "ResultPreview"
 	resultPreview.Position = UDim2.new(0, 4, 0, 4)
 	resultPreview.Size = UDim2.new(0, 46, 0, 46)
-	resultPreview.BackgroundColor3 = Color3.fromRGB(14, 18, 26)
+	resultPreview.BackgroundColor3 = LAB_BASE
 	resultPreview.BorderSizePixel = 0
 	resultPreview.LightDirection = Vector3.new(-0.4, -1, -0.5).Unit
 	resultPreview.Ambient = Color3.fromRGB(160, 170, 185)
@@ -384,9 +413,9 @@ function PetFrame.create(parent: ScreenGui): Refs
 
 	local resultNameLabel = makeSmallLabel(resultPanel, "New Pet", UDim2.new(0, 56, 0, 5), UDim2.new(1, -64, 0, 18), 14)
 	resultNameLabel.TextXAlignment = Enum.TextXAlignment.Left
-	local resultRarityLabel = makeSmallLabel(resultPanel, "Rarity", UDim2.new(0, 56, 0, 24), UDim2.new(0.5, -32, 0, 16), 12, Theme.Colors.Green)
+	local resultRarityLabel = makeSmallLabel(resultPanel, "Rarity", UDim2.new(0, 56, 0, 24), UDim2.new(0.5, -32, 0, 16), 12, DNA_GREEN)
 	resultRarityLabel.TextXAlignment = Enum.TextXAlignment.Left
-	local resultMultiplierLabel = makeSmallLabel(resultPanel, "1x Power", UDim2.new(0.5, 0, 0, 24), UDim2.new(0.5, -8, 0, 16), 12, Theme.Colors.Yellow)
+	local resultMultiplierLabel = makeSmallLabel(resultPanel, "1x Power", UDim2.new(0.5, 0, 0, 24), UDim2.new(0.5, -8, 0, 16), 12, REWARD_GOLD)
 	resultMultiplierLabel.TextXAlignment = Enum.TextXAlignment.Right
 
 	local infoRow = Instance.new("Frame")
@@ -424,7 +453,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	local bestButton = Instance.new("TextButton")
 	bestButton.Size = UDim2.new(0, 190, 1, 0)
 	bestButton.Text = "EQUIP BEST"
-	Theme.applyButtonStyle(bestButton, Theme.Colors.Green)
+	Theme.applyButtonStyle(bestButton, DNA_GREEN)
 	bestButton.TextSize = 15
 	bestButton.TextScaled = false
 	bestButton.ZIndex = 8
@@ -433,7 +462,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	local unequipAllButton = Instance.new("TextButton")
 	unequipAllButton.Size = UDim2.new(0, 170, 1, 0)
 	unequipAllButton.Text = "UNEQUIP ALL"
-	Theme.applyButtonStyle(unequipAllButton, Theme.Colors.Red)
+	Theme.applyButtonStyle(unequipAllButton, DANGER_RED)
 	unequipAllButton.TextSize = 15
 	unequipAllButton.TextScaled = false
 	unequipAllButton.ZIndex = 8
@@ -443,7 +472,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	scroll.Name = "PetGrid"
 	scroll.Size = UDim2.new(1, -32, 1, -318)
 	scroll.Position = UDim2.new(0, 16, 0, 308)
-	scroll.BackgroundColor3 = Theme.Colors.PanelDark
+	scroll.BackgroundColor3 = LAB_BASE
 	scroll.BorderSizePixel = 0
 	scroll.ScrollBarThickness = 8
 	scroll.CanvasSize = UDim2.fromOffset(0, 0)
@@ -555,9 +584,9 @@ function PetFrame.create(parent: ScreenGui): Refs
 		local mult = if type(payload.powerMultiplier) == "number" then payload.powerMultiplier else 1
 		local color = rarityColor(rarity)
 		refs.resultPanel.Visible = true
-		refs.resultPanel.BackgroundColor3 = color:Lerp(Color3.fromRGB(14, 18, 26), 0.68)
+		refs.resultPanel.BackgroundColor3 = color:Lerp(LAB_PANEL, 0.78)
 		refs.resultNameLabel.Text = name
-		refs.resultNameLabel.TextColor3 = Theme.Colors.White
+		refs.resultNameLabel.TextColor3 = TEXT_MAIN
 		refs.resultRarityLabel.Text = rarity
 		refs.resultRarityLabel.TextColor3 = color
 		refs.resultMultiplierLabel.Text = string.format("%.2gx Power", mult)
@@ -588,7 +617,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 					Vector3.new(0, 1.1, distance),
 					Vector3.new(0, 0.4, 0)
 				)
-				refs.resultPreview.BackgroundColor3 = color:Lerp(Color3.fromRGB(10, 13, 20), 0.78)
+				refs.resultPreview.BackgroundColor3 = color:Lerp(LAB_BASE, 0.82)
 
 				refs.previewSpin = 0
 				refs.previewModel = previewModel
@@ -620,7 +649,7 @@ function PetFrame.update(refs: Refs, state)
 		refs.eggReqLabel.Text = "Requirement: " .. eggRequirementText(selectedEgg)
 		refs.eggCostLabel.Text = "Cost: " .. NumberFormatter.format(selectedEgg.cost) .. " DNA"
 		refs.hatchButton.Text = if unlocked then (if enoughDna then "HATCH" else "NEED DNA") else "LOCKED"
-		refs.hatchButton.BackgroundColor3 = if unlocked and enoughDna then Theme.Colors.Green else Theme.Colors.Red
+		refs.hatchButton.BackgroundColor3 = if unlocked and enoughDna then DNA_GREEN else DANGER_RED
 	end
 
 	for _, child in ipairs(refs.eggScroll:GetChildren()) do

@@ -15,6 +15,33 @@ local RequestClaimDailyQuest = Remotes:WaitForChild("RequestClaimDailyQuest") ::
 
 local DailyQuestFrame = {}
 
+local LAB_BASE = Color3.fromRGB(10, 14, 22)
+local LAB_PANEL = Color3.fromRGB(18, 24, 35)
+local LAB_PANEL_2 = Color3.fromRGB(25, 32, 46)
+local LAB_STROKE = Color3.fromRGB(0, 210, 190)
+local LAB_STROKE_DARK = Color3.fromRGB(0, 120, 115)
+local TEXT_MAIN = Color3.fromRGB(245, 248, 255)
+local TEXT_SECONDARY = Color3.fromRGB(175, 185, 200)
+local DNA_GREEN = Color3.fromRGB(0, 220, 120)
+local AMBER = Color3.fromRGB(255, 190, 40)
+local REWARD_GOLD = Color3.fromRGB(255, 220, 80)
+local DANGER_RED = Color3.fromRGB(255, 70, 75)
+
+local DIFFICULTY_COLORS = {
+	Easy = DNA_GREEN,
+	Medium = AMBER,
+	Hard = Color3.fromRGB(255, 120, 70),
+}
+
+local function restyleStroke(gui: GuiObject, color: Color3, thickness: number?, transparency: number?)
+	local stroke = gui:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = color
+		stroke.Thickness = thickness or 1.5
+		stroke.Transparency = transparency or 0.35
+	end
+end
+
 type QuestCard = {
 	card: Frame,
 	title: TextLabel,
@@ -60,9 +87,10 @@ local function makeCard(parent: Frame, index: number): QuestCard
 	local card = Instance.new("Frame")
 	card.Name = "QuestCard" .. tostring(index)
 	card.Size = UDim2.new(1, 0, 0, 102)
-	Theme.applyPanelStyle(card, Theme.Colors.PanelDark)
+	Theme.applyPanelStyle(card, LAB_PANEL)
 	card.ZIndex = 7
 	card.Parent = parent
+	restyleStroke(card, Color3.fromRGB(60, 70, 85), 1.25, 0.35)
 
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -170, 0, 28)
@@ -70,6 +98,7 @@ local function makeCard(parent: Frame, index: number): QuestCard
 	Theme.applyLabelStyle(title)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.Text = "Quest"
+	title.TextColor3 = TEXT_MAIN
 	title.TextSize = 21
 	title.TextScaled = false
 	title.ZIndex = 8
@@ -81,6 +110,7 @@ local function makeCard(parent: Frame, index: number): QuestCard
 	Theme.applyLabelStyle(desc)
 	desc.TextXAlignment = Enum.TextXAlignment.Left
 	desc.Text = "-"
+	desc.TextColor3 = TEXT_SECONDARY
 	desc.TextSize = 15
 	desc.TextScaled = false
 	desc.ZIndex = 8
@@ -92,6 +122,7 @@ local function makeCard(parent: Frame, index: number): QuestCard
 	Theme.applyLabelStyle(progress)
 	progress.TextXAlignment = Enum.TextXAlignment.Left
 	progress.Text = "0 / 0"
+	progress.TextColor3 = TEXT_MAIN
 	progress.TextSize = 15
 	progress.TextScaled = false
 	progress.ZIndex = 8
@@ -103,7 +134,7 @@ local function makeCard(parent: Frame, index: number): QuestCard
 	Theme.applyLabelStyle(reward)
 	reward.TextXAlignment = Enum.TextXAlignment.Left
 	reward.Text = "-"
-	reward.TextColor3 = Theme.Colors.Yellow
+	reward.TextColor3 = REWARD_GOLD
 	reward.TextSize = 14
 	reward.TextScaled = false
 	reward.ZIndex = 8
@@ -114,7 +145,7 @@ local function makeCard(parent: Frame, index: number): QuestCard
 	button.AnchorPoint = Vector2.new(1, 0.5)
 	button.Size = UDim2.new(0, 140, 0, 48)
 	button.Position = UDim2.new(1, -12, 0.5, 0)
-	Theme.applyButtonStyle(button, Theme.Colors.Green)
+	Theme.applyButtonStyle(button, DNA_GREEN)
 	button.Text = "CLAIM"
 	button.TextSize = 16
 	button.TextScaled = false
@@ -147,15 +178,17 @@ function DailyQuestFrame.create(parent: ScreenGui): Refs
 	root.AnchorPoint = Vector2.new(0.5, 0.5)
 	root.Position = UDim2.fromScale(0.5, 0.5)
 	root.Size = UDim2.new(0, 660, 0, 500)
-	Theme.applyPanelStyle(root, Theme.Colors.Orange)
+	Theme.applyPanelStyle(root, LAB_BASE)
 	root.ZIndex = 6
 	root.Parent = backdrop
+	restyleStroke(root, LAB_STROKE, 2, 0.18)
 
 	local header = Instance.new("TextLabel")
 	header.Size = UDim2.new(1, -16, 0, 40)
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
 	header.Text = "DAILY QUESTS"
+	header.TextColor3 = TEXT_MAIN
 	header.TextSize = 28
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -166,7 +199,7 @@ function DailyQuestFrame.create(parent: ScreenGui): Refs
 	closeButton.Position = UDim2.new(1, -8, 0, 8)
 	closeButton.Size = UDim2.new(0, 36, 0, 36)
 	closeButton.Text = "X"
-	Theme.applyButtonStyle(closeButton, Theme.Colors.Red)
+	Theme.applyButtonStyle(closeButton, DANGER_RED)
 	closeButton.TextSize = 22
 	closeButton.TextScaled = false
 	closeButton.ZIndex = 8
@@ -181,6 +214,7 @@ function DailyQuestFrame.create(parent: ScreenGui): Refs
 	Theme.applyLabelStyle(streakLabel)
 	streakLabel.TextXAlignment = Enum.TextXAlignment.Left
 	streakLabel.Text = "Completed: 0"
+	streakLabel.TextColor3 = TEXT_SECONDARY
 	streakLabel.TextSize = 16
 	streakLabel.TextScaled = false
 	streakLabel.ZIndex = 7
@@ -192,6 +226,7 @@ function DailyQuestFrame.create(parent: ScreenGui): Refs
 	Theme.applyLabelStyle(resetLabel)
 	resetLabel.TextXAlignment = Enum.TextXAlignment.Right
 	resetLabel.Text = "Reset: --"
+	resetLabel.TextColor3 = AMBER
 	resetLabel.TextSize = 16
 	resetLabel.TextScaled = false
 	resetLabel.ZIndex = 7
@@ -246,6 +281,7 @@ function DailyQuestFrame.update(refs: Refs, state)
 		local progress = math.clamp(entry.Progress or 0, 0, def.required)
 		local complete = progress >= def.required
 		card.title.Text = def.displayName .. " [" .. def.difficulty .. "]"
+		card.title.TextColor3 = DIFFICULTY_COLORS[def.difficulty] or TEXT_MAIN
 		card.desc.Text = def.description
 		card.progress.Text = NumberFormatter.format(progress) .. " / " .. NumberFormatter.format(def.required)
 		card.reward.Text = rewardText(def.reward)
@@ -253,15 +289,18 @@ function DailyQuestFrame.update(refs: Refs, state)
 
 		if entry.Claimed then
 			card.button.Text = "CLAIMED"
-			card.button.BackgroundColor3 = Theme.Colors.PanelMedium
+			card.button.BackgroundColor3 = LAB_PANEL_2
+			card.button.TextColor3 = TEXT_SECONDARY
 			card.button:SetAttribute("CanClaim", false)
 		elseif complete then
 			card.button.Text = "CLAIM"
-			card.button.BackgroundColor3 = Theme.Colors.Green
+			card.button.BackgroundColor3 = DNA_GREEN
+			card.button.TextColor3 = TEXT_MAIN
 			card.button:SetAttribute("CanClaim", true)
 		else
 			card.button.Text = "IN PROGRESS"
-			card.button.BackgroundColor3 = Theme.Colors.PanelMedium
+			card.button.BackgroundColor3 = LAB_PANEL_2
+			card.button.TextColor3 = TEXT_SECONDARY
 			card.button:SetAttribute("CanClaim", false)
 		end
 	end
