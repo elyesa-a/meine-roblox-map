@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -75,6 +76,14 @@ local menuController = MenuController.new({
 	Spin = { backdrop = spinRefs.backdrop, root = spinRefs.root, show = SpinFrame.show },
 })
 
+ProximityPromptService.PromptTriggered:Connect(function(prompt)
+	local target = prompt:GetAttribute("MenuTarget")
+	if type(target) ~= "string" then
+		return
+	end
+	menuController:openMenu(target)
+end)
+
 -- TopBar mit Spin-Button-Klick.
 local topRefs = TopBar.create(screen, function()
 	menuController:openMenu("Spin")
@@ -111,8 +120,8 @@ LeftButtons.create(screen, function(id)
 	end
 end)
 
--- Klick-Button (zentral unten).
-ClickHandler.bind(screen, bottomRefs.clickButton, Theme.Colors.Yellow, bottomRefs.autoClickButton)
+-- Klick-Button + Screen-Tap fuer Power.
+ClickHandler.bind(screen, bottomRefs.clickButton, Color3.fromRGB(70, 255, 120), bottomRefs.autoClickButton)
 
 -- Popup-Listener.
 PopupHandler.start(screen)

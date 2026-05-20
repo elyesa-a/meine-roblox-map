@@ -8,10 +8,9 @@
 -- Werte werden intern als echte Zahlen gehalten und nur auf Labels per
 -- NumberFormatter abgekuerzt (K, M, B, T, Qa, Qi, ... Dc).
 --
--- RequiredPower bleibt bewusst eine MILDE Kurve (nicht *4), weil der
--- bestehende EnemyService Angriffe ueber RequiredPower freischaltet. Die
--- spec-konforme Progression laeuft ueber die DNA-Borders (siehe RequiredDNA
--- + BorderService). So bleibt das bestehende Kampf-System spielbar.
+-- RequiredPower bleibt die Kampf-Anforderung fuer EnemyService.
+-- RequiredGatePower ist die Progressions-Anforderung der Border VOR diesem
+-- Gegner. Auch diese Progression nutzt Power/PWR, niemals DNA.
 --
 -- Oeffentliche API (unveraendert, damit EnemyService weiterlaeuft):
 --   EnemyConfig.Enemies           -> { EnemyDef }
@@ -28,9 +27,9 @@ export type EnemyDef = {
 	Strength: number,
 	RequiredPower: number,
 	DNAReward: number,
-	-- DNA, die der Spieler besitzen muss, um die Border VOR diesem Gegner
+	-- PWR, die der Spieler erreichen muss, um die Border VOR diesem Gegner
 	-- zu passieren (0 = frei, kein Border davor).
-	RequiredDNA: number,
+	RequiredGatePower: number,
 	RespawnTime: number,
 	AreaName: string, -- = AreaConfig id (z.B. "Area1")
 	AreaIndex: number, -- 1..10
@@ -96,18 +95,17 @@ local function buildEnemies(): { EnemyDef }
 			local strength = BASE_STRENGTH * factor
 			local dnaReward = BASE_DNA * factor
 
-			-- Milde Power-Kurve nur pro Area (DNA-Borders sind das eigentliche
-			-- Progressions-Gate). Boss minimal hoeher.
+			-- Milde Power-Kurve fuer direkte Angriffe. Boss minimal hoeher.
 			local requiredPower = math.floor(50 * (3.2 ^ (areaIndex - 1)))
 			if isBoss then
 				requiredPower = math.floor(requiredPower * 1.4)
 			end
 
-			-- Border VOR diesem Gegner verlangt dessen eigenen DNA-Drop.
-			-- Erster Gegner von Area 1 ist frei (Vorgabe: "Required: 0 DNA").
-			local requiredDna = dnaReward
+			-- Border VOR diesem Gegner verlangt Power in der bisherigen
+			-- Progressionskurve. DNA bleibt nur Reward/Kauf-Waehrung.
+			local requiredGatePower = dnaReward
 			if globalIndex == 1 then
-				requiredDna = 0
+				requiredGatePower = 0
 			end
 
 			local displayName: string
@@ -128,7 +126,7 @@ local function buildEnemies(): { EnemyDef }
 				Strength = strength,
 				RequiredPower = requiredPower,
 				DNAReward = dnaReward,
-				RequiredDNA = requiredDna,
+				RequiredGatePower = requiredGatePower,
 				RespawnTime = if isBoss then 28 + areaIndex * 3 else 7 + areaIndex,
 				AreaName = area.id,
 				AreaIndex = areaIndex,

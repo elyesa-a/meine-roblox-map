@@ -12,6 +12,7 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 
 local Services = ServerScriptService:WaitForChild("Services")
 
@@ -103,7 +104,7 @@ RebirthService.start({
 	TitleService = TitleService,
 })
 ZoneLockService.start({ DataService = DataService })
--- DNA-Borders + Labor-Luken (Virus-Labor). Reines Map-Gating, additiv.
+-- PWR-Borders + Labor-Luken (Virus-Labor). Reines Map-Gating, additiv.
 BorderService.start({ DataService = DataService })
 -- Egg-Catch-Stationen an das bestehende Pet-Egg-System koppeln.
 EggCatchService.start({ PetService = PetService })
@@ -172,10 +173,22 @@ if WorldBuilder.PetEgg then
 	end
 end
 
--- 6b. Click-Remote (+1 Kraft pro Klick, 10/s Cap).
-AntiExploitService.safeBind(RequestClick, 10, function(player)
+-- 6b. Click-Remote (+1 Kraft pro Klick, serverseitiger 0.15s Cooldown).
+local CLICK_COOLDOWN = 0.15
+local lastPowerClickAt: { [Player]: number } = {}
+AntiExploitService.safeBind(RequestClick, 7, function(player)
+	local now = os.clock()
+	local last = lastPowerClickAt[player] or 0
+	if now - last < CLICK_COOLDOWN then
+		return
+	end
+	lastPowerClickAt[player] = now
 	StatService.addPower(player, 1)
 	StatService.spawnClickVfx(player)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	lastPowerClickAt[player] = nil
 end)
 
 -- 6c. Settings-Remote.

@@ -56,7 +56,8 @@ local function hasZoneAccess(profile, zoneId: string): boolean
 	if not zone or not zone.enabled then
 		return false
 	end
-	return profile.Rebirths >= zone.requiredRebirth and profile.Power >= zone.requiredPower
+	local progressPower = profile.Power or 0
+	return profile.Rebirths >= zone.requiredRebirth and progressPower >= zone.requiredPower
 end
 
 local function grant(player: Player, zoneId: string, def): boolean

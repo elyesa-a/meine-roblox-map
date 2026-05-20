@@ -7,9 +7,8 @@
 --  * Training-Rebirth-Anforderung (Trainingsbereich der Area)
 --  * Layout-Position (Mittelpunkt der Gegner-Halle in der Welt)
 --
--- DNA-Anforderungen der Gates/Borders werden datenbasiert aus EnemyConfig
--- abgeleitet (DNA-Drop des jeweils naechsten Gegners), damit es nur eine
--- Quelle der Wahrheit fuer das *4-Scaling gibt.
+-- Power/PWR-Anforderungen der Area-Gates liegen zentral hier. DNA bleibt
+-- reine Kauf-Waehrung fuer Skills, Pets, Boosts, Eggs und Upgrades.
 
 export type AreaDef = {
 	index: number,
@@ -20,6 +19,8 @@ export type AreaDef = {
 	secondaryColor: Color3,
 	-- Rebirth-Anforderung fuer den Trainingsbereich dieser Area.
 	trainingRebirth: number,
+	-- Power-Anforderung fuer das Area-Gate.
+	requiredPower: number,
 	-- Welt-X der Mitte der Gegner-Halle dieser Area.
 	hallCenterX: number,
 }
@@ -61,6 +62,32 @@ local areaData = {
 	{ name = "Final Containment", boss = "Final DNA Destroyer", rb = 30, p = rgb(255, 70, 120), s = rgb(90, 230, 245) },
 }
 
+AreaConfig.ZoneRequirements = {
+	SpawnLab = 0,
+	BacteriaLab = 0,
+	InfectedCells = 160,
+	ToxicSlimeLab = 500,
+	MutantChamber = 1500,
+	DNAInstabilityLab = 5000,
+	FrostLab = 15000,
+	BiohazardContainment = 50000,
+	VirusCoreSector = 150000,
+	OverlordMutationLab = 500000,
+}
+
+local requiredPowerByAreaIndex = {
+	AreaConfig.ZoneRequirements.BacteriaLab,
+	AreaConfig.ZoneRequirements.InfectedCells,
+	AreaConfig.ZoneRequirements.ToxicSlimeLab,
+	AreaConfig.ZoneRequirements.MutantChamber,
+	AreaConfig.ZoneRequirements.DNAInstabilityLab,
+	AreaConfig.ZoneRequirements.FrostLab,
+	AreaConfig.ZoneRequirements.BiohazardContainment,
+	AreaConfig.ZoneRequirements.VirusCoreSector,
+	AreaConfig.ZoneRequirements.OverlordMutationLab,
+	AreaConfig.ZoneRequirements.OverlordMutationLab,
+}
+
 AreaConfig.Areas = {} :: { AreaDef }
 
 for i, data in ipairs(areaData) do
@@ -72,6 +99,7 @@ for i, data in ipairs(areaData) do
 		primaryColor = data.p,
 		secondaryColor = data.s,
 		trainingRebirth = data.rb,
+		requiredPower = requiredPowerByAreaIndex[i] or 0,
 		hallCenterX = AreaConfig.Layout.FirstHallX + (i - 1) * AreaConfig.Layout.AreaSpan,
 	}
 end

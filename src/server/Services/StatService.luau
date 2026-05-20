@@ -69,12 +69,14 @@ local function sendUpdate(player: Player)
 	if not profile then
 		return
 	end
+	profile.ZonesReached = profile.ZonesReached or {}
 	local rebirthCost = nil
 	if profile.Rebirths < RebirthConfig.MaxRebirth then
 		rebirthCost = RebirthConfig.getCost(profile.Rebirths)
 	end
 	UpdateClientData:FireClient(player, {
 		Power = profile.Power,
+		HighestPower = profile.HighestPower or 0,
 		Rebirths = profile.Rebirths,
 		RebirthShards = profile.RebirthShards,
 		DnaCoins = profile.DnaCoins,
@@ -99,6 +101,7 @@ local function sendUpdate(player: Player)
 		Titles = profile.Titles,
 		EquippedTitle = profile.EquippedTitle,
 		TitleStats = profile.TitleStats,
+		ZonesReached = profile.ZonesReached,
 		TitlePowerMultiplier = if TitleService then TitleService.getBonusMultiplier(player, "Power") else 1,
 		TitleDnaMultiplier = if TitleService then TitleService.getBonusMultiplier(player, "Dna") else 1,
 		TitleLuckMultiplier = if TitleService then TitleService.getBonusMultiplier(player, "Luck") else 1,
@@ -158,6 +161,9 @@ end
 
 local function afterPowerChanged(player: Player, profile)
 	local levelBefore = profile.Level
+	if profile.Power > (profile.HighestPower or 0) then
+		profile.HighestPower = profile.Power
+	end
 	checkLevelUp(profile)
 	if DailyQuestService then
 		DailyQuestService.recordSet(player, "ReachPower", profile.Power)

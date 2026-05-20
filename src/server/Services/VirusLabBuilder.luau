@@ -3,7 +3,7 @@
 --
 -- Linearer Parcours entlang +X:
 --   Spawn Lab (hinten) -> Trainingsbereich 1 -> Labor-Luke 1 ->
---   Area 1 (10 Gegner + DNA-Borders + 3 Egg-Catch) -> Luke/Training 2 ->
+--   Area 1 (10 Gegner + PWR-Borders + 3 Egg-Catch) -> Luke/Training 2 ->
 --   Area 2 -> ... -> Area 10 (Final Containment, Final Boss).
 --
 -- Erzeugt exakt die Strukturen, die bestehende Services erwarten:
@@ -14,8 +14,8 @@
 --   * Workspace.Map.ZoneTriggers -> Client CurrentAreaLabel (DisplayName-Attr)
 --   * SpawnLocation          -> Spieler-Spawn
 -- Neu (von BorderService / EggCatchService genutzt):
---   * Workspace.EnemyBorders -> Parts mit Attribut RequiredDNA
---   * Workspace.AreaGates    -> Parts mit RequiredDNA / RequiredRebirth
+--   * Workspace.EnemyBorders -> Parts mit Attribut RequiredPower
+--   * Workspace.AreaGates    -> Parts mit RequiredPower / RequiredRebirth
 --   * Workspace.EggStations  -> ClickDetector "OpenEgg" + Egg-Attribute
 --
 -- Das bestehende UI / die RemoteEvents werden NICHT angefasst.
@@ -714,7 +714,7 @@ local function buildEnemyModel(parent, def, basePos, primary, secondary)
 	return model
 end
 
--- ---- DNA-Border zwischen zwei Gegnern ------------------------------------
+-- ---- PWR-Border zwischen zwei Gegnern ------------------------------------
 
 local function buildBorder(parent, def, x, primary)
 	local model = Instance.new("Model")
@@ -736,16 +736,16 @@ local function buildBorder(parent, def, x, primary)
 		neonStrip(model, Vector3.new(0.35, height + 1.5, 0.35), Vector3.new(x, FLOOR_Y + (height + 1.5) / 2, z), primary, 0.24)
 	end
 
-	-- Glas-/Neon-Wand = Trigger (CanCollide=false, BorderService prueft DNA).
+	-- Glas-/Neon-Wand = Trigger (CanCollide=false, BorderService prueft PWR).
 	local wall = makePart(model, "BorderField", Vector3.new(1.2, height, borderZ), Vector3.new(x, FLOOR_Y + height / 2 + 0.5, centerZ), ACCESS_LOCKED, Enum.Material.ForceField, false)
 	wall.Transparency = 0.5
 	wall.CanTouch = true
-	wall:SetAttribute("RequiredDNA", def.RequiredDNA)
+	wall:SetAttribute("RequiredPower", def.RequiredGatePower)
 
 	local sign = makePart(model, "BorderSign", Vector3.new(11, 3.2, 0.55), Vector3.new(x, FLOOR_Y + height + 3.2, centerZ), LAB_DARK, Enum.Material.SmoothPlastic, false)
 	label(
 		sign,
-		string.format("Required:\n%s DNA", NumberFormatter.format(def.RequiredDNA)),
+		string.format("Required:\n%s PWR", NumberFormatter.format(def.RequiredGatePower)),
 		ACCESS_LOCKED_SOFT,
 		42,
 		UDim2.fromOffset(170, 54),
@@ -755,7 +755,7 @@ end
 
 -- ---- Labor-Luke / Gate zwischen Training und Gegner-Halle -----------------
 
-local function buildTunnelGate(parent, area, x, requiredDna)
+local function buildTunnelGate(parent, area, x, requiredPower)
 	local model = Instance.new("Model")
 	model.Name = "Gate_" .. area.id
 	model:SetAttribute("AreaId", area.id)
@@ -777,18 +777,19 @@ local function buildTunnelGate(parent, area, x, requiredDna)
 	local scan = makePart(model, "TunnelGateScanField", Vector3.new(0.8, height - 3, gateWidthZ - 9), Vector3.new(x, FLOOR_Y + (height - 3) / 2 + 0.8, centerZ), primary, Enum.Material.ForceField, false)
 	scan.Transparency = 0.72
 	scan.CanTouch = true
-	scan:SetAttribute("RequiredDNA", requiredDna)
+	scan:SetAttribute("RequiredPower", requiredPower)
 	scan:SetAttribute("RequiredRebirth", 0)
 	scan:SetAttribute("AreaName", area.displayName)
+	scan:SetAttribute("AreaId", area.id)
 
 	local panel = makePart(model, "TunnelGateControlPanel", Vector3.new(5.5, 6, 1), Vector3.new(x - 4.5, FLOOR_Y + 4.5, centerZ - gateWidthZ / 2 - 8), LAB_DARK, Enum.Material.Metal, true)
 	neonStrip(model, Vector3.new(3.8, 3.8, 0.25), panel.Position + Vector3.new(0, 0.35, -0.65), primary, 0.3)
-	label(panel, if area.index == 1 then "OPEN\n0 DNA" else "LOCKED\nDNA", primarySoft, 32, UDim2.fromOffset(90, 46), Vector3.new(0, 2.2, 0))
+	label(panel, if area.index == 1 then "OPEN\n0 PWR" else "LOCKED\nPWR", primarySoft, 32, UDim2.fromOffset(90, 46), Vector3.new(0, 2.2, 0))
 
 	local sign = makePart(model, "TunnelGateSign", Vector3.new(20, 5, 0.65), Vector3.new(x, FLOOR_Y + height + 5, centerZ), LAB_DARK, Enum.Material.SmoothPlastic, false)
 	label(
 		sign,
-		string.format("%s\nRequired: %s DNA", string.upper(area.displayName), NumberFormatter.format(requiredDna)),
+		string.format("%s\nRequired: %s PWR", string.upper(area.displayName), NumberFormatter.format(requiredPower)),
 		primarySoft,
 		55,
 		UDim2.fromOffset(280, 70),
@@ -796,8 +797,8 @@ local function buildTunnelGate(parent, area, x, requiredDna)
 	)
 end
 
-local function buildGate(parent, area, x, requiredDna)
-	buildTunnelGate(parent, area, x, requiredDna)
+local function buildGate(parent, area, x, requiredPower)
+	buildTunnelGate(parent, area, x, requiredPower)
 end
 
 -- ---- Gegner-Tunnel Struktur ----------------------------------------------
@@ -1280,7 +1281,7 @@ local function buildTrainingArea(parent, bedsFolder, gatesFolder, area, x)
 	local bayHalfZ = bayDepthZ / 2
 	local bayMouthZ = bayZ + bayHalfZ -- Richtung Laufweg (offene Seite)
 	local bayBackZ = bayZ - bayHalfZ
-	local bayWidthX = 66
+	local bayWidthX = 78
 
 	-- Bay-Boden (klar abgesetzte Plattform).
 	makePart(model, "TrainingBayFloor", Vector3.new(bayWidthX, 0.6, bayDepthZ), Vector3.new(x, FLOOR_Y + 0.32, bayZ), tint(LAB_PANEL, primary, 0.14), Enum.Material.SmoothPlastic, true)
@@ -1306,58 +1307,28 @@ local function buildTrainingArea(parent, bedsFolder, gatesFolder, area, x)
 		neonStrip(model, Vector3.new(bayWidthX - 4, 0.3, 0.3), Vector3.new(x, FLOOR_Y + 13.8, ledZ), primary, 0.5)
 	end
 
-	-- Drei klare Trainings-Stationen entlang X, Schilder Richtung Laufweg.
-	local padInfos = {
-		{ name = "POWER TRAINING", short = "PWR", dx = -21, c = LAB_WARNING_RED },
-		{ name = "DNA TRAINING", short = "DNA", dx = 0, c = LAB_GREEN },
-		{ name = "LUCK / BOOST", short = "BOOST", dx = 21, c = LAB_WARNING_YELLOW },
-	}
-	for _, info in ipairs(padInfos) do
-		local center = Vector3.new(x + info.dx, FLOOR_Y, bayZ)
-		local tp = makePart(model, "TrainPad", Vector3.new(15, 0.5, 17), center + Vector3.new(0, 0.75, 0), info.c, Enum.Material.SmoothPlastic, false)
-		tp.Transparency = 0.34
-		local stationBase = makePart(model, "TrainStationBase", Vector3.new(19, 0.25, 21), center + Vector3.new(0, 0.5, 0), LAB_DARK, Enum.Material.Metal, false)
-		stationBase.Transparency = 0.08
-		makePart(model, "TrainPadStripe", Vector3.new(13, 0.12, 0.5), center + Vector3.new(0, 0.95, 7.4), info.c, Enum.Material.SmoothPlastic, false).Transparency = 0.3
-		-- Scanner-Bogen ueber dem Pad (Rueckseite zur Bay-Rueckwand).
-		for _, edgeX in ipairs({ -7.5, 7.5 }) do
-			makePart(model, "TrainScannerPost", Vector3.new(0.7, 7.2, 0.7), center + Vector3.new(edgeX, 3.8, -7.6), LAB_DARK, Enum.Material.Metal, false)
-		end
-		local scannerBeam = makePart(model, "TrainScannerBeam", Vector3.new(16, 0.7, 0.8), center + Vector3.new(0, 7.4, -7.6), LAB_DARK, Enum.Material.Metal, false)
-		neonStrip(model, Vector3.new(12, 0.22, 0.34), scannerBeam.Position + Vector3.new(0, -0.45, 0.42), info.c, 0.5)
-		-- Kontroll-Terminal, Schirm Richtung Laufweg (+Z).
-		local terminal = makePart(model, "TrainTerminal", Vector3.new(5, 3.4, 3.4), center + Vector3.new(0, 1.7, -8.2), LAB_DARK, Enum.Material.Metal, false)
-		local screen = makePart(model, "TrainTerminalScreen", Vector3.new(3.6, 2.4, 0.36), terminal.Position + Vector3.new(0, 1, 1.9), info.c, Enum.Material.SmoothPlastic, false)
-		screen.Transparency = 0.22
-		label(screen, info.short, Color3.fromRGB(255, 255, 255), 30, UDim2.fromOffset(90, 34), Vector3.new(0, 0, 0))
-		local cabinet = makePart(model, "TrainingBreakerBox", Vector3.new(3.6, 5.4, 1.1), center + Vector3.new(0, 3.2, -9.3), Color3.fromRGB(54, 60, 62), Enum.Material.Metal, false)
-		label(cabinet, "SYS\nOK", LAB_GREEN, 22, UDim2.fromOffset(56, 34), Vector3.new(0, 0, 0))
-		local post = makePart(model, "TrainSignPost", Vector3.new(0.6, 6.4, 0.6), center + Vector3.new(0, 3.2, 8.4), LAB_TRIM, Enum.Material.Metal, false)
-		label(post, info.name, info.c, 44, UDim2.fromOffset(180, 44), Vector3.new(0, 3, 0))
+	-- Ein breiter, klarer Power-Trainingsbereich. DNA/Luck-Training wurde
+	-- bewusst entfernt, damit die Bay nicht wie drei getrennte Shops wirkt.
+	local center = Vector3.new(x, FLOOR_Y, bayZ)
+	local trainColor = LAB_WARNING_RED
+	local tp = makePart(model, "TrainPad", Vector3.new(42, 0.5, 20), center + Vector3.new(0, 0.75, 0), trainColor, Enum.Material.SmoothPlastic, false)
+	tp.Transparency = 0.34
+	local stationBase = makePart(model, "TrainStationBase", Vector3.new(50, 0.25, 24), center + Vector3.new(0, 0.5, 0), LAB_DARK, Enum.Material.Metal, false)
+	stationBase.Transparency = 0.08
+	makePart(model, "TrainPadStripe", Vector3.new(34, 0.12, 0.55), center + Vector3.new(0, 0.95, 8.6), trainColor, Enum.Material.SmoothPlastic, false).Transparency = 0.3
+	for _, edgeX in ipairs({ -21, 21 }) do
+		makePart(model, "TrainScannerPost", Vector3.new(0.8, 7.2, 0.8), center + Vector3.new(edgeX, 3.8, -8.7), LAB_DARK, Enum.Material.Metal, false)
 	end
-
-	-- Hauptschild an der Bay-Rueckwand, gut vom Laufweg lesbar.
-	local sign = makePart(model, "TrainingSign", Vector3.new(30, 6, 0.6), Vector3.new(x, FLOOR_Y + 12.5, bayBackZ + 0.9), LAB_DARK, Enum.Material.SmoothPlastic, false)
-	label(
-		sign,
-		string.format(
-			"TRAINING %d  •  %s\n%s PWR/s  |  %s",
-			area.index,
-			string.upper(area.displayName),
-			NumberFormatter.format(bedDef.powerPerSecond),
-			if bedDef.requiredRebirth > 0 then "Requires Rebirth " .. bedDef.requiredRebirth else "Open"
-		),
-		primary,
-		70,
-		UDim2.fromOffset(300, 64),
-		Vector3.new(0, 0, 0)
-	)
-
-	-- Wegweiser auf dem Laufweg: zeigt zur seitlichen Bay.
-	local guide = makePart(model, "TrainingBayGuideArrow", Vector3.new(10, 0.1, 5), Vector3.new(x, FLOOR_Y + 0.22, -16), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false)
-	guide.Transparency = 0.4
-	local guidePost = makePart(model, "TrainingBayGuidePost", Vector3.new(0.7, 7, 0.7), Vector3.new(x, FLOOR_Y + 3.5, -10), LAB_TRIM, Enum.Material.Metal, false)
-	label(guidePost, "← TRAINING BAY", primary, 38, UDim2.fromOffset(190, 38), Vector3.new(0, 2.6, 0))
+	local scannerBeam = makePart(model, "TrainScannerBeam", Vector3.new(43, 0.7, 0.8), center + Vector3.new(0, 7.4, -8.7), LAB_DARK, Enum.Material.Metal, false)
+	neonStrip(model, Vector3.new(36, 0.22, 0.34), scannerBeam.Position + Vector3.new(0, -0.45, 0.42), trainColor, 0.5)
+	local terminal = makePart(model, "TrainTerminal", Vector3.new(7, 3.4, 3.4), center + Vector3.new(0, 1.7, -10.1), LAB_DARK, Enum.Material.Metal, false)
+	local screen = makePart(model, "TrainTerminalScreen", Vector3.new(5.6, 2.4, 0.36), terminal.Position + Vector3.new(0, 1, 1.9), trainColor, Enum.Material.SmoothPlastic, false)
+	screen.Transparency = 0.22
+	label(screen, "PWR", Color3.fromRGB(255, 255, 255), 30, UDim2.fromOffset(120, 34), Vector3.new(0, 0, 0))
+	local cabinet = makePart(model, "TrainingBreakerBox", Vector3.new(4.2, 5.4, 1.1), center + Vector3.new(-18, 3.2, -10.8), Color3.fromRGB(54, 60, 62), Enum.Material.Metal, false)
+	label(cabinet, "SYS\nOK", LAB_GREEN, 22, UDim2.fromOffset(56, 34), Vector3.new(0, 0, 0))
+	local post = makePart(model, "TrainSignPost", Vector3.new(0.6, 6.4, 0.6), center + Vector3.new(0, 3.2, 9.7), LAB_TRIM, Enum.Material.Metal, false)
+	label(post, "POWER TRAINING", trainColor, 44, UDim2.fromOffset(210, 44), Vector3.new(0, 3, 0))
 
 	-- Trainings-Bett (Vertrag mit TrainingZoneService): Model + Hitbox-Part.
 	-- Hitbox deckt die Bay ab -> Spieler trainiert, waehrend er in der Bay
@@ -1386,7 +1357,7 @@ local function buildTrainingArea(parent, bedsFolder, gatesFolder, area, x)
 		field.Color = ACCESS_LOCKED
 		field.Transparency = 0.5
 		field.CanTouch = true
-		field:SetAttribute("RequiredDNA", 0)
+		field:SetAttribute("RequiredPower", 0)
 		field:SetAttribute("RequiredRebirth", bedDef.requiredRebirth)
 		field:SetAttribute("AreaName", area.displayName .. " Training")
 		local s = makePart(gm, "TGateSign", Vector3.new(18, 6, 0.7), Vector3.new(gateX, FLOOR_Y + 26, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.SmoothPlastic, false)
@@ -1807,23 +1778,86 @@ local function buildHubTerminal(parent, name, pos, accent, title, subtitle, face
 	makePart(model, "TermTrim", Vector3.new(6.8, 0.4, 2.4), pos + Vector3.new(0, 7.6, 0), accent:Lerp(LAB_DARK, 0.4), Enum.Material.SmoothPlastic, false).CFrame = body.CFrame * CFrame.new(0, 3.6, 0)
 end
 
--- Stations-Kiosk (Upgrade/Pets/Daily/Spin) -- nur Deko + Beschilderung.
--- Die echten Features laufen ueber das bestehende UI/Remotes; hier wird
--- NICHTS verdrahtet (kein zweiter ClickDetector, kein Remote).
-local function buildStationKiosk(parent, name, pos, accent, title, hint)
+local function makePrompt(parent: BasePart, menuTarget: string, actionText: string, objectText: string)
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "OpenMenuPrompt"
+	prompt.ActionText = actionText
+	prompt.ObjectText = objectText
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.HoldDuration = 0.25
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt:SetAttribute("MenuTarget", menuTarget)
+	prompt.Parent = parent
+	return prompt
+end
+
+local function buildStationNpc(parent, name, pos, accent, npcName, style, faceSign): BasePart
 	local model = Instance.new("Model")
 	model.Name = name
 	model.Parent = parent
+	local face = faceSign or 1
+
+	local suit = if style == "Dark" then Color3.fromRGB(42, 45, 52) else LAB_WHITE
+	local trim = if style == "Bot" then LAB_DARK else accent:Lerp(LAB_DARK, 0.35)
+	local skin = Color3.fromRGB(226, 190, 150)
+
+	local legs = makePart(model, "Legs", Vector3.new(2.6, 3.2, 1.1), pos + Vector3.new(0, 1.6, 0), Color3.fromRGB(58, 62, 68), Enum.Material.SmoothPlastic, false)
+	local torso = makePart(model, "Torso", Vector3.new(3.4, 4.1, 1.5), pos + Vector3.new(0, 5.2, 0), suit, Enum.Material.SmoothPlastic, false)
+	local head = makePart(model, "Head", Vector3.new(2.4, 2.4, 2.4), pos + Vector3.new(0, 8.8, 0), if style == "Bot" then Color3.fromRGB(205, 215, 218) else skin, Enum.Material.SmoothPlastic, false)
+	head.Shape = Enum.PartType.Ball
+
+	for _, x in ipairs({ -2.35, 2.35 }) do
+		makePart(model, "Arm", Vector3.new(0.85, 3.6, 0.9), pos + Vector3.new(x, 5.25, 0), suit, Enum.Material.SmoothPlastic, false)
+	end
+
+	local visor = makePart(model, "Visor", Vector3.new(2, 0.35, 0.18), pos + Vector3.new(0, 9.05, 1.12 * face), trim, Enum.Material.SmoothPlastic, false)
+	local badge = makePart(model, "Badge", Vector3.new(0.75, 0.75, 0.16), pos + Vector3.new(0.95, 5.75, 0.84 * face), accent, Enum.Material.SmoothPlastic, false)
+	local tablet = makePart(model, "Tablet", Vector3.new(2.8, 1.5, 0.22), pos + Vector3.new(0, 4.6, 1.05 * face), LAB_DARK, Enum.Material.Metal, false)
+	neonStrip(model, Vector3.new(2, 0.16, 0.16), tablet.Position + Vector3.new(0, 0.15, 0.13 * face), accent, 0.22)
+
+	for _, part in ipairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = false
+			part.CanQuery = false
+		end
+	end
+
+	label(head, npcName, accent:Lerp(Color3.fromRGB(235, 245, 240), 0.45), 42, UDim2.fromOffset(170, 34), Vector3.new(0, 2.4, 0))
+	return torso
+end
+
+-- Interaktiver Labor-Kiosk: Prompt oeffnet vorhandene UI-Menues clientseitig.
+local function buildStationKiosk(parent, name, pos, accent, title, hint, menuTarget, actionText, npcName, npcStyle, faceSign)
+	local model = Instance.new("Model")
+	model.Name = name
+	model.Parent = parent
+	local face = faceSign or 1
 	local pillar = makePart(model, "KioskBody", Vector3.new(8, 9, 6), pos + Vector3.new(0, 4.2, 0), Color3.fromRGB(212, 217, 216), Enum.Material.SmoothPlastic, true)
 	makePart(model, "KioskBase", Vector3.new(9.5, 0.8, 7.5), pos + Vector3.new(0, 0.1, 0), LAB_DARK, Enum.Material.Metal, true)
 	makePart(model, "KioskDarkTop", Vector3.new(8.4, 1.1, 6.4), pos + Vector3.new(0, 9.2, 0), LAB_DARK, Enum.Material.SmoothPlastic, false)
-	neonStrip(model, Vector3.new(7, 0.3, 0.3), pos + Vector3.new(0, 8.4, -3.05), accent, 0.18)
-	local screen = makePart(model, "KioskScreen", Vector3.new(5.6, 4.4, 0.25), pos + Vector3.new(0, 5.4, -3.05), tint(accent, Color3.fromRGB(54, 70, 70), 0.4), Enum.Material.Neon, false)
+	neonStrip(model, Vector3.new(7, 0.3, 0.3), pos + Vector3.new(0, 8.4, 3.05 * face), accent, 0.18)
+	local screen = makePart(model, "KioskScreen", Vector3.new(5.6, 4.4, 0.25), pos + Vector3.new(0, 5.4, 3.05 * face), tint(accent, Color3.fromRGB(54, 70, 70), 0.4), Enum.Material.Neon, false)
 	screen.Transparency = 0.12
 	label(screen, title, Color3.fromRGB(236, 248, 242), 50, UDim2.fromOffset(160, 48), Vector3.new(0, 0, 0))
-	local post = makePart(model, "KioskSignPost", Vector3.new(0.6, 6, 0.6), pos + Vector3.new(0, 3, 5.4), LAB_TRIM, Enum.Material.Metal, true)
-	local board = makePart(model, "KioskSignBoard", Vector3.new(9, 3, 0.4), pos + Vector3.new(0, 7, 5.4), LAB_DARK, Enum.Material.SmoothPlastic, false)
-	label(board, hint, accent:Lerp(Color3.fromRGB(225, 240, 232), 0.5), 44, UDim2.fromOffset(190, 44), Vector3.new(0, 0, 0))
+
+	local marqueePost = makePart(model, "StationMarqueePost", Vector3.new(0.75, 8, 0.75), pos + Vector3.new(-5.5, 4, 0), LAB_TRIM, Enum.Material.Metal, true)
+	local marquee = makePart(model, "StationMarquee", Vector3.new(13, 3.6, 0.5), pos + Vector3.new(0, 12.2, 0), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	neonStrip(model, Vector3.new(11.4, 0.24, 0.24), marquee.Position + Vector3.new(0, -1.55, -0.3), accent, 0.26)
+	label(marquee, title, Color3.fromRGB(245, 250, 248), 80, UDim2.fromOffset(220, 50), Vector3.new(0, 0, 0))
+
+	local npcPromptPart = buildStationNpc(model, "NPC_" .. npcName:gsub("%s+", ""), pos + Vector3.new(0, 0, 7.1 * face), accent, npcName, npcStyle, face)
+	npcPromptPart:SetAttribute("MenuTarget", menuTarget)
+	makePrompt(npcPromptPart, menuTarget, actionText, npcName)
+
+	local sampleA = makePart(model, "SampleCapsuleA", Vector3.new(1.4, 3.2, 1.4), pos + Vector3.new(-4.7, 2.4, 2.6 * face), Color3.fromRGB(180, 220, 210), Enum.Material.Glass, false)
+	sampleA.Shape = Enum.PartType.Cylinder
+	sampleA.Transparency = 0.42
+	makePart(model, "SampleGlowA", Vector3.new(0.8, 2.1, 0.8), sampleA.Position, accent:Lerp(LAB_GREEN, 0.35), Enum.Material.SmoothPlastic, false).Shape = Enum.PartType.Ball
+	local console = makePart(model, "ServiceConsole", Vector3.new(3.4, 2.1, 2.4), pos + Vector3.new(4.9, 1.55, 2.4 * face), LAB_DARK, Enum.Material.Metal, true)
+	neonStrip(model, Vector3.new(2.3, 0.18, 0.18), console.Position + Vector3.new(0, 0.8, -1.25 * face), accent, 0.25)
+
+	marqueePost.Transparency = 0
 end
 
 local function buildBiohazardDrum(parent, name, pos, accent)
@@ -1887,15 +1921,14 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	local heroFolder = makeFolder("HeroObjects", parent)
 	buildVirusStatue(heroFolder, Vector3.new(cx, FLOOR_Y, -45), Color3.fromRGB(108, 196, 134))
 
-	-- Einfache Glas-Zellen als Labor-Deko.
-	for i, dz in ipairs({ -1, 1 }) do
-		local gx = cx - 70
-		local cell = makePart(model, "GlassCell" .. i, Vector3.new(10, 14, 10), Vector3.new(gx, FLOOR_Y + 7, dz * 60), Color3.fromRGB(180, 220, 230), Enum.Material.Glass, false)
-		cell.Transparency = 0.55
-		makePart(model, "CellBase" .. i, Vector3.new(11, 1, 11), Vector3.new(gx, FLOOR_Y + 0.5, dz * 60), LAB_TRIM, Enum.Material.Metal, true)
-		local cellSign = makePart(model, "CellSign" .. i, Vector3.new(16, 4, 0.7), Vector3.new(gx, FLOOR_Y + 15.5, dz * 60), LAB_DARK, Enum.Material.SmoothPlastic, false)
-		label(cellSign, if i == 1 then "RESEARCH" else "VIRUS STORAGE", Color3.fromRGB(160, 245, 255), 45, UDim2.fromOffset(180, 44), Vector3.new(0, 0, 0))
-	end
+	-- Einfache Glas-Zelle als Labor-Deko. Die alte "Virus Storage"-Zelle
+	-- auf der Stationsseite bleibt weg, damit die Shop-Reihe frei wirkt.
+	local gx = cx - 70
+	local cell = makePart(model, "GlassCellResearch", Vector3.new(10, 14, 10), Vector3.new(gx, FLOOR_Y + 7, -60), Color3.fromRGB(180, 220, 230), Enum.Material.Glass, false)
+	cell.Transparency = 0.55
+	makePart(model, "CellBaseResearch", Vector3.new(11, 1, 11), Vector3.new(gx, FLOOR_Y + 0.5, -60), LAB_TRIM, Enum.Material.Metal, true)
+	local cellSign = makePart(model, "CellSignResearch", Vector3.new(16, 4, 0.7), Vector3.new(gx, FLOOR_Y + 15.5, -60), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	label(cellSign, "RESEARCH", Color3.fromRGB(160, 245, 255), 45, UDim2.fromOffset(180, 44), Vector3.new(0, 0, 0))
 	buildContainmentTube(model, "ContainmentTubeA", Vector3.new(cx - 108, FLOOR_Y, -54), LAB_CYAN, "SAMPLE A")
 	buildContainmentTube(model, "ContainmentTubeB", Vector3.new(cx - 108, FLOOR_Y, 20), LAB_GREEN, "MUTATION")
 	buildConsole(model, "MutationConsole", Vector3.new(cx + 34, FLOOR_Y, -48), LAB_CYAN, "CORE")
@@ -1919,10 +1952,6 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	label(egg, "PET EGG\nClick to open", Color3.fromRGB(180, 230, 255), 40, UDim2.fromOffset(190, 60), Vector3.new(0, 7, 0))
 	VirusLabBuilder.PetEgg = egg
 
-	-- Wegweiser Richtung Area 1.
-	local arrowSign = makePart(model, "StartArrow", Vector3.new(20, 6, 0.7), Vector3.new(cx + 110, FLOOR_Y + 6, 0), LAB_DARK, Enum.Material.SmoothPlastic, false)
-	label(arrowSign, "→ TRAINING & AREA 1", Color3.fromRGB(150, 255, 200), 60, UDim2.fromOffset(240, 56), Vector3.new(0, 0, 0))
-
 	local headerSign = makePart(model, "SpawnLabHeader", Vector3.new(0.7, 5, 38), Vector3.new(cx - 148, FLOOR_Y + L.WallHeight - 7, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.SmoothPlastic, false)
 	label(headerSign, "MUTATION LAB", Color3.fromRGB(150, 255, 220), 75, UDim2.fromOffset(300, 54), Vector3.new(0, 0, 0))
 
@@ -1933,7 +1962,6 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	local coreF = orgFolders.core
 	local decoF = orgFolders.deco
 	local termF = orgFolders.terminals
-	local dirF = orgFolders.directions
 	local hubZ = -45
 	local accentG = Color3.fromRGB(108, 196, 134)
 
@@ -1956,15 +1984,16 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	buildHubTerminal(termF, "HubTerminalVitals", Vector3.new(cx + 30, FLOOR_Y, hubZ + 12), LAB_GREEN, "VITALS", "ALL OK", Vector3.new(0, 0, 1))
 	buildHubTerminal(termF, "HubTerminalContain", Vector3.new(cx, FLOOR_Y, hubZ - 34), LAB_CYAN, "CONTAINMENT", "SEALED", Vector3.new(0, 0, -1))
 
-	-- Stations-Kioske (rein dekorativ + Beschilderung; keine Remotes).
+	-- Interaktive NPC-Stationen: oeffnen clientseitig dieselben Menues wie
+	-- die Sidebar. Laufwege bleiben frei; alle Stationen liegen seitlich.
 	local stations = {
-		{ n = "UpgradeStation", t = "UPGRADES", h = "Open the Upgrade menu", c = LAB_CYAN, dx = -54 },
-		{ n = "PetMachineStation", t = "PET LAB", h = "Click the Pet Egg →", c = LAB_GREEN, dx = -18 },
-		{ n = "DailyRewardStation", t = "DAILY REWARD", h = "Claim in Daily menu", c = LAB_WARNING_YELLOW, dx = 18 },
-		{ n = "LuckySpinStation", t = "LUCKY SPIN", h = "Spin in the menu", c = LAB_CYAN, dx = 54 },
+		{ n = "UpgradeLabStation", t = "UPGRADE LAB", h = "Improve your mutation power", c = LAB_GREEN, dx = -64, z = 82, menu = "Skills", action = "Open Upgrades", npc = "Dr. Upgrade", style = "Lab" },
+		{ n = "AuraStation", t = "AURA STATION", h = "Unlock mutation effects", c = Color3.fromRGB(132, 116, 170), dx = -24, z = 82, menu = "Auras", action = "Open Auras", npc = "Aura Dealer", style = "Dark" },
+		{ n = "ShopTerminalStation", t = "SHOP", h = "Boosts & Items", c = LAB_CYAN, dx = 16, z = 82, menu = "Shop", action = "Open Shop", npc = "Shop Vendor", style = "Dark" },
+		{ n = "DailyRewardStation", t = "DAILY REWARD", h = "Claim free rewards", c = LAB_WARNING_YELLOW, dx = 56, z = 82, menu = "Daily", action = "Claim Daily", npc = "Daily Bot", style = "Bot" },
 	}
 	for _, st in ipairs(stations) do
-		buildStationKiosk(coreF, st.n, Vector3.new(cx + st.dx, FLOOR_Y, hubZ - 30), st.c, st.t, st.h)
+		buildStationKiosk(orgFolders.npcStations, st.n, Vector3.new(cx + st.dx, FLOOR_Y, st.z), st.c, st.t, st.h, st.menu, st.action, st.npc, st.style, -1)
 	end
 
 	-- Biohazard-Container / Glas-Tank / Kisten als Hub-Deko (off-path).
@@ -1975,15 +2004,8 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	buildCrateStack(decoF, "HubCratesA", Vector3.new(cx - 96, FLOOR_Y, hubZ + 30), LAB_CYAN)
 	buildCrateStack(decoF, "HubCratesB", Vector3.new(cx + 90, FLOOR_Y, hubZ + 30), LAB_GREEN)
 
-	-- Tutorial- + Richtungsschilder (seitlich am Laufweg, blockieren nicht).
-	buildTutorialSign(dirF, "TutorialAttack", Vector3.new(cx - 36, FLOOR_Y, 19), "CLICK ENEMIES\nTO ATTACK", LAB_GREEN)
-	buildTutorialSign(dirF, "TutorialDna", Vector3.new(cx + 6, FLOOR_Y, 19), "EARN DNA TO\nUNLOCK GATES", LAB_CYAN)
-	buildTutorialSign(dirF, "TutorialTrain", Vector3.new(cx + 48, FLOOR_Y, 19), "TRAIN TO\nGAIN POWER", LAB_GREEN)
-	local dirPost = makePart(dirF, "DirectionPost", Vector3.new(0.7, 9, 0.7), Vector3.new(cx + 96, FLOOR_Y + 4.5, -17), LAB_TRIM, Enum.Material.Metal, true)
-	local dirA = makePart(dirF, "DirSignArea", Vector3.new(12, 3, 0.4), Vector3.new(cx + 96, FLOOR_Y + 8.5, -17), LAB_DARK, Enum.Material.SmoothPlastic, false)
-	label(dirA, "AREA 1 →", Color3.fromRGB(150, 255, 200), 55, UDim2.fromOffset(150, 38), Vector3.new(0, 0, 0))
-	local dirS = makePart(dirF, "DirSignStations", Vector3.new(12, 3, 0.4), Vector3.new(cx + 96, FLOOR_Y + 5, -17), LAB_DARK, Enum.Material.SmoothPlastic, false)
-	label(dirS, "← STATIONS / HUB", Color3.fromRGB(160, 245, 255), 55, UDim2.fromOffset(170, 36), Vector3.new(0, 0, 0))
+	-- Tutorial- und Richtungsschilder wurden entfernt, damit der Spawn
+	-- cleaner wirkt und die NPC-Stationen nicht verdeckt werden.
 end
 
 -- ---- Lighting -------------------------------------------------------------
@@ -2092,15 +2114,23 @@ function VirusLabBuilder.build()
 	local bugFixes = makeFolder("BugFixes", mapFolder)
 	clearChildren(bugFixes)
 
+	local spawnHub = makeFolder("SpawnHub", mapFolder)
+	clearChildren(spawnHub)
 	local orgFolders = {
-		hub = makeFolder("SpawnHub", mapFolder),
+		hub = spawnHub,
 		core = makeFolder("SpawnCore", mapFolder),
 		deco = makeFolder("SpawnDecor", mapFolder),
 		terminals = makeFolder("SpawnTerminals", mapFolder),
 		directions = makeFolder("SpawnDirections", mapFolder),
+		npcStations = makeFolder("NPCStations", spawnHub),
+		stationNPCs = makeFolder("StationNPCs", spawnHub),
+		stationSigns = makeFolder("StationSigns", spawnHub),
+		stationDecor = makeFolder("StationDecor", spawnHub),
 	}
-	for _, f in pairs(orgFolders) do
-		clearChildren(f)
+	for key, f in pairs(orgFolders) do
+		if key ~= "hub" then
+			clearChildren(f)
+		end
 	end
 
 	local spawnFolder = makeFolder("SpawnLab", labFolder)
@@ -2136,8 +2166,8 @@ function VirusLabBuilder.build()
 		local enemyAreaFolder = makeFolder(area.id, enemyFolder)
 		local startX = hallX - (L.EnemySpacing * (L.EnemiesPerArea - 1)) / 2
 
-		-- Labor-Luke: DNA-Anforderung = Drop des ersten Gegners der Area.
-		local gateReq = if #defs > 0 then defs[1].RequiredDNA else 0
+		-- Labor-Luke: Power-Anforderung aus der zentralen Area-Progression.
+		local gateReq = area.requiredPower
 		buildGate(gatesFolder, area, hallX + L.GateOffsetX, gateReq)
 
 		for i, def in ipairs(defs) do
@@ -2164,7 +2194,7 @@ function VirusLabBuilder.build()
 				pp.CanTouch = false
 				pp:SetAttribute("EnemyId", def.Id)
 			end
-			-- DNA-Border VOR jedem Gegner ab dem 2. (Vorgabe).
+			-- PWR-Border VOR jedem Gegner ab dem 2. (Progression).
 			if i >= 2 then
 				buildBorder(bordersFolder, def, ex - L.EnemySpacing / 2, primary)
 			end

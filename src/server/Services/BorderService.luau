@@ -1,9 +1,9 @@
 --!strict
--- BorderService: setzt DNA-Borders und Labor-Luken serverseitig durch.
+-- BorderService: setzt PWR-Borders und Labor-Luken serverseitig durch.
 --
 -- Gegner-Borders (Workspace.EnemyBorders) und Gates (Workspace.AreaGates)
 -- sind nicht kollidierende Trigger-Waende. Beruehrt ein Spieler eine Wand,
--- ohne die Anforderung (DNA bzw. Rebirth) zu erfuellen, wird er ein paar
+-- ohne die Anforderung (PWR bzw. Rebirth) zu erfuellen, wird er ein paar
 -- Studs zurueckgeschoben + bekommt ein Popup. Erfuellt er sie, darf er
 -- passieren. Dieses Muster ist identisch zur bestehenden ZoneLockService-
 -- Logik (kein per-Spieler-CanCollide moeglich).
@@ -47,22 +47,26 @@ local function pushBack(player: Player, barrier: BasePart)
 end
 
 local function getRequirements(barrier: BasePart): (number, number)
-	local requiredDna = barrier:GetAttribute("RequiredDNA")
+	local requiredPower = barrier:GetAttribute("RequiredPower")
 	local requiredRebirth = barrier:GetAttribute("RequiredRebirth")
-	if type(requiredDna) ~= "number" then
-		requiredDna = 0
+	if type(requiredPower) ~= "number" then
+		requiredPower = 0
 	end
 	if type(requiredRebirth) ~= "number" then
 		requiredRebirth = 0
 	end
-	return requiredDna, requiredRebirth
+	return requiredPower, requiredRebirth
 end
 
-local function hasAccess(profile, requiredDna: number, requiredRebirth: number): boolean
-	return profile.Rebirths >= requiredRebirth and profile.DnaCoins >= requiredDna
+local function getProgressPower(profile): number
+	return profile.Power or 0
 end
 
-local function blockPlayer(player: Player, profile, barrier: BasePart, requiredDna: number, requiredRebirth: number)
+local function hasBarrierAccess(profile, barrier: BasePart, requiredPower: number, requiredRebirth: number): boolean
+	return profile.Rebirths >= requiredRebirth and getProgressPower(profile) >= requiredPower
+end
+
+local function blockPlayer(player: Player, profile, barrier: BasePart, requiredPower: number, requiredRebirth: number)
 	local now = os.clock()
 	local shouldNotify = not lastBlock[player] or now - lastBlock[player] >= 1.25
 	if shouldNotify then
@@ -73,11 +77,11 @@ local function blockPlayer(player: Player, profile, barrier: BasePart, requiredD
 			ShowPopup:FireClient(player, string.format("🔒 Requires Rebirth %d!", requiredRebirth))
 		end
 	else
-		local missing = requiredDna - profile.DnaCoins
+		local missing = requiredPower - getProgressPower(profile)
 		if shouldNotify then
 			ShowPopup:FireClient(player, string.format(
-				"🔒 Need %s DNA to pass! (%s more)",
-				NumberFormatter.format(requiredDna),
+				"🔒 Need %s PWR to pass! (%s more)",
+				NumberFormatter.format(requiredPower),
 				NumberFormatter.format(missing)
 			))
 		end
@@ -96,9 +100,9 @@ local function onBarrierTouched(barrier: BasePart, otherPart: BasePart)
 		return
 	end
 
-	local requiredDna, requiredRebirth = getRequirements(barrier)
-	if not hasAccess(profile, requiredDna, requiredRebirth) then
-		blockPlayer(player, profile, barrier, requiredDna, requiredRebirth)
+	local requiredPower, requiredRebirth = getRequirements(barrier)
+	if not hasBarrierAccess(profile, barrier, requiredPower, requiredRebirth) then
+		blockPlayer(player, profile, barrier, requiredPower, requiredRebirth)
 	end
 	-- Anforderung erfuellt -> Spieler darf ungehindert durchlaufen.
 end
@@ -115,9 +119,9 @@ local function guardLockedAreas()
 			if not barrier.Parent then
 				continue
 			end
-			local requiredDna, requiredRebirth = getRequirements(barrier)
-			if hrp.Position.X > barrier.Position.X + 6 and not hasAccess(profile, requiredDna, requiredRebirth) then
-				blockPlayer(player, profile, barrier, requiredDna, requiredRebirth)
+			local requiredPower, requiredRebirth = getRequirements(barrier)
+			if hrp.Position.X > barrier.Position.X + 6 and not hasBarrierAccess(profile, barrier, requiredPower, requiredRebirth) then
+				blockPlayer(player, profile, barrier, requiredPower, requiredRebirth)
 				break
 			end
 		end
@@ -130,7 +134,7 @@ local function bindFolder(folderName: string)
 		return
 	end
 	for _, desc in ipairs(folder:GetDescendants()) do
-		if desc:IsA("BasePart") and desc:GetAttribute("RequiredDNA") ~= nil then
+		if desc:IsA("BasePart") and desc:GetAttribute("RequiredPower") ~= nil then
 			table.insert(barrierGuards, desc)
 			desc.Touched:Connect(function(other)
 				onBarrierTouched(desc, other)

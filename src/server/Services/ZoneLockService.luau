@@ -1,6 +1,6 @@
 --!strict
--- ZoneLockService: Portal-Touches pruefen Rebirth-Anforderung serverseitig.
--- Bei zu wenig Rebirth: Popup + Spieler wird zurueckgesetzt.
+-- ZoneLockService: Portal-Touches pruefen Rebirth/PWR-Anforderungen serverseitig.
+-- Bei zu wenig Progression: Popup + Spieler wird zurueckgesetzt.
 
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
@@ -61,15 +61,18 @@ local function onPortalTouched(portal: BasePart, otherPart: BasePart)
 		if hrp and startZone then
 			hrp.CFrame = CFrame.new(startZone.center + Vector3.new(0, 5, 0))
 		end
-	elseif profile.Power < requiredPower then
-		ShowPopup:FireClient(player, string.format("Not enough Power! Need %d more PWR", math.max(0, requiredPower - profile.Power)))
-		local startZone = ZoneConfig.getById("StartZone")
-		local char = player.Character
-		local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if hrp and startZone then
-			hrp.CFrame = CFrame.new(startZone.center + Vector3.new(0, 5, 0))
-		end
 	else
+		local progressPower = profile.Power or 0
+		if progressPower < requiredPower then
+			ShowPopup:FireClient(player, string.format("Not enough PWR! Need %d more PWR", math.max(0, requiredPower - progressPower)))
+			local startZone = ZoneConfig.getById("StartZone")
+			local char = player.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if hrp and startZone then
+				hrp.CFrame = CFrame.new(startZone.center + Vector3.new(0, 5, 0))
+			end
+			return
+		end
 		-- Spieler hat Zugang -- Portal-Teleport ist optional. Wir schieben ihn
 		-- einfach in die Zonenmitte, damit kein zweites Touch-Event in der
 		-- Cooldown-Phase getriggert wird.
@@ -78,7 +81,7 @@ local function onPortalTouched(portal: BasePart, otherPart: BasePart)
 		local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if hrp and targetZone then
 			hrp.CFrame = CFrame.new(targetZone.center + Vector3.new(0, 5, 0))
-			ShowPopup:FireClient(player, "New Area Unlocked!")
+			ShowPopup:FireClient(player, "Area Unlocked!")
 		end
 	end
 end
