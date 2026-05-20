@@ -29,7 +29,10 @@ type Refs = {
 	eggCostLabel: TextLabel,
 	eggChanceLabel: TextLabel,
 	hatchButton: TextButton,
-	resultLabel: TextLabel,
+	resultPanel: Frame,
+	resultNameLabel: TextLabel,
+	resultRarityLabel: TextLabel,
+	resultMultiplierLabel: TextLabel,
 	countLabel: TextLabel,
 	multLabel: TextLabel,
 	scroll: ScrollingFrame,
@@ -45,6 +48,22 @@ local EGG_CARD_SIZE = Vector2.new(158, 72)
 local function petMultiplier(def): number
 	local value = if def then (def.powerMultiplier or def.multiplier or 1) else 1
 	return if type(value) == "number" then value else 1
+end
+
+local function rarityColor(rarity: string?): Color3
+	if rarity and PetConfig.RarityColor[rarity] then
+		return PetConfig.RarityColor[rarity]
+	end
+	return Theme.Colors.White
+end
+
+local function richColor(color: Color3): string
+	return string.format(
+		"rgb(%d,%d,%d)",
+		math.floor(color.R * 255 + 0.5),
+		math.floor(color.G * 255 + 0.5),
+		math.floor(color.B * 255 + 0.5)
+	)
 end
 
 local function makeSmallLabel(parent: Instance, text: string, pos: UDim2, size: UDim2, textSize: number, color: Color3?): TextLabel
@@ -81,9 +100,30 @@ end
 local function rarityChanceText(): string
 	local parts = {}
 	for _, entry in ipairs(PetConfig.RarityChances) do
-		table.insert(parts, string.format("%s %.1f%%", entry.rarity, entry.chance))
+		local color = richColor(rarityColor(entry.rarity))
+		table.insert(parts, string.format("<font color=\"%s\">%s %.1f%%</font>", color, entry.rarity, entry.chance))
 	end
 	return table.concat(parts, "  |  ")
+end
+
+local function getSortedEggs()
+	if PetConfig.getSortedEggs then
+		return PetConfig.getSortedEggs()
+	end
+	return PetConfig.Eggs
+end
+
+local function chooseEggForArea(state, areaIndex: number): string?
+	local firstMatching = nil
+	for _, egg in ipairs(getSortedEggs()) do
+		if egg.areaIndex == areaIndex then
+			firstMatching = firstMatching or egg
+			if canAccessEgg(state or {}, egg) then
+				return egg.id
+			end
+		end
+	end
+	return firstMatching and firstMatching.id or nil
 end
 
 local function findSelectedEgg(refs: Refs)
@@ -115,18 +155,24 @@ end
 local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): TextButton
 	local unlocked = canAccessEgg(state, egg)
 	local selected = refs.selectedEggId == egg.id
-	local accent = if unlocked then egg.color else Color3.fromRGB(95, 95, 110)
+	local accent = egg.color
+	local titleColor = if unlocked then accent else accent:Lerp(Color3.fromRGB(125, 125, 135), 0.45)
+	local cardColor = if selected then accent:Lerp(Color3.fromRGB(18, 22, 32), 0.35) else Color3.fromRGB(31, 38, 52)
+	if not unlocked then
+		cardColor = if selected then Color3.fromRGB(72, 56, 62) else Color3.fromRGB(35, 36, 44)
+	end
 
 	local card = Instance.new("TextButton")
 	card.Name = "Egg_" .. egg.id
+	card.LayoutOrder = if PetConfig.getEggSortOrder then PetConfig.getEggSortOrder(egg) else egg.areaIndex
 	card.Size = UDim2.fromOffset(EGG_CARD_SIZE.X, EGG_CARD_SIZE.Y)
 	card.Text = ""
-	Theme.applyButtonStyle(card, if selected then accent else Color3.fromRGB(31, 38, 52))
+	Theme.applyButtonStyle(card, cardColor)
 	card.TextScaled = false
 	card.ZIndex = 7
 	card.Parent = parent
 
-	makeSmallLabel(card, egg.tier .. " Egg", UDim2.new(0, 6, 0, 5), UDim2.new(1, -12, 0, 18), 12, accent)
+	makeSmallLabel(card, egg.tier .. " Egg", UDim2.new(0, 6, 0, 5), UDim2.new(1, -12, 0, 18), 12, titleColor)
 	local area = makeSmallLabel(card, egg.areaDisplayName, UDim2.new(0, 6, 0, 23), UDim2.new(1, -12, 0, 16), 11)
 	area.TextXAlignment = Enum.TextXAlignment.Left
 	local cost = makeSmallLabel(card, NumberFormatter.format(egg.cost) .. " DNA", UDim2.new(0, 6, 0, 41), UDim2.new(1, -12, 0, 14), 11, Theme.Colors.Yellow)
@@ -152,19 +198,20 @@ local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): Tex
 end
 
 local function buildPetCard(parent: ScrollingFrame, instanceId: string, def, equipped: boolean): Frame
-	local rarityColor = PetConfig.RarityColor[def.rarity] or Theme.Colors.White
+	local petColor = rarityColor(def.rarity)
 
 	local card = Instance.new("Frame")
 	card.Name = "Pet_" .. instanceId
+	card.LayoutOrder = (if equipped then 0 else 100000) - math.floor(petMultiplier(def) * 1000)
 	card.Size = UDim2.fromOffset(PET_CARD_SIZE.X, PET_CARD_SIZE.Y)
-	Theme.applyPanelStyle(card, rarityColor)
+	Theme.applyPanelStyle(card, petColor)
 	card.ZIndex = 7
 	card.Parent = parent
 
 	local name = makeSmallLabel(card, def.displayName, UDim2.new(0, 4, 0, 4), UDim2.new(1, -8, 0, 20), 13)
 	name.TextXAlignment = Enum.TextXAlignment.Center
 
-	local rarity = makeSmallLabel(card, def.rarity, UDim2.new(0, 4, 0, 26), UDim2.new(1, -8, 0, 16), 11, rarityColor)
+	local rarity = makeSmallLabel(card, def.rarity, UDim2.new(0, 4, 0, 26), UDim2.new(1, -8, 0, 16), 11, petColor)
 	rarity.TextXAlignment = Enum.TextXAlignment.Center
 
 	local multi = makeSmallLabel(card, string.format("%.2gx Power", petMultiplier(def)), UDim2.new(0, 4, 0, 45), UDim2.new(1, -8, 0, 22), 16)
@@ -255,6 +302,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	local eggGrid = Instance.new("UIGridLayout")
 	eggGrid.CellSize = UDim2.fromOffset(EGG_CARD_SIZE.X, EGG_CARD_SIZE.Y)
 	eggGrid.CellPadding = UDim2.fromOffset(8, 8)
+	eggGrid.SortOrder = Enum.SortOrder.LayoutOrder
 	eggGrid.Parent = eggScroll
 	local eggPad = Instance.new("UIPadding")
 	eggPad.PaddingTop = UDim.new(0, 8)
@@ -270,6 +318,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	local eggCostLabel = makeSmallLabel(eggPanel, "Cost: -", UDim2.new(0, 384, 0, 62), UDim2.new(1, -400, 0, 20), 13, Theme.Colors.Yellow)
 	eggCostLabel.TextXAlignment = Enum.TextXAlignment.Left
 	local eggChanceLabel = makeSmallLabel(eggPanel, rarityChanceText(), UDim2.new(0, 384, 0, 88), UDim2.new(1, -400, 0, 34), 11, Color3.fromRGB(190, 210, 220))
+	eggChanceLabel.RichText = true
 	eggChanceLabel.TextWrapped = true
 	eggChanceLabel.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -284,9 +333,21 @@ function PetFrame.create(parent: ScreenGui): Refs
 	hatchButton.ZIndex = 8
 	hatchButton.Parent = eggPanel
 
-	local resultLabel = makeSmallLabel(eggPanel, "", UDim2.new(0, 564, 1, -42), UDim2.new(1, -574, 0, 34), 12, Theme.Colors.Green)
-	resultLabel.TextXAlignment = Enum.TextXAlignment.Left
-	resultLabel.TextWrapped = true
+	local resultPanel = Instance.new("Frame")
+	resultPanel.Name = "HatchResultPanel"
+	resultPanel.Size = UDim2.new(1, -566, 0, 54)
+	resultPanel.Position = UDim2.new(0, 564, 1, -62)
+	Theme.applyPanelStyle(resultPanel, Color3.fromRGB(18, 23, 32))
+	resultPanel.Visible = false
+	resultPanel.ZIndex = 8
+	resultPanel.Parent = eggPanel
+
+	local resultNameLabel = makeSmallLabel(resultPanel, "New Pet", UDim2.new(0, 8, 0, 5), UDim2.new(1, -16, 0, 18), 14)
+	resultNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	local resultRarityLabel = makeSmallLabel(resultPanel, "Rarity", UDim2.new(0, 8, 0, 24), UDim2.new(0.5, -8, 0, 16), 12, Theme.Colors.Green)
+	resultRarityLabel.TextXAlignment = Enum.TextXAlignment.Left
+	local resultMultiplierLabel = makeSmallLabel(resultPanel, "1x Power", UDim2.new(0.5, 0, 0, 24), UDim2.new(0.5, -8, 0, 16), 12, Theme.Colors.Yellow)
+	resultMultiplierLabel.TextXAlignment = Enum.TextXAlignment.Right
 
 	local infoRow = Instance.new("Frame")
 	infoRow.Size = UDim2.new(1, -32, 0, 28)
@@ -352,6 +413,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	grid.CellSize = UDim2.fromOffset(PET_CARD_SIZE.X, PET_CARD_SIZE.Y)
 	grid.CellPadding = UDim2.fromOffset(8, 8)
 	grid.HorizontalAlignment = Enum.HorizontalAlignment.Left
+	grid.SortOrder = Enum.SortOrder.LayoutOrder
 	grid.Parent = scroll
 
 	local padding = Instance.new("UIPadding")
@@ -370,7 +432,10 @@ function PetFrame.create(parent: ScreenGui): Refs
 		eggCostLabel = eggCostLabel,
 		eggChanceLabel = eggChanceLabel,
 		hatchButton = hatchButton,
-		resultLabel = resultLabel,
+		resultPanel = resultPanel,
+		resultNameLabel = resultNameLabel,
+		resultRarityLabel = resultRarityLabel,
+		resultMultiplierLabel = resultMultiplierLabel,
 		countLabel = countLabel,
 		multLabel = multLabel,
 		scroll = scroll,
@@ -398,9 +463,17 @@ function PetFrame.create(parent: ScreenGui): Refs
 		RequestUnequipPet:FireServer("ALL")
 	end)
 
-	OpenPetEggShop.OnClientEvent:Connect(function(eggId)
-		if type(eggId) == "string" and PetConfig.getEggById(eggId) then
-			refs.selectedEggId = eggId
+	OpenPetEggShop.OnClientEvent:Connect(function(payload)
+		if type(payload) == "string" and PetConfig.getEggById(payload) then
+			refs.selectedEggId = payload
+		elseif type(payload) == "table" then
+			local preferredEggId = payload.eggId
+			local areaIndex = payload.areaIndex
+			if type(preferredEggId) == "string" and PetConfig.getEggById(preferredEggId) then
+				refs.selectedEggId = preferredEggId
+			elseif type(areaIndex) == "number" then
+				refs.selectedEggId = chooseEggForArea(refs.lastState or {}, areaIndex) or refs.selectedEggId
+			end
 		end
 		PetFrame.show(refs)
 		if refs.lastState then
@@ -415,9 +488,15 @@ function PetFrame.create(parent: ScreenGui): Refs
 		local name = tostring(payload.displayName or "Pet")
 		local rarity = tostring(payload.rarity or "?")
 		local mult = if type(payload.powerMultiplier) == "number" then payload.powerMultiplier else 1
-		refs.resultLabel.Text = string.format("%s\n%s  %.2gx Power", name, rarity, mult)
-		local color = PetConfig.RarityColor[rarity] or Theme.Colors.Green
-		refs.resultLabel.TextColor3 = color
+		local color = rarityColor(rarity)
+		refs.resultPanel.Visible = true
+		refs.resultPanel.BackgroundColor3 = color:Lerp(Color3.fromRGB(14, 18, 26), 0.68)
+		refs.resultNameLabel.Text = name
+		refs.resultNameLabel.TextColor3 = Theme.Colors.White
+		refs.resultRarityLabel.Text = rarity
+		refs.resultRarityLabel.TextColor3 = color
+		refs.resultMultiplierLabel.Text = string.format("%.2gx Power", mult)
+		UIAnimator.buttonPunch(refs.resultPanel)
 	end)
 
 	return refs
@@ -438,6 +517,7 @@ function PetFrame.update(refs: Refs, state)
 		local unlocked = canAccessEgg(state, selectedEgg)
 		local enoughDna = (state.DnaCoins or 0) >= selectedEgg.cost
 		refs.eggNameLabel.Text = selectedEgg.displayName
+		refs.eggNameLabel.TextColor3 = selectedEgg.color
 		refs.eggReqLabel.Text = "Requirement: " .. eggRequirementText(selectedEgg)
 		refs.eggCostLabel.Text = "Cost: " .. NumberFormatter.format(selectedEgg.cost) .. " DNA"
 		refs.hatchButton.Text = if unlocked then (if enoughDna then "HATCH" else "NEED DNA") else "LOCKED"
@@ -449,7 +529,7 @@ function PetFrame.update(refs: Refs, state)
 			child:Destroy()
 		end
 	end
-	for _, egg in ipairs(PetConfig.Eggs) do
+	for _, egg in ipairs(getSortedEggs()) do
 		buildEggCard(refs.eggScroll, refs, egg, state)
 	end
 

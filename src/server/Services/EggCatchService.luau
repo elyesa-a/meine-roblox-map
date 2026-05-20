@@ -27,7 +27,7 @@ local function findEggModel(instance: Instance): Model?
 	return nil
 end
 
-local function eggIdForStation(clickDetector: ClickDetector): string?
+local function eggContextForStation(clickDetector: ClickDetector): { [string]: any }?
 	local model = findEggModel(clickDetector)
 	if not model then
 		return nil
@@ -41,7 +41,11 @@ local function eggIdForStation(clickDetector: ClickDetector): string?
 	if not PetConfig.getEggById(eggId) then
 		return nil
 	end
-	return eggId
+	return {
+		areaIndex = areaIndex,
+		eggTier = tier,
+		eggId = eggId,
+	}
 end
 
 function EggCatchService.start(_deps)
@@ -52,10 +56,10 @@ function EggCatchService.start(_deps)
 
 	for _, desc in ipairs(folder:GetDescendants()) do
 		if desc:IsA("ClickDetector") and desc.Name == "OpenEgg" then
-			local eggId = eggIdForStation(desc)
-			if eggId then
+			local eggContext = eggContextForStation(desc)
+			if eggContext then
 				desc.MouseClick:Connect(function(player)
-					OpenPetEggShop:FireClient(player, eggId)
+					OpenPetEggShop:FireClient(player, eggContext)
 				end)
 			end
 		end

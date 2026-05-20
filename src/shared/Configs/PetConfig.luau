@@ -53,13 +53,19 @@ PetConfig.RarityOrder = {
 } :: { [string]: number }
 
 PetConfig.RarityColor = {
-	Common = Color3.fromRGB(180, 180, 180),
-	Uncommon = Color3.fromRGB(110, 220, 135),
-	Rare = Color3.fromRGB(80, 160, 255),
-	Epic = Color3.fromRGB(180, 100, 255),
-	Legendary = Color3.fromRGB(255, 200, 60),
-	Mythic = Color3.fromRGB(255, 80, 140),
+	Common = Color3.fromRGB(235, 238, 240),
+	Uncommon = Color3.fromRGB(90, 220, 125),
+	Rare = Color3.fromRGB(70, 155, 255),
+	Epic = Color3.fromRGB(175, 90, 255),
+	Legendary = Color3.fromRGB(255, 172, 45),
+	Mythic = Color3.fromRGB(255, 70, 125),
 } :: { [string]: Color3 }
+
+PetConfig.EggTierOrder = {
+	Common = PetConfig.RarityOrder.Common,
+	Rare = PetConfig.RarityOrder.Rare,
+	Epic = PetConfig.RarityOrder.Epic,
+} :: { [string]: number }
 
 -- Base V1 hatch chances. The server uses this table for weighted rolls.
 PetConfig.RarityChances = {
@@ -116,9 +122,9 @@ local areaPetRoots = {
 }
 
 local tierColor = {
-	Common = Color3.fromRGB(150, 220, 255),
-	Rare = Color3.fromRGB(170, 120, 255),
-	Epic = Color3.fromRGB(255, 170, 70),
+	Common = PetConfig.RarityColor.Common,
+	Rare = PetConfig.RarityColor.Rare,
+	Epic = PetConfig.RarityColor.Epic,
 } :: { [EggTier]: Color3 }
 
 local function round2(n: number): number
@@ -230,6 +236,23 @@ end
 
 function PetConfig.getEggById(id: string): EggDef?
 	return eggsById[id]
+end
+
+function PetConfig.getEggSortOrder(egg: EggDef): number
+	return egg.areaIndex * 100 + (PetConfig.EggTierOrder[egg.tier] or 50)
+end
+
+function PetConfig.getSortedEggs(): { EggDef }
+	local eggs = table.clone(PetConfig.Eggs)
+	table.sort(eggs, function(a, b)
+		local aOrder = PetConfig.getEggSortOrder(a)
+		local bOrder = PetConfig.getEggSortOrder(b)
+		if aOrder ~= bOrder then
+			return aOrder < bOrder
+		end
+		return a.id < b.id
+	end)
+	return eggs
 end
 
 function PetConfig.getPetsByRarity(rarity: Rarity): { PetDef }
