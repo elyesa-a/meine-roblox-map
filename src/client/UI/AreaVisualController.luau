@@ -22,16 +22,20 @@ local function num(value: any): number
 	return if type(value) == "number" then value else 0
 end
 
-local function canAccess(state: { [string]: any }, requiredDna: any, requiredRebirth: any): boolean
-	return num(state.DnaCoins) >= num(requiredDna) and num(state.Rebirths) >= num(requiredRebirth)
+local function getProgressPower(state: { [string]: any }): number
+	return num(state.Power)
+end
+
+local function canAccess(state: { [string]: any }, requiredPower: any, requiredRebirth: any): boolean
+	return getProgressPower(state) >= num(requiredPower) and num(state.Rebirths) >= num(requiredRebirth)
 end
 
 local function findRequirement(inst: Instance): (number, number)
 	for _, desc in ipairs(inst:GetDescendants()) do
 		if desc:IsA("BasePart") then
-			local requiredDna = desc:GetAttribute("RequiredDNA")
-			if requiredDna ~= nil then
-				return num(requiredDna), num(desc:GetAttribute("RequiredRebirth"))
+			local requiredPower = desc:GetAttribute("RequiredPower")
+			if requiredPower ~= nil then
+				return num(requiredPower), num(desc:GetAttribute("RequiredRebirth"))
 			end
 		end
 	end
@@ -70,12 +74,12 @@ local function collectAreaRequirements(state: { [string]: any }): { [string]: bo
 	for _, model in ipairs(gates:GetChildren()) do
 		local areaId = model:GetAttribute("AreaId")
 		if type(areaId) == "string" then
-			local requiredDna, requiredRebirth = findRequirement(model)
-			result[areaId] = canAccess(state, requiredDna, requiredRebirth)
+			local requiredPower, requiredRebirth = findRequirement(model)
+			result[areaId] = canAccess(state, requiredPower, requiredRebirth)
 			tintModelVisuals(model, result[areaId])
 		else
-			local requiredDna, requiredRebirth = findRequirement(model)
-			tintModelVisuals(model, canAccess(state, requiredDna, requiredRebirth))
+			local requiredPower, requiredRebirth = findRequirement(model)
+			tintModelVisuals(model, canAccess(state, requiredPower, requiredRebirth))
 		end
 	end
 	return result
@@ -106,8 +110,8 @@ local function updateBorders(state: { [string]: any })
 		return
 	end
 	for _, model in ipairs(borders:GetChildren()) do
-		local requiredDna, requiredRebirth = findRequirement(model)
-		tintModelVisuals(model, canAccess(state, requiredDna, requiredRebirth))
+		local requiredPower, requiredRebirth = findRequirement(model)
+		tintModelVisuals(model, canAccess(state, requiredPower, requiredRebirth))
 	end
 end
 

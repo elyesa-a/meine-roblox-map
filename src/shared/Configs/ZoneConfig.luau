@@ -36,7 +36,7 @@ for i, area in ipairs(AreaConfig.Areas) do
 		id = if i == 1 then "StartZone" else "Area" .. tostring(i),
 		displayName = area.displayName,
 		requiredRebirth = area.trainingRebirth,
-		requiredPower = if i == 1 then 0 else math.floor(50 * (3.2 ^ (i - 1))),
+		requiredPower = area.requiredPower,
 		zoneMultiplier = zoneMultipliers[i] or 1,
 		color = area.primaryColor,
 		-- Segment-Mitte = Gegner-Halle; deckt Trainingsbereich + Halle ab.

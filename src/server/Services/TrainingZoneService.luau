@@ -73,10 +73,13 @@ local function tick()
 		end
 
 		-- Zone-Multiplikator nur fuer Zonen gewaehren, die der Spieler
-		-- serverseitig per Rebirth-Anforderung freigeschaltet hat.
+		-- mit aktueller Power + Rebirth gerade betreten darf.
 		local zone = getActiveZone(hrp.Position)
-		if zone and profile.Rebirths >= zone.requiredRebirth then
+		local progressPower = profile.Power or 0
+		if zone and profile.Rebirths >= zone.requiredRebirth and progressPower >= zone.requiredPower then
 			StatService.setZoneMultiplier(player, zone.zoneMultiplier)
+			profile.ZonesReached = profile.ZonesReached or {}
+			profile.ZonesReached[zone.id] = true
 			if TitleService then
 				TitleService.setZoneReached(player, zone.id)
 			end

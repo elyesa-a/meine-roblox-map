@@ -5,6 +5,7 @@
 --  * Bei Erfolg: Rebirths+=1, Power=0, Level=1, DnaCoins += getDnaReward(oldR).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
 local Configs = ReplicatedStorage:WaitForChild("Configs")
 local RebirthConfig = require(Configs:WaitForChild("RebirthConfig"))
@@ -23,6 +24,20 @@ local BoostService
 local GamepassService
 local DailyQuestService
 local TitleService
+
+local function teleportToSpawnLab(player: Player)
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not hrp then
+		return
+	end
+	local spawn = Workspace:FindFirstChild("LabSpawn", true)
+	if spawn and spawn:IsA("BasePart") then
+		hrp.CFrame = spawn.CFrame + Vector3.new(0, 5, 0)
+	else
+		hrp.CFrame = CFrame.new(-180, 6, 0)
+	end
+end
 
 function RebirthService.handleRequest(player: Player)
 	local profile = DataService.getProfile(player)
@@ -61,6 +76,8 @@ function RebirthService.handleRequest(player: Player)
 	profile.Power = 0
 	profile.Level = 1
 	profile.DnaCoins = profile.DnaCoins + reward
+	StatService.setZoneMultiplier(player, 1)
+	teleportToSpawnLab(player)
 	if DailyQuestService then
 		DailyQuestService.record(player, "CollectDna", reward)
 	end
@@ -74,6 +91,7 @@ function RebirthService.handleRequest(player: Player)
 	if TitleService then
 		TitleService.evaluatePlayer(player)
 	end
+	ShowPopup:FireClient(player, "Power reset! Return to Spawn Lab.")
 	ShowPopup:FireClient(player, string.format("Rebirth %d! +%d DNA", profile.Rebirths, reward))
 end
 

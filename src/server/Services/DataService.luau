@@ -64,6 +64,7 @@ export type DailyQuestState = {
 
 export type Profile = {
 	Power: number,
+	HighestPower: number,
 	Rebirths: number,
 	RebirthShards: number,
 	DnaCoins: number,
@@ -95,6 +96,7 @@ local profiles: { [Player]: Profile } = {}
 local function getDefaultProfile(): Profile
 	return {
 		Power = 0,
+		HighestPower = 0,
 		Rebirths = 0,
 		RebirthShards = 0,
 		DnaCoins = 0,
@@ -145,6 +147,7 @@ local function loadProfile(player: Player)
 	if store == nil then
 		local profile = getDefaultProfile()
 		profile.NotPersistent = true
+		profile.HighestPower = math.max(profile.HighestPower or 0, profile.Power or 0)
 		profiles[player] = profile
 		print(string.format("[DataService] Studio-Modus: Default-Profil fuer %s im Speicher.", player.Name))
 		return
@@ -184,6 +187,7 @@ local function loadProfile(player: Player)
 	end
 
 	profiles[player] = profile
+	profile.HighestPower = math.max(profile.HighestPower or 0, profile.Power or 0)
 end
 
 local function saveProfile(player: Player)

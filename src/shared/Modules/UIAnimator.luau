@@ -130,12 +130,13 @@ end
 -- Erzeugt einen kurz aufsteigenden Text an einer Bildschirmposition.
 function UIAnimator.floatText(parent: ScreenGui, text: string, anchorPos: UDim2, color: Color3)
 	local label = Instance.new("TextLabel")
+	label.Name = "FloatingText"
 	label.Text = text
 	label.Font = Enum.Font.GothamBold
-	label.TextSize = 28
+	label.TextSize = 30
 	label.TextColor3 = color
 	label.TextStrokeColor3 = Color3.new(0, 0, 0)
-	label.TextStrokeTransparency = 0
+	label.TextStrokeTransparency = 0.15
 	label.BackgroundTransparency = 1
 	label.Size = UDim2.fromOffset(180, 40)
 	label.AnchorPoint = Vector2.new(0.5, 0.5)

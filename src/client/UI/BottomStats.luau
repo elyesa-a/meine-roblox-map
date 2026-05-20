@@ -10,6 +10,7 @@ local Configs = ReplicatedStorage:WaitForChild("Configs")
 local TitleConfig = require(Configs:WaitForChild("TitleConfig"))
 
 local BottomStats = {}
+local POWER_GREEN = Color3.fromRGB(35, 220, 95)
 
 type Refs = {
 	root: Frame,
@@ -39,21 +40,21 @@ function BottomStats.create(parent: ScreenGui): Refs
 	rootCorner.Parent = root
 
 	local rootStroke = Instance.new("UIStroke")
-	rootStroke.Color = Color3.fromRGB(56, 236, 207)
+	rootStroke.Color = POWER_GREEN
 	rootStroke.Thickness = 1.5
 	rootStroke.Transparency = 0.45
 	rootStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	rootStroke.Parent = root
 
 	local icon = Instance.new("TextLabel")
-	icon.Name = "DnaIcon"
+	icon.Name = "PowerIcon"
 	icon.Position = UDim2.new(0, 12, 0, 10)
 	icon.Size = UDim2.new(0, 40, 0, 40)
 	icon.BackgroundColor3 = Color3.fromRGB(16, 31, 34)
 	icon.BorderSizePixel = 0
 	icon.Font = Enum.Font.GothamBlack
-	icon.Text = "DNA"
-	icon.TextColor3 = Theme.Colors.Green
+	icon.Text = "PWR"
+	icon.TextColor3 = POWER_GREEN
 	icon.TextSize = 15
 	icon.TextScaled = false
 	icon.TextStrokeTransparency = 1
@@ -62,7 +63,7 @@ function BottomStats.create(parent: ScreenGui): Refs
 	iconCorner.CornerRadius = UDim.new(0, 14)
 	iconCorner.Parent = icon
 	local iconStroke = Instance.new("UIStroke")
-	iconStroke.Color = Theme.Colors.Green
+	iconStroke.Color = POWER_GREEN
 	iconStroke.Transparency = 0.35
 	iconStroke.Thickness = 1.5
 	iconStroke.Parent = icon
@@ -74,7 +75,7 @@ function BottomStats.create(parent: ScreenGui): Refs
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.Font = Theme.Font
 	titleLabel.Text = "Mutation Power"
-	titleLabel.TextColor3 = Color3.fromRGB(138, 255, 226)
+	titleLabel.TextColor3 = Color3.fromRGB(150, 255, 180)
 	titleLabel.TextSize = 15
 	titleLabel.TextScaled = false
 	titleLabel.TextStrokeTransparency = 1
@@ -140,7 +141,7 @@ function BottomStats.create(parent: ScreenGui): Refs
 	progressBg.Name = "ProgressBg"
 	progressBg.Size = UDim2.new(1, -94, 1, -12)
 	progressBg.Position = UDim2.new(0, 86, 0, 6)
-	progressBg.BackgroundColor3 = Color3.fromRGB(13, 18, 26)
+	progressBg.BackgroundColor3 = Color3.fromRGB(5, 8, 10)
 	progressBg.BorderSizePixel = 0
 	progressBg.Parent = levelHolder
 	local pbCorner = Instance.new("UICorner")
@@ -150,7 +151,7 @@ function BottomStats.create(parent: ScreenGui): Refs
 	local progressFill = Instance.new("Frame")
 	progressFill.Name = "Fill"
 	progressFill.Size = UDim2.new(0, 0, 1, 0)
-	progressFill.BackgroundColor3 = Color3.fromRGB(56, 236, 207)
+	progressFill.BackgroundColor3 = POWER_GREEN
 	progressFill.BorderSizePixel = 0
 	progressFill.Parent = progressBg
 	local pfCorner = Instance.new("UICorner")
@@ -164,7 +165,9 @@ function BottomStats.create(parent: ScreenGui): Refs
 	progressLabel.Text = "0/0"
 	progressLabel.TextSize = 12
 	progressLabel.TextScaled = false
-	progressLabel.TextStrokeTransparency = 1
+	progressLabel.TextColor3 = Theme.Colors.White
+	progressLabel.TextStrokeColor3 = Theme.Colors.Black
+	progressLabel.TextStrokeTransparency = 0.15
 	progressLabel.Parent = progressBg
 
 	-- Klick-Button + Quick-Buttons + Autoklicker-Toggle.
