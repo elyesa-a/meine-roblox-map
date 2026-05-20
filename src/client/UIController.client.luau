@@ -17,7 +17,6 @@ local UI = script.Parent:WaitForChild("UI")
 local Theme = require(UI:WaitForChild("Theme"))
 local LeftButtons = require(UI:WaitForChild("LeftButtons"))
 local BottomStats = require(UI:WaitForChild("BottomStats"))
-local RightBoosts = require(UI:WaitForChild("RightBoosts"))
 local TopBar = require(UI:WaitForChild("TopBar"))
 local ProgressionPanel = require(UI:WaitForChild("ProgressionPanel"))
 local CurrentAreaLabel = require(UI:WaitForChild("CurrentAreaLabel"))
@@ -94,9 +93,6 @@ local progressionRefs = ProgressionPanel.create(screen)
 local areaRefs = CurrentAreaLabel.create(screen)
 CurrentAreaLabel.start(areaRefs)
 
--- Rechte Boost-Leiste: kauft DNA-Boosts. (Gamepasses liegen nur im Shop.)
-local rightRefs = RightBoosts.create(screen)
-
 -- Linke Button-Leiste mit Klick-Handlern.
 LeftButtons.create(screen, function(id)
 	if id == "Rebirth" then
@@ -121,7 +117,14 @@ LeftButtons.create(screen, function(id)
 end)
 
 -- Klick-Button + Screen-Tap fuer Power.
-ClickHandler.bind(screen, bottomRefs.clickButton, Color3.fromRGB(70, 255, 120), bottomRefs.autoClickButton)
+ClickHandler.bind(
+	screen,
+	bottomRefs.clickButton,
+	Color3.fromRGB(70, 255, 120),
+	bottomRefs.autoClickButton,
+	bottomRefs.autoFightButton,
+	bottomRefs.autoTrainingButton
+)
 
 -- Popup-Listener.
 PopupHandler.start(screen)
@@ -191,7 +194,6 @@ RunService.Heartbeat:Connect(function(dt)
 	SpinFrame.tick(spinRefs, state)
 	DailyChestFrame.tick(dailyRefs, state)
 	DailyQuestFrame.tick(dailyQuestRefs, state)
-	RightBoosts.tick(rightRefs, state)
 	TopBar.update(topRefs, state)
 	ProgressionPanel.update(progressionRefs, state)
 end)

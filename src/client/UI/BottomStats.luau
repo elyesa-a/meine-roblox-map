@@ -20,6 +20,8 @@ type Refs = {
 	progressFill: Frame,
 	progressLabel: TextLabel,
 	clickButton: TextButton,
+	autoTrainingButton: TextButton,
+	autoFightButton: TextButton,
 	autoClickButton: TextButton,
 	quickButtons: { TextButton },
 }
@@ -29,7 +31,7 @@ function BottomStats.create(parent: ScreenGui): Refs
 	root.Name = "MutationPowerBar"
 	root.AnchorPoint = Vector2.new(0.5, 1)
 	root.Position = UDim2.new(0.5, 0, 1, -20)
-	root.Size = UDim2.new(0, 500, 0, 124)
+	root.Size = UDim2.new(0, 560, 0, 124)
 	root.BackgroundColor3 = Color3.fromRGB(9, 13, 20)
 	root.BackgroundTransparency = 0.08
 	root.BorderSizePixel = 0
@@ -181,14 +183,14 @@ function BottomStats.create(parent: ScreenGui): Refs
 	local rowLayout = Instance.new("UIListLayout")
 	rowLayout.FillDirection = Enum.FillDirection.Horizontal
 	rowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	rowLayout.Padding = UDim.new(0, 8)
+	rowLayout.Padding = UDim.new(0, 5)
 	rowLayout.Parent = actionRow
 
 	local quickButtons: { TextButton } = {}
 	for _, label in ipairs({ "+100K", "+10K", "+1M" }) do
 		local btn = Instance.new("TextButton")
 		btn.Name = label .. "Button"
-		btn.Size = UDim2.new(0, 58, 1, 0)
+		btn.Size = UDim2.new(0, 42, 1, 0)
 		btn.Text = label
 		Theme.applyButtonStyle(btn, Color3.fromRGB(31, 38, 52))
 		btn.TextSize = 12
@@ -199,12 +201,36 @@ function BottomStats.create(parent: ScreenGui): Refs
 		table.insert(quickButtons, btn)
 	end
 
+	local autoTrainingButton = Instance.new("TextButton")
+	autoTrainingButton.Name = "AutoTrainingButton"
+	autoTrainingButton.Size = UDim2.new(0, 100, 1, 0)
+	autoTrainingButton.Text = "AUTO TRAIN: OFF"
+	Theme.applyButtonStyle(autoTrainingButton, Color3.fromRGB(31, 38, 52))
+	autoTrainingButton.TextSize = 10
+	autoTrainingButton.TextScaled = false
+	autoTrainingButton.TextColor3 = Color3.fromRGB(255, 95, 95)
+	autoTrainingButton.AutoButtonColor = false
+	autoTrainingButton.Active = true
+	autoTrainingButton.Parent = actionRow
+
+	local autoFightButton = Instance.new("TextButton")
+	autoFightButton.Name = "AutoFightButton"
+	autoFightButton.Size = UDim2.new(0, 100, 1, 0)
+	autoFightButton.Text = "AUTO FIGHT: OFF"
+	Theme.applyButtonStyle(autoFightButton, Color3.fromRGB(31, 38, 52))
+	autoFightButton.TextSize = 10
+	autoFightButton.TextScaled = false
+	autoFightButton.TextColor3 = Color3.fromRGB(255, 95, 95)
+	autoFightButton.AutoButtonColor = false
+	autoFightButton.Active = true
+	autoFightButton.Parent = actionRow
+
 	local autoButton = Instance.new("TextButton")
 	autoButton.Name = "AutoButton"
-	autoButton.Size = UDim2.new(0, 82, 1, 0)
+	autoButton.Size = UDim2.new(0, 62, 1, 0)
 	autoButton.Text = "AUTO: OFF"
 	Theme.applyButtonStyle(autoButton, Color3.fromRGB(31, 38, 52))
-	autoButton.TextSize = 12
+	autoButton.TextSize = 11
 	autoButton.TextScaled = false
 	autoButton.TextColor3 = Color3.fromRGB(255, 95, 95)
 	autoButton.AutoButtonColor = false
@@ -213,10 +239,10 @@ function BottomStats.create(parent: ScreenGui): Refs
 
 	local clickButton = Instance.new("TextButton")
 	clickButton.Name = "ClickButton"
-	clickButton.Size = UDim2.new(0, 136, 1, 0)
+	clickButton.Size = UDim2.new(0, 96, 1, 0)
 	clickButton.Text = "+1 POWER"
 	Theme.applyButtonStyle(clickButton, Theme.Colors.Green)
-	clickButton.TextSize = 15
+	clickButton.TextSize = 13
 	clickButton.TextScaled = false
 	clickButton.Parent = actionRow
 
@@ -228,6 +254,8 @@ function BottomStats.create(parent: ScreenGui): Refs
 		progressFill = progressFill,
 		progressLabel = progressLabel,
 		clickButton = clickButton,
+		autoTrainingButton = autoTrainingButton,
+		autoFightButton = autoFightButton,
 		autoClickButton = autoButton,
 		quickButtons = quickButtons,
 	}

@@ -1,6 +1,6 @@
 --!strict
--- Linke vertikale Button-Leiste: Rebirth, Titel, Pets, Schub, Auras, Daily,
--- Shop, Settings.
+-- Linke vertikale Button-Leiste: kompakte HUD-Navigation fuer Menues ohne
+-- eigene Spawn-Station.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -18,15 +18,11 @@ type Entry = {
 }
 
 local ENTRIES: { Entry } = {
-	{ id = "Auras",    icon = "FX",  label = "Auras",    color = Theme.Colors.Purple },
-	{ id = "Daily",    icon = "DAY", label = "Daily",    color = Theme.Colors.Orange },
 	{ id = "Pets",     icon = "EGG", label = "Pets",     color = Theme.Colors.Blue },
-	{ id = "Quests",   icon = "!",   label = "Zones",    color = Theme.Colors.Yellow },
-	{ id = "Rebirth",  icon = "DNA", label = "Bosses",   color = Theme.Colors.Red },
+	{ id = "Quests",   icon = "!",   label = "Quests",   color = Theme.Colors.Yellow },
+	{ id = "Rebirth",  icon = "DNA", label = "Rebirth",  color = Theme.Colors.Red },
 	{ id = "Settings", icon = "SET", label = "Settings", color = Theme.Colors.PanelMedium },
-	{ id = "Shop",     icon = "$",   label = "Shop",     color = Theme.Colors.Pink },
 	{ id = "Title",    icon = "VIP", label = "Titles",   color = Theme.Colors.Yellow },
-	{ id = "Upgrades", icon = "UP",  label = "Upgrades", color = Theme.Colors.Green },
 }
 
 function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
@@ -34,7 +30,7 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 	holder.Name = "LeftButtons"
 	holder.AnchorPoint = Vector2.new(0, 0.5)
 	holder.Position = UDim2.new(0, 16, 0.5, 0)
-	holder.Size = UDim2.new(0, 118, 0, #ENTRIES * 41 + 16)
+	holder.Size = UDim2.new(0, 112, 0, #ENTRIES * 39 + 16)
 	holder.BackgroundColor3 = Color3.fromRGB(9, 13, 20)
 	holder.BackgroundTransparency = 0.18
 	holder.Parent = parent
@@ -87,7 +83,7 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 	for _, entry in ipairs(ENTRIES) do
 		local button = Instance.new("TextButton")
 		button.Name = entry.id .. "Button"
-		button.Size = UDim2.new(0, 100, 0, 36)
+		button.Size = UDim2.new(0, 94, 0, 34)
 		button.Text = ""
 		Theme.applyButtonStyle(button, Color3.fromRGB(24, 31, 43))
 		local buttonStroke = button:FindFirstChildOfClass("UIStroke")
