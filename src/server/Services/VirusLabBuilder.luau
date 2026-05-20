@@ -2379,30 +2379,132 @@ local function makePrompt(parent: BasePart, menuTarget: string, actionText: stri
 	return prompt
 end
 
+-- Roblox-Avatar-stilisierter Stations-NPC. Klassische R6-Silhouette
+-- (Kopf-Block + Torso-Block + 2 Arme + 2 Beine), Gesichtsdetails (Augen +
+-- Mund) und ein style-spezifisches Outfit (Lab/Dark/Bot). Die Funktion
+-- gibt weiterhin den Torso-BasePart zurueck, damit die bestehende
+-- ProximityPrompt-Verkabelung in buildStationKiosk unveraendert bleibt.
 local function buildStationNpc(parent, name, pos, accent, npcName, style, faceSign): BasePart
 	local model = Instance.new("Model")
 	model.Name = name
 	model.Parent = parent
 	local face = faceSign or 1
 
-	local suit = if style == "Dark" then Color3.fromRGB(42, 45, 52) else LAB_WHITE
-	local trim = if style == "Bot" then LAB_DARK else accent:Lerp(LAB_DARK, 0.35)
-	local skin = Color3.fromRGB(226, 190, 150)
-
-	local legs = makePart(model, "Legs", Vector3.new(2.6, 3.2, 1.1), pos + Vector3.new(0, 1.6, 0), Color3.fromRGB(58, 62, 68), Enum.Material.SmoothPlastic, false)
-	local torso = makePart(model, "Torso", Vector3.new(3.4, 4.1, 1.5), pos + Vector3.new(0, 5.2, 0), suit, Enum.Material.SmoothPlastic, false)
-	local head = makePart(model, "Head", Vector3.new(2.4, 2.4, 2.4), pos + Vector3.new(0, 8.8, 0), if style == "Bot" then Color3.fromRGB(205, 215, 218) else skin, Enum.Material.SmoothPlastic, false)
-	head.Shape = Enum.PartType.Ball
-
-	for _, x in ipairs({ -2.35, 2.35 }) do
-		makePart(model, "Arm", Vector3.new(0.85, 3.6, 0.9), pos + Vector3.new(x, 5.25, 0), suit, Enum.Material.SmoothPlastic, false)
+	-- Outfit-Palette je Stil. Bewusst gedaempfte Labor-Toene, damit die NPCs
+	-- in die weisse Bio-Tech-Map passen.
+	local skin, suit, pants, trim, hair, accessory
+	if style == "Bot" then
+		skin = Color3.fromRGB(214, 222, 228)
+		suit = Color3.fromRGB(228, 232, 236)
+		pants = Color3.fromRGB(158, 168, 176)
+		trim = LAB_WARNING_YELLOW
+		hair = nil
+		accessory = "BotPanel"
+	elseif style == "Dark" then
+		skin = Color3.fromRGB(220, 184, 146)
+		suit = Color3.fromRGB(36, 40, 48)
+		pants = Color3.fromRGB(22, 24, 30)
+		trim = accent
+		hair = Color3.fromRGB(28, 24, 26)
+		accessory = "Visor"
+	else -- "Lab"
+		skin = Color3.fromRGB(226, 190, 150)
+		suit = Color3.fromRGB(238, 242, 244)
+		pants = Color3.fromRGB(192, 198, 202)
+		trim = accent
+		hair = Color3.fromRGB(78, 50, 36)
+		accessory = "Goggles"
 	end
 
-	local visor = makePart(model, "Visor", Vector3.new(2, 0.35, 0.18), pos + Vector3.new(0, 9.05, 1.12 * face), trim, Enum.Material.SmoothPlastic, false)
-	local badge = makePart(model, "Badge", Vector3.new(0.75, 0.75, 0.16), pos + Vector3.new(0.95, 5.75, 0.84 * face), accent, Enum.Material.SmoothPlastic, false)
-	local tablet = makePart(model, "Tablet", Vector3.new(2.8, 1.5, 0.22), pos + Vector3.new(0, 4.6, 1.05 * face), LAB_DARK, Enum.Material.Metal, false)
-	neonStrip(model, Vector3.new(2, 0.16, 0.16), tablet.Position + Vector3.new(0, 0.15, 0.13 * face), accent, 0.22)
+	local function p(partName, size, off, color, mat)
+		return makePart(model, partName, size, pos + off, color, mat, false)
+	end
 
+	-- Beine: links + rechts getrennt (R6-Look) mit Schuhen.
+	for _, side in ipairs({ -1, 1 }) do
+		local legX = side * 0.75
+		p("Leg", Vector3.new(1.25, 3.0, 1.1), Vector3.new(legX, 1.5, 0), pants, Enum.Material.SmoothPlastic)
+		p("Shoe", Vector3.new(1.35, 0.55, 1.45), Vector3.new(legX, 0.275, 0.18 * face), Color3.fromRGB(24, 26, 30), Enum.Material.SmoothPlastic)
+	end
+	-- Becken-Akzent: schmale Trim-Linie zwischen Beinen und Torso.
+	p("PelvisBand", Vector3.new(2.7, 0.35, 1.2), Vector3.new(0, 3.18, 0), trim, Enum.Material.SmoothPlastic)
+
+	-- Torso + Brust-Akzentstreifen + Schulteransatz.
+	local torso = p("Torso", Vector3.new(3.4, 4.0, 1.5), Vector3.new(0, 5.2, 0), suit, Enum.Material.SmoothPlastic)
+	p("CollarLine", Vector3.new(3.4, 0.25, 1.55), Vector3.new(0, 7.0, 0), trim, Enum.Material.SmoothPlastic)
+	p("ChestStripe", Vector3.new(0.4, 3.2, 0.05), Vector3.new(0, 5.4, 0.78 * face), trim, Enum.Material.SmoothPlastic)
+	p("Belt", Vector3.new(3.45, 0.45, 1.55), Vector3.new(0, 3.45, 0), Color3.fromRGB(24, 26, 30), Enum.Material.SmoothPlastic)
+	local beltBuckle = p("BeltBuckle", Vector3.new(0.9, 0.55, 0.06), Vector3.new(0, 3.45, 0.78 * face), trim, Enum.Material.SmoothPlastic)
+	beltBuckle.Transparency = 0.1
+
+	-- Arme (Oberarm + Hand). Schulterposition leicht angepasst, damit die
+	-- Arme nicht in den Torso clippen.
+	for _, side in ipairs({ -1, 1 }) do
+		local armX = side * 2.32
+		p("Arm", Vector3.new(1.0, 3.6, 1.05), Vector3.new(armX, 5.3, 0), suit, Enum.Material.SmoothPlastic)
+		p("Cuff", Vector3.new(1.05, 0.3, 1.1), Vector3.new(armX, 3.6, 0), trim, Enum.Material.SmoothPlastic)
+		p("Hand", Vector3.new(1.0, 1.0, 1.05), Vector3.new(armX, 3.0, 0), skin, Enum.Material.SmoothPlastic)
+	end
+
+	-- Kopf: klassischer Roblox-Quader, leicht breiter als hoch.
+	local head = p("Head", Vector3.new(2.4, 1.9, 1.7), Vector3.new(0, 8.35, 0), skin, Enum.Material.SmoothPlastic)
+	-- Hals-Andeutung.
+	p("Neck", Vector3.new(1.4, 0.5, 1.15), Vector3.new(0, 7.5, 0), skin, Enum.Material.SmoothPlastic)
+
+	-- Gesicht: Augen + Mund auf der Vorderseite (face-richtung).
+	local eyeZ = 0.86 * face
+	for _, side in ipairs({ -0.45, 0.45 }) do
+		local eyeWhite = p("EyeWhite", Vector3.new(0.4, 0.36, 0.05), Vector3.new(side, 8.5, eyeZ), Color3.fromRGB(248, 248, 248), Enum.Material.SmoothPlastic)
+		p("EyePupil", Vector3.new(0.18, 0.2, 0.06), Vector3.new(side, 8.48, eyeZ + 0.01 * face), Color3.fromRGB(18, 22, 30), Enum.Material.SmoothPlastic)
+	end
+	p("Mouth", Vector3.new(0.9, 0.12, 0.04), Vector3.new(0, 7.92, eyeZ), Color3.fromRGB(60, 40, 36), Enum.Material.SmoothPlastic)
+
+	-- Accessoire je Stil.
+	if accessory == "Goggles" then
+		-- Cyan-/Gruene Forscherbrille.
+		p("GogglesBand", Vector3.new(2.45, 0.18, 0.06), Vector3.new(0, 8.9, eyeZ), Color3.fromRGB(28, 30, 36), Enum.Material.SmoothPlastic)
+		for _, side in ipairs({ -0.45, 0.45 }) do
+			local lens = p("GoggleLens", Vector3.new(0.55, 0.5, 0.06), Vector3.new(side, 8.84, eyeZ + 0.02 * face), trim, Enum.Material.Neon)
+			lens.Transparency = 0.2
+		end
+	elseif accessory == "Visor" then
+		-- Dunkles Sci-Fi-Visor.
+		local visor = p("Visor", Vector3.new(2.45, 0.55, 0.08), Vector3.new(0, 8.65, eyeZ), Color3.fromRGB(18, 20, 24), Enum.Material.SmoothPlastic)
+		local glow = p("VisorGlow", Vector3.new(2.1, 0.18, 0.05), Vector3.new(0, 8.7, eyeZ + 0.02 * face), trim, Enum.Material.Neon)
+		glow.Transparency = 0.18
+	elseif accessory == "BotPanel" then
+		-- Roboter-Gesichtsplatte mit Display.
+		local panel = p("BotFacePanel", Vector3.new(2.0, 1.1, 0.08), Vector3.new(0, 8.42, eyeZ), Color3.fromRGB(28, 32, 38), Enum.Material.SmoothPlastic)
+		for _, side in ipairs({ -0.4, 0.4 }) do
+			local eyeLed = p("BotEyeLed", Vector3.new(0.42, 0.42, 0.04), Vector3.new(side, 8.55, eyeZ + 0.02 * face), trim, Enum.Material.Neon)
+			eyeLed.Transparency = 0.05
+		end
+		p("BotChinLine", Vector3.new(1.1, 0.12, 0.04), Vector3.new(0, 8.05, eyeZ + 0.02 * face), trim, Enum.Material.Neon).Transparency = 0.3
+	end
+
+	-- Haare/Hut.
+	if hair then
+		p("HairCap", Vector3.new(2.45, 0.65, 1.75), Vector3.new(0, 9.45, -0.05 * face), hair, Enum.Material.SmoothPlastic)
+		p("HairFront", Vector3.new(2.1, 0.45, 0.35), Vector3.new(0, 9.25, 0.7 * face), hair, Enum.Material.SmoothPlastic)
+	elseif style == "Bot" then
+		-- Bot-Antenne anstelle von Haaren.
+		p("BotAntennaRod", Vector3.new(0.18, 0.9, 0.18), Vector3.new(0, 9.7, -0.1 * face), Color3.fromRGB(40, 44, 50), Enum.Material.Metal)
+		local antennaTip = p("BotAntennaTip", Vector3.new(0.45, 0.45, 0.45), Vector3.new(0, 10.25, -0.1 * face), trim, Enum.Material.Neon)
+		antennaTip.Shape = Enum.PartType.Ball
+		antennaTip.Transparency = 0.1
+	end
+
+	-- Brust-Badge + Tablet vor dem Bauch (gleicher Look wie vorher,
+	-- nur sauberer positioniert mit dem face-Vorzeichen).
+	local badge = p("Badge", Vector3.new(0.85, 0.85, 0.1), Vector3.new(0.95, 5.95, 0.78 * face), accent, Enum.Material.SmoothPlastic)
+	badge.Transparency = 0.08
+	p("BadgeDot", Vector3.new(0.32, 0.32, 0.06), Vector3.new(0.95, 5.95, 0.81 * face), accent:Lerp(LAB_WHITE, 0.6), Enum.Material.Neon)
+	local tablet = p("Tablet", Vector3.new(2.6, 1.5, 0.22), Vector3.new(0, 4.55, 1.0 * face), Color3.fromRGB(22, 24, 28), Enum.Material.Metal)
+	local tabletScreen = p("TabletScreen", Vector3.new(2.2, 1.2, 0.06), Vector3.new(0, 4.55, 1.12 * face), trim, Enum.Material.Neon)
+	tabletScreen.Transparency = 0.32
+
+	-- Nicht-kollidierend / nicht-anklickbar: ProximityPrompt am Torso bleibt
+	-- der einzige Interaktionspunkt. Anchored bleibt true (kommt von makePart).
 	for _, part in ipairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
 			part.CanCollide = false
@@ -2410,41 +2512,212 @@ local function buildStationNpc(parent, name, pos, accent, npcName, style, faceSi
 		end
 	end
 
-	label(head, npcName, accent:Lerp(Color3.fromRGB(235, 245, 240), 0.45), 42, UDim2.fromOffset(170, 34), Vector3.new(0, 2.4, 0))
+	-- Name-Tag etwas hoeher, damit es nicht mit dem Roblox-Spieler-Display
+	-- kollidiert (~3 Studs ueber dem Kopf).
+	label(head, npcName, accent:Lerp(Color3.fromRGB(238, 246, 240), 0.4), 48, UDim2.fromOffset(190, 36), Vector3.new(0, 2.6, 0))
 	return torso
 end
 
+-- Stations-spezifische Hero-Deko (Geschenk fuer Daily, DNA-Helix fuer
+-- Upgrade etc.). Bekommt das Stations-Center + accent + face. Bewusst klein
+-- gehalten, damit es den Kiosk nur akzentuiert -- nicht ueberladet.
+local function buildStationSignature(parent, kind: string, pos: Vector3, accent: Color3, face: number)
+	local function p(partName, size, off, color, mat)
+		return makePart(parent, partName, size, pos + off, color, mat, false)
+	end
+
+	if kind == "Shop" then
+		-- Boost-Kapsel mit DNA-/Geld-Icon im Kontrolldisplay.
+		local cap = p("ShopBoostCapsule", Vector3.new(1.4, 2.4, 1.4), Vector3.new(4.9, 3.3, 2.4 * face), tint(accent, LAB_WHITE, 0.5), Enum.Material.Glass)
+		cap.Shape = Enum.PartType.Cylinder
+		cap.Orientation = Vector3.new(0, 0, 90)
+		cap.Transparency = 0.45
+		local pill = p("ShopBoostPill", Vector3.new(0.8, 1.4, 0.8), Vector3.new(4.9, 3.3, 2.4 * face), accent, Enum.Material.Neon)
+		pill.Shape = Enum.PartType.Cylinder
+		pill.Orientation = Vector3.new(0, 0, 90)
+		pill.Transparency = 0.1
+		local priceTag = p("ShopPriceTag", Vector3.new(2.4, 1.2, 0.18), Vector3.new(4.9, 5.0, 3.45 * face), Color3.fromRGB(20, 22, 26), Enum.Material.Metal)
+		label(priceTag, "+ BOOST", accent:Lerp(LAB_WHITE, 0.5), 26, UDim2.fromOffset(120, 32), Vector3.new(0, 0, 0))
+	elseif kind == "Daily" then
+		-- Geschenk-Wuerfel + Reward-Roehrchen.
+		local box = p("DailyGiftBox", Vector3.new(2.2, 2.2, 2.2), Vector3.new(4.9, 3.3, 2.4 * face), Color3.fromRGB(38, 42, 48), Enum.Material.Metal)
+		p("DailyGiftLid", Vector3.new(2.35, 0.35, 2.35), Vector3.new(4.9, 4.55, 2.4 * face), accent, Enum.Material.SmoothPlastic)
+		p("DailyGiftRibbonV", Vector3.new(0.45, 2.4, 2.3), Vector3.new(4.9, 3.3, 2.4 * face), accent, Enum.Material.SmoothPlastic)
+		p("DailyGiftRibbonH", Vector3.new(2.3, 0.45, 2.3), Vector3.new(4.9, 3.3, 2.4 * face), accent, Enum.Material.SmoothPlastic)
+		local bow = p("DailyGiftBow", Vector3.new(0.85, 0.7, 0.85), Vector3.new(4.9, 4.95, 2.4 * face), accent, Enum.Material.SmoothPlastic)
+		bow.Shape = Enum.PartType.Ball
+		-- Reward-Roehrchen daneben.
+		for i, dx in ipairs({ 3.1, 3.95, 4.8 }) do
+			local tube = p("DailyRewardVial" .. i, Vector3.new(0.55, 1.6, 0.55), Vector3.new(-dx, 2.8, 3.0 * face), tint(accent, LAB_WHITE, 0.4), Enum.Material.Glass)
+			tube.Shape = Enum.PartType.Cylinder
+			tube.Orientation = Vector3.new(0, 0, 90)
+			tube.Transparency = 0.4
+			local sample = p("DailyRewardSample" .. i, Vector3.new(0.32, 1.1, 0.32), Vector3.new(-dx, 2.8, 3.0 * face), accent, Enum.Material.Neon)
+			sample.Shape = Enum.PartType.Cylinder
+			sample.Orientation = Vector3.new(0, 0, 90)
+			sample.Transparency = 0.18
+		end
+	elseif kind == "Skills" then
+		-- DNA-Helix-Hologramm + Skill-Chips.
+		local glass = p("UpgradeDnaGlass", Vector3.new(1.6, 5.8, 1.6), Vector3.new(4.9, 4.4, 2.4 * face), tint(accent, LAB_WHITE, 0.5), Enum.Material.Glass)
+		glass.Shape = Enum.PartType.Cylinder
+		glass.Orientation = Vector3.new(0, 0, 90)
+		glass.Transparency = 0.55
+		for i = 0, 7 do
+			local t = i / 7
+			local ang = t * math.pi * 2.6
+			local node = p("UpgradeDnaNode" .. i, Vector3.new(0.45, 0.45, 0.45), Vector3.new(4.9 + math.cos(ang) * 0.55, 2.0 + t * 4.8, 2.4 * face + math.sin(ang) * 0.35), accent, Enum.Material.Neon)
+			node.Shape = Enum.PartType.Ball
+			node.Transparency = 0.15
+			local mirror = p("UpgradeDnaNodeM" .. i, Vector3.new(0.4, 0.4, 0.4), Vector3.new(4.9 - math.cos(ang) * 0.55, 2.0 + t * 4.8, 2.4 * face - math.sin(ang) * 0.35), tint(accent, LAB_OLIVE, 0.4), Enum.Material.Neon)
+			mirror.Shape = Enum.PartType.Ball
+			mirror.Transparency = 0.25
+		end
+		-- 2 Skill-Chips am Pult.
+		for i, dx in ipairs({ -3.7, -4.5 }) do
+			local chip = p("UpgradeSkillChip" .. i, Vector3.new(1.2, 0.2, 0.85), Vector3.new(dx, 2.55, 3.0 * face), Color3.fromRGB(28, 30, 36), Enum.Material.Metal)
+			p("UpgradeSkillChipLed" .. i, Vector3.new(0.85, 0.06, 0.55), Vector3.new(dx, 2.66, 3.0 * face), accent, Enum.Material.Neon).Transparency = 0.2
+		end
+	elseif kind == "Auras" then
+		-- Aura-Kapseln in lila/cyan-Mix mit dezenten Energiekugeln.
+		local cyan = LAB_CYAN
+		for i, dx in ipairs({ 3.6, 4.6, 5.6 }) do
+			local tubeColor = if i % 2 == 1 then accent else cyan
+			local tube = p("AuraTube" .. i, Vector3.new(1.0, 3.0, 1.0), Vector3.new(dx, 3.0, 2.6 * face), tint(tubeColor, LAB_WHITE, 0.5), Enum.Material.Glass)
+			tube.Shape = Enum.PartType.Cylinder
+			tube.Orientation = Vector3.new(0, 0, 90)
+			tube.Transparency = 0.45
+			local orb = p("AuraOrb" .. i, Vector3.new(0.55, 0.55, 0.55), Vector3.new(dx, 3.0 + ((i - 2) * 0.3), 2.6 * face), tubeColor, Enum.Material.Neon)
+			orb.Shape = Enum.PartType.Ball
+			orb.Transparency = 0.1
+		end
+		-- Schwebende Probe ueber dem Pult.
+		local floatGlass = p("AuraFloatGlass", Vector3.new(2.2, 2.2, 2.2), Vector3.new(-4.5, 4.0, 2.6 * face), tint(accent, LAB_WHITE, 0.55), Enum.Material.Glass)
+		floatGlass.Shape = Enum.PartType.Ball
+		floatGlass.Transparency = 0.5
+		local floatCore = p("AuraFloatCore", Vector3.new(1.1, 1.1, 1.1), Vector3.new(-4.5, 4.0, 2.6 * face), accent, Enum.Material.Neon)
+		floatCore.Shape = Enum.PartType.Ball
+		floatCore.Transparency = 0.12
+		local stand = p("AuraFloatStand", Vector3.new(0.5, 3.0, 0.5), Vector3.new(-4.5, 1.7, 2.6 * face), LAB_DARK, Enum.Material.Metal)
+	end
+end
+
+-- Marker-String fuer das Bodenlabel je Menue.
+local FLOOR_LABEL_BY_MENU = {
+	Shop = "SHOP",
+	Daily = "DAILY",
+	Skills = "UPGRADE",
+	Auras = "AURA",
+}
+
 -- Interaktiver Labor-Kiosk: Prompt oeffnet vorhandene UI-Menues clientseitig.
+-- Geometrie (Pillar/Screen/Marquee/NPC-Position) bleibt unveraendert, damit
+-- bestehende Stations-Layouts und ProximityPrompt-Funktion erhalten bleiben.
 local function buildStationKiosk(parent, name, pos, accent, title, hint, menuTarget, actionText, npcName, npcStyle, faceSign)
 	local model = Instance.new("Model")
 	model.Name = name
 	model.Parent = parent
 	local face = faceSign or 1
+
+	-- Boden-Akzent unter und vor dem Kiosk: flacher Bodenbelag (Mat), kein
+	-- erhoehtes Podest -> NPC-Schuhe stehen sauber darueber, kein Clipping
+	-- mit FLOOR_Y. Boden bleibt Spieler-passierbar (non-collide).
+	local platform = makePart(model, "StationPlatform", Vector3.new(13, 0.08, 15), pos + Vector3.new(0, FLOOR_Y + 0.06, 2.5 * face), Color3.fromRGB(228, 232, 234), Enum.Material.SmoothPlastic, false)
+	platform.Transparency = 0.04
+	local platformEdge = makePart(model, "StationPlatformEdge", Vector3.new(13.5, 0.05, 15.5), pos + Vector3.new(0, FLOOR_Y + 0.12, 2.5 * face), Color3.fromRGB(28, 30, 34), Enum.Material.SmoothPlastic, false)
+	platformEdge.Transparency = 0.1
+	neonStrip(model, Vector3.new(11.6, 0.05, 0.32), pos + Vector3.new(0, FLOOR_Y + 0.16, 9.5 * face), accent, 0.35)
+	neonStrip(model, Vector3.new(11.6, 0.05, 0.32), pos + Vector3.new(0, FLOOR_Y + 0.16, -4.0 * face), accent:Lerp(LAB_CYAN, 0.5), 0.55)
+	-- Boden-Label direkt vor dem Stand (z.B. "SHOP", "DAILY" ...). Inline
+	-- mit SurfaceGui, weil buildFloorLabel weiter unten im File definiert ist.
+	local floorTag = FLOOR_LABEL_BY_MENU[menuTarget] or title
+	local floorPlate = makePart(model, "StationFloorLabelPlate", Vector3.new(6, 0.04, 1.6), pos + Vector3.new(0, FLOOR_Y + 1.02, 5.5 * face), Color3.fromRGB(32, 36, 38), Enum.Material.SmoothPlastic, false)
+	floorPlate.Transparency = 0.12
+	do
+		local sg = Instance.new("SurfaceGui")
+		sg.Name = "StationFloorLabelSurface"
+		sg.Face = Enum.NormalId.Top
+		sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		sg.PixelsPerStud = 50
+		sg.LightInfluence = 1
+		sg.AlwaysOnTop = false
+		sg.Adornee = floorPlate
+		sg.Parent = floorPlate
+		local tl = Instance.new("TextLabel")
+		tl.BackgroundTransparency = 1
+		tl.Size = UDim2.fromScale(0.94, 0.78)
+		tl.Position = UDim2.fromScale(0.03, 0.11)
+		tl.Text = floorTag
+		tl.Font = Enum.Font.GothamBold
+		tl.TextScaled = true
+		tl.TextColor3 = accent:Lerp(Color3.fromRGB(238, 244, 240), 0.4)
+		tl.TextStrokeColor3 = Color3.new(0, 0, 0)
+		tl.TextStrokeTransparency = 0.35
+		tl.Parent = sg
+	end
+
+	-- Kiosk-Korpus (unveraendert, damit Position stabil bleibt).
 	local pillar = makePart(model, "KioskBody", Vector3.new(8, 9, 6), pos + Vector3.new(0, 4.2, 0), Color3.fromRGB(212, 217, 216), Enum.Material.SmoothPlastic, true)
 	makePart(model, "KioskBase", Vector3.new(9.5, 0.8, 7.5), pos + Vector3.new(0, 0.1, 0), LAB_DARK, Enum.Material.Metal, true)
 	makePart(model, "KioskDarkTop", Vector3.new(8.4, 1.1, 6.4), pos + Vector3.new(0, 9.2, 0), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	-- Schmale Vertikalrillen am Korpus -> weniger flach, premium.
+	for _, dx in ipairs({ -2.6, 0, 2.6 }) do
+		makePart(model, "KioskGroove", Vector3.new(0.18, 7.6, 0.05), pos + Vector3.new(dx, 4.5, 3.04 * face), Color3.fromRGB(82, 90, 96), Enum.Material.SmoothPlastic, false)
+	end
+	for _, side in ipairs({ -1, 1 }) do
+		makePart(model, "KioskSideStripe", Vector3.new(0.08, 7.6, 5.5), pos + Vector3.new(side * 4.02, 4.5, 0), accent:Lerp(LAB_DARK, 0.35), Enum.Material.SmoothPlastic, false).Transparency = 0.18
+	end
 	neonStrip(model, Vector3.new(7, 0.3, 0.3), pos + Vector3.new(0, 8.4, 3.05 * face), accent, 0.18)
+
+	-- Hauptschirm.
 	local screen = makePart(model, "KioskScreen", Vector3.new(5.6, 4.4, 0.25), pos + Vector3.new(0, 5.4, 3.05 * face), tint(accent, Color3.fromRGB(54, 70, 70), 0.4), Enum.Material.Neon, false)
 	screen.Transparency = 0.12
-	label(screen, title, Color3.fromRGB(236, 248, 242), 50, UDim2.fromOffset(160, 48), Vector3.new(0, 0, 0))
+	makePart(model, "KioskScreenBezel", Vector3.new(6.2, 5.0, 0.18), pos + Vector3.new(0, 5.4, 3.0 * face), Color3.fromRGB(18, 20, 24), Enum.Material.Metal, false)
+	label(screen, title, Color3.fromRGB(236, 248, 242), 60, UDim2.fromOffset(220, 56), Vector3.new(0, 0, 0))
+	-- Hinweis-Untertitel direkt unter dem Schirm.
+	local subPanel = makePart(model, "KioskSubPanel", Vector3.new(5.6, 1.05, 0.22), pos + Vector3.new(0, 2.85, 3.05 * face), Color3.fromRGB(20, 22, 26), Enum.Material.Metal, false)
+	label(subPanel, hint, accent:Lerp(Color3.fromRGB(232, 244, 238), 0.6), 28, UDim2.fromOffset(220, 34), Vector3.new(0, 0, 0))
 
+	-- Marquee/Schild + kleiner Stations-Icon-Dot.
 	local marqueePost = makePart(model, "StationMarqueePost", Vector3.new(0.75, 8, 0.75), pos + Vector3.new(-5.5, 4, 0), LAB_TRIM, Enum.Material.Metal, true)
+	marqueePost.Transparency = 0
+	makePart(model, "StationMarqueePost2", Vector3.new(0.75, 8, 0.75), pos + Vector3.new(5.5, 4, 0), LAB_TRIM, Enum.Material.Metal, true)
 	local marquee = makePart(model, "StationMarquee", Vector3.new(13, 3.6, 0.5), pos + Vector3.new(0, 12.2, 0), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	makePart(model, "StationMarqueeFrame", Vector3.new(13.6, 4, 0.25), pos + Vector3.new(0, 12.2, -0.13), Color3.fromRGB(20, 22, 26), Enum.Material.Metal, false)
 	neonStrip(model, Vector3.new(11.4, 0.24, 0.24), marquee.Position + Vector3.new(0, -1.55, -0.3), accent, 0.26)
+	neonStrip(model, Vector3.new(11.4, 0.18, 0.18), marquee.Position + Vector3.new(0, 1.55, -0.3), accent:Lerp(LAB_CYAN, 0.4), 0.4)
+	local marqueeDot = makePart(model, "StationMarqueeDot", Vector3.new(0.55, 0.55, 0.18), marquee.Position + Vector3.new(-5.4, 0, 0.28), accent, Enum.Material.Neon, false)
+	marqueeDot.Shape = Enum.PartType.Ball
+	marqueeDot.Transparency = 0.1
 	label(marquee, title, Color3.fromRGB(245, 250, 248), 80, UDim2.fromOffset(220, 50), Vector3.new(0, 0, 0))
 
+	-- NPC (Position UNVERAENDERT). Prompt bleibt am Torso.
 	local npcPromptPart = buildStationNpc(model, "NPC_" .. npcName:gsub("%s+", ""), pos + Vector3.new(0, 0, 7.1 * face), accent, npcName, npcStyle, face)
 	npcPromptPart:SetAttribute("MenuTarget", menuTarget)
 	makePrompt(npcPromptPart, menuTarget, actionText, npcName)
 
+	-- Sample-Tank seitlich (urspruengliches Element, sauberer gerahmt).
 	local sampleA = makePart(model, "SampleCapsuleA", Vector3.new(1.4, 3.2, 1.4), pos + Vector3.new(-4.7, 2.4, 2.6 * face), Color3.fromRGB(180, 220, 210), Enum.Material.Glass, false)
 	sampleA.Shape = Enum.PartType.Cylinder
 	sampleA.Transparency = 0.42
+	makePart(model, "SampleCapsuleACap", Vector3.new(1.5, 0.35, 1.5), pos + Vector3.new(-4.7, 4.05, 2.6 * face), LAB_TRIM, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
+	makePart(model, "SampleCapsuleABase", Vector3.new(1.5, 0.35, 1.5), pos + Vector3.new(-4.7, 0.75, 2.6 * face), LAB_DARK, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
 	makePart(model, "SampleGlowA", Vector3.new(0.8, 2.1, 0.8), sampleA.Position, accent:Lerp(LAB_GREEN, 0.35), Enum.Material.SmoothPlastic, false).Shape = Enum.PartType.Ball
+
+	-- Zweiter Sample-Tank auf der anderen Seite -> wirkt nicht mehr leer.
+	local sampleB = makePart(model, "SampleCapsuleB", Vector3.new(1.1, 2.6, 1.1), pos + Vector3.new(-3.4, 2.1, 2.6 * face), Color3.fromRGB(192, 224, 218), Enum.Material.Glass, false)
+	sampleB.Shape = Enum.PartType.Cylinder
+	sampleB.Transparency = 0.5
+	makePart(model, "SampleGlowB", Vector3.new(0.55, 1.7, 0.55), sampleB.Position, tint(accent, LAB_CYAN, 0.4), Enum.Material.SmoothPlastic, false).Shape = Enum.PartType.Cylinder
+
+	-- Service-Konsole rechts.
 	local console = makePart(model, "ServiceConsole", Vector3.new(3.4, 2.1, 2.4), pos + Vector3.new(4.9, 1.55, 2.4 * face), LAB_DARK, Enum.Material.Metal, true)
+	local consoleTop = makePart(model, "ServiceConsoleTop", Vector3.new(3.6, 0.18, 2.6), pos + Vector3.new(4.9, 2.7, 2.4 * face), accent:Lerp(LAB_DARK, 0.35), Enum.Material.Metal, false)
+	consoleTop.Transparency = 0.15
 	neonStrip(model, Vector3.new(2.3, 0.18, 0.18), console.Position + Vector3.new(0, 0.8, -1.25 * face), accent, 0.25)
 
-	marqueePost.Transparency = 0
+	-- Stations-spezifische Hero-Deko (Boost-Kapsel/Geschenk/DNA/Aura ...).
+	buildStationSignature(model, menuTarget, pos, accent, face)
 end
 
 local function buildBiohazardDrum(parent, name, pos, accent)
