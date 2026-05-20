@@ -95,15 +95,15 @@ local BACTERIA_RIGHT_LIMIT_Z = 38
 -- ceilingTone: Akzent fuer Decken-Lichtfilter.
 local AreaThemes = {
 	[1] = { id = "Bacteria", accent = Color3.fromRGB(104, 168, 116), contam = 0.14, sideProp = "BioTank", wallText = "BACTERIA LAB", hazard = "BIOHAZARD LEVEL B" },
-	[2] = { id = "Infected", accent = Color3.fromRGB(120, 178, 184), contam = 0.30, sideProp = "ObsGlass", wallText = "INFECTED CELLS", hazard = "CONTAINMENT ACTIVE" },
-	[3] = { id = "Mutation", accent = Color3.fromRGB(150, 116, 184), contam = 0.42, sideProp = "MutantTank", wallText = "MUTATION SECTOR", hazard = "UNSTABLE GENOME" },
-	[4] = { id = "Toxic", accent = Color3.fromRGB(168, 162, 86), contam = 0.55, sideProp = "ToxicBarrel", wallText = "TOXIC STORAGE", hazard = "TOXIC HAZARD" },
-	[5] = { id = "Virus", accent = Color3.fromRGB(150, 78, 78), contam = 0.40, sideProp = "QuarantinePod", wallText = "VIRUS CHAMBER", hazard = "QUARANTINE LOCKDOWN" },
-	[6] = { id = "Corrupted", accent = Color3.fromRGB(150, 120, 92), contam = 0.55, sideProp = "BrokenServo", wallText = "CORRUPTED LAB", hazard = "SYSTEM FAILURE" },
-	[7] = { id = "Reactor", accent = Color3.fromRGB(120, 176, 120), contam = 0.48, sideProp = "ReactorCore", wallText = "BIOHAZARD CORE", hazard = "HAZARD LEVEL A" },
-	[8] = { id = "DarkMut", accent = Color3.fromRGB(118, 86, 158), contam = 0.70, sideProp = "ParasiteGrowth", wallText = "DARK MUTATION", hazard = "DO NOT ENTER" },
-	[9] = { id = "Omega", accent = Color3.fromRGB(118, 126, 132), contam = 0.22, sideProp = "ControlBank", wallText = "OMEGA VIRUS LAB", hazard = "TOP SECRET" },
-	[10] = { id = "Final", accent = Color3.fromRGB(168, 74, 92), contam = 0.60, sideProp = "FinalReactor", wallText = "FINAL CONTAINMENT", hazard = "CRITICAL CONTAINMENT" },
+	[2] = { id = "Quarantine", accent = Color3.fromRGB(214, 178, 60), contam = 0.05, sideProp = "QuarantineScanner", wallText = "QUARANTINE CORRIDOR", hazard = "BIOHAZARD - LEVEL 2" },
+	[3] = { id = "MutationResearch", accent = Color3.fromRGB(110, 220, 138), contam = 0.18, sideProp = "MutationDNA", wallText = "MUTATION RESEARCH WING", hazard = "GENETIC INSTABILITY" },
+	[4] = { id = "Processing", accent = Color3.fromRGB(232, 142, 58), contam = 0.30, sideProp = "ProcessingMachine", wallText = "BIOHAZARD PROCESSING", hazard = "HEAVY MACHINERY ACTIVE" },
+	[5] = { id = "Cryo", accent = Color3.fromRGB(132, 204, 232), contam = 0.04, sideProp = "CryoCapsule", wallText = "CRYO CONTAINMENT", hazard = "SUB-ZERO - HANDLE WITH CARE" },
+	[6] = { id = "ToxicReactor", accent = Color3.fromRGB(160, 222, 92), contam = 0.36, sideProp = "ToxicReactor", wallText = "TOXIC REACTOR FACILITY", hazard = "UNSTABLE REACTOR CORE" },
+	[7] = { id = "Greenhouse", accent = Color3.fromRGB(140, 214, 138), contam = 0.42, sideProp = "SporePod", wallText = "INFECTED GREENHOUSE", hazard = "AIRBORNE SPORE WARNING" },
+	[8] = { id = "BlackSite", accent = Color3.fromRGB(176, 64, 78), contam = 0.18, sideProp = "BlackSiteChamber", wallText = "BLACK SITE - CLASSIFIED", hazard = "LEVEL OMEGA - RESTRICTED" },
+	[9] = { id = "OmegaDNA", accent = Color3.fromRGB(232, 196, 102), contam = 0.06, sideProp = "OmegaHelix", wallText = "OMEGA DNA CORE", hazard = "PROJECT OMEGA - SECURE" },
+	[10] = { id = "FinalCore", accent = Color3.fromRGB(222, 60, 76), contam = 0.25, sideProp = "FinalVirusCore", wallText = "FINAL VIRUS CORE", hazard = "MAXIMUM CONTAINMENT" },
 }
 
 local function themeFor(index: number)
@@ -1045,107 +1045,517 @@ local function buildThemeSideProp(deco, theme, x: number, z: number, accent: Col
 	end
 
 	if id == "BioTank" then
+		-- Area 1: BACTERIA LAB (unangetastet).
 		local tank = p("SideSampleTank", Vector3.new(8, 13, 8), Vector3.new(x, FLOOR_Y + 6.5, z), tint(LAB_OLIVE, accent, 0.22), Enum.Material.Glass)
 		tank.Shape = Enum.PartType.Cylinder
 		tank.Orientation = Vector3.new(0, 0, 90)
 		tank.Transparency = 0.5
 		p("TankBase", Vector3.new(9, 0.7, 9), Vector3.new(x, FLOOR_Y + 0.5, z), LAB_TRIM, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
 		p("TankTop", Vector3.new(9, 0.7, 9), Vector3.new(x, FLOOR_Y + 12.6, z), LAB_TRIM, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
-	elseif id == "ObsGlass" then
-		local cap = p("ObsCapsule", Vector3.new(6, 15, 6), Vector3.new(x, FLOOR_Y + 8, z), tint(LAB_CYAN, accent, 0.35), Enum.Material.Glass)
-		cap.Shape = Enum.PartType.Cylinder
-		cap.Orientation = Vector3.new(0, 0, 90)
-		cap.Transparency = 0.62
-		p("ObsCapBase", Vector3.new(8, 1.4, 8), Vector3.new(x, FLOOR_Y + 0.7, z), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
-		p("ObsCapTop", Vector3.new(8, 1.4, 8), Vector3.new(x, FLOOR_Y + 15.5, z), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
-		local cell = p("InfectedCellSample", Vector3.new(3, 3, 3), Vector3.new(x, FLOOR_Y + 8, z), tint(accent, LAB_OLIVE, 0.3), Enum.Material.SmoothPlastic)
-		cell.Shape = Enum.PartType.Ball
-		cell.Transparency = 0.2
-	elseif id == "MutantTank" then
-		local tank = p("MutationVat", Vector3.new(9, 12, 9), Vector3.new(x, FLOOR_Y + 6.2, z), tint(accent, LAB_OLIVE, 0.4), Enum.Material.Glass)
+	elseif id == "QuarantineScanner" then
+		-- Area 2: Decon-Scanner-Saeule mit gelb-schwarzen Warnstreifen.
+		local hazard = LAB_WARNING_YELLOW
+		p("ScannerPillar", Vector3.new(2.4, 14, 2.4), Vector3.new(x, FLOOR_Y + 7, z), LAB_DARK, Enum.Material.Metal)
+		for i = 0, 5 do
+			local band = p("ScannerHazardBand", Vector3.new(2.7, 0.9, 2.7), Vector3.new(x, FLOOR_Y + 1.5 + i * 2.2, z), if i % 2 == 0 then hazard else LAB_DARK, Enum.Material.SmoothPlastic)
+		end
+		p("ScannerCapBase", Vector3.new(4, 0.5, 4), Vector3.new(x, FLOOR_Y + 0.25, z), LAB_DARK, Enum.Material.Metal)
+		p("ScannerHead", Vector3.new(4.2, 1.6, 4.2), Vector3.new(x, FLOOR_Y + 14.5, z), Color3.fromRGB(56, 60, 62), Enum.Material.Metal)
+		local lens = p("ScannerLens", Vector3.new(2, 0.5, 2), Vector3.new(x, FLOOR_Y + 13.6, z), tint(hazard, accent, 0.4), Enum.Material.Neon)
+		lens.Shape = Enum.PartType.Cylinder
+		lens.Orientation = Vector3.new(0, 0, 90)
+		lens.Transparency = 0.25
+		local plate = p("QuarantinePlate", Vector3.new(3.6, 2.4, 0.4), Vector3.new(x, FLOOR_Y + 11, z + 1.3), Color3.fromRGB(36, 38, 38), Enum.Material.Metal)
+		label(plate, "QUARANTINE", hazard, 26, UDim2.fromOffset(140, 32), Vector3.new(0, 0, 0))
+	elseif id == "MutationDNA" then
+		-- Area 3: Glas-Vat mit DNA-Helix-Sample.
+		local tank = p("MutationVat", Vector3.new(9, 13, 9), Vector3.new(x, FLOOR_Y + 6.7, z), tint(accent, LAB_WHITE, 0.35), Enum.Material.Glass)
 		tank.Shape = Enum.PartType.Cylinder
 		tank.Orientation = Vector3.new(0, 0, 90)
-		tank.Transparency = 0.5
-		p("MutationVatBase", Vector3.new(10, 1, 10), Vector3.new(x, FLOOR_Y + 0.6, z), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
-		local blob = p("MutantBlob", Vector3.new(4.5, 4, 4.2), Vector3.new(x, FLOOR_Y + 6, z), accent, Enum.Material.SmoothPlastic)
-		blob.Shape = Enum.PartType.Ball
-		blob.Transparency = 0.25
-		local arm = p("MutantTendril", Vector3.new(1, 5, 1), Vector3.new(x + 1.6, FLOOR_Y + 8.5, z), tint(accent, LAB_OLIVE, 0.4), Enum.Material.SmoothPlastic)
-		arm.Orientation = Vector3.new(0, 0, 28)
-	elseif id == "ToxicBarrel" then
-		for i, off in ipairs({ Vector3.new(0, 2, 0), Vector3.new(3.4, 2, 0.6), Vector3.new(1.6, 6, 0) }) do
-			local b = p("ToxicBarrel" .. i, Vector3.new(3.6, 4, 3.6), Vector3.new(x, FLOOR_Y, z) + off, tint(LAB_WARNING_YELLOW, LAB_DARK, 0.45), Enum.Material.Metal)
-			b.Shape = Enum.PartType.Cylinder
-			p("BarrelHazardBand" .. i, Vector3.new(3.8, 0.7, 3.8), b.Position, LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic).Shape = Enum.PartType.Cylinder
+		tank.Transparency = 0.55
+		p("MutationVatBase", Vector3.new(10, 1.1, 10), Vector3.new(x, FLOOR_Y + 0.6, z), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		p("MutationVatCap", Vector3.new(10, 1, 10), Vector3.new(x, FLOOR_Y + 13.5, z), LAB_TRIM, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		for i = 0, 6 do
+			local t = i / 6
+			local ang = t * math.pi * 2
+			local node = p("DNANode" .. i, Vector3.new(1.1, 1.1, 1.1), Vector3.new(x + math.cos(ang) * 1.6, FLOOR_Y + 2.5 + t * 9, z + math.sin(ang) * 0.6), tint(accent, LAB_WHITE, 0.2), Enum.Material.Neon)
+			node.Shape = Enum.PartType.Ball
+			node.Transparency = 0.18
+			local mirror = p("DNANodeM" .. i, Vector3.new(0.95, 0.95, 0.95), Vector3.new(x - math.cos(ang) * 1.6, FLOOR_Y + 2.5 + t * 9, z - math.sin(ang) * 0.6), tint(accent, LAB_OLIVE, 0.45), Enum.Material.Neon)
+			mirror.Shape = Enum.PartType.Ball
+			mirror.Transparency = 0.28
 		end
-		local pool = p("ToxicSpill", Vector3.new(8, 0.06, 6), Vector3.new(x, FLOOR_Y + 0.22, z + 3), tint(LAB_OLIVE, LAB_WARNING_YELLOW, 0.3), Enum.Material.SmoothPlastic)
-		pool.Transparency = 0.32
-	elseif id == "QuarantinePod" then
-		p("QuarantinePodFrame", Vector3.new(8, 16, 1), Vector3.new(x, FLOOR_Y + 8, z), LAB_DARK, Enum.Material.Metal)
-		local door = p("QuarantinePodGlass", Vector3.new(6, 13, 0.5), Vector3.new(x, FLOOR_Y + 7.5, z + 0.4), tint(accent, LAB_WHITE, 0.5), Enum.Material.Glass)
-		door.Transparency = 0.55
-		p("PodRedLight", Vector3.new(1, 1, 0.4), Vector3.new(x, FLOOR_Y + 15, z + 0.6), LAB_WARNING_RED, Enum.Material.Neon).Shape = Enum.PartType.Ball
-		local panel = p("PodControlPanel", Vector3.new(2.4, 3, 0.6), Vector3.new(x + 5, FLOOR_Y + 4, z + 0.3), Color3.fromRGB(44, 48, 50), Enum.Material.Metal)
-		label(panel, "QUARANTINE", LAB_WARNING_RED, 22, UDim2.fromOffset(70, 26), Vector3.new(0, 0, 0))
-	elseif id == "BrokenServo" then
-		local box = p("BrokenServoUnit", Vector3.new(7, 9, 5), Vector3.new(x, FLOOR_Y + 4.6, z), tint(LAB_TRIM, LAB_DARK, 0.4), Enum.Material.Metal)
-		box.Orientation = Vector3.new(0, 0, -7)
-		p("ServoBrokenPanel", Vector3.new(5, 4, 0.3), Vector3.new(x - 0.4, FLOOR_Y + 6, z + 2.6), Color3.fromRGB(30, 33, 34), Enum.Material.Metal).Orientation = Vector3.new(12, 0, -7)
-		local spark = p("DeadIndicator", Vector3.new(0.9, 0.9, 0.3), Vector3.new(x + 1.5, FLOOR_Y + 8, z + 2.7), LAB_WARNING_RED, Enum.Material.SmoothPlastic)
-		spark.Shape = Enum.PartType.Ball
-		spark.Transparency = 0.25
-		local rust = p("RustStreak", Vector3.new(3, 4, 0.18), Vector3.new(x, FLOOR_Y + 3, z + 2.7), tint(LAB_OLIVE, Color3.fromRGB(120, 70, 40), 0.5), Enum.Material.SmoothPlastic)
-		rust.Transparency = 0.4
-	elseif id == "ReactorCore" then
+		local glow = Instance.new("PointLight")
+		glow.Brightness = 0.32
+		glow.Range = 12
+		glow.Color = tint(accent, LAB_WHITE, 0.45)
+		glow.Parent = tank
+	elseif id == "ProcessingMachine" then
+		-- Area 4: industrielle Prozessor-Einheit mit Auspuff und Ventilen.
+		local body = p("ProcUnitBody", Vector3.new(9, 9, 6.5), Vector3.new(x, FLOOR_Y + 4.7, z), Color3.fromRGB(80, 86, 90), Enum.Material.Metal)
+		p("ProcUnitTop", Vector3.new(9.6, 0.8, 7.2), Vector3.new(x, FLOOR_Y + 9.5, z), LAB_DARK, Enum.Material.Metal)
+		p("ProcUnitBase", Vector3.new(10.2, 1.4, 7.6), Vector3.new(x, FLOOR_Y + 0.7, z), LAB_DARK, Enum.Material.Metal)
+		local hazardBand = p("ProcHazardBand", Vector3.new(9.2, 1.1, 6.7), Vector3.new(x, FLOOR_Y + 2.3, z), accent, Enum.Material.SmoothPlastic)
+		hazardBand.Transparency = 0.05
+		local screen = p("ProcScreen", Vector3.new(3.2, 2.2, 0.3), Vector3.new(x, FLOOR_Y + 6.5, z + 3.4), Color3.fromRGB(34, 38, 40), Enum.Material.Metal)
+		label(screen, "PROCESS\nACTIVE", accent, 22, UDim2.fromOffset(110, 38), Vector3.new(0, 0, 0))
+		for _, vx in ipairs({ -3, 0, 3 }) do
+			local pipe = p("ProcExhaust", Vector3.new(1.4, 7, 1.4), Vector3.new(x + vx, FLOOR_Y + 13, z), Color3.fromRGB(92, 96, 96), Enum.Material.Metal)
+			pipe.Shape = Enum.PartType.Cylinder
+			pipe.Orientation = Vector3.new(0, 0, 90)
+			p("ProcExhaustCap", Vector3.new(1.8, 0.8, 1.8), Vector3.new(x + vx, FLOOR_Y + 16.5, z), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		end
+		local valve = p("ProcValve", Vector3.new(2.2, 2.2, 0.8), Vector3.new(x - 3.2, FLOOR_Y + 3.4, z + 3.4), accent, Enum.Material.Metal)
+		valve.Shape = Enum.PartType.Cylinder
+		valve.Orientation = Vector3.new(0, 0, 90)
+	elseif id == "CryoCapsule" then
+		-- Area 5: hohe, gefrorene Kryo-Kapsel mit blauem Innenkern.
+		p("CryoCapBase", Vector3.new(8, 1.4, 8), Vector3.new(x, FLOOR_Y + 0.7, z), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		p("CryoCapBaseRing", Vector3.new(9, 0.4, 9), Vector3.new(x, FLOOR_Y + 1.6, z), tint(accent, LAB_WHITE, 0.4), Enum.Material.SmoothPlastic).Shape = Enum.PartType.Cylinder
+		local glass = p("CryoCapsule", Vector3.new(6.5, 15, 6.5), Vector3.new(x, FLOOR_Y + 8.5, z), tint(accent, LAB_WHITE, 0.55), Enum.Material.Glass)
+		glass.Shape = Enum.PartType.Cylinder
+		glass.Orientation = Vector3.new(0, 0, 90)
+		glass.Transparency = 0.7
+		local frost = p("CryoFrostLayer", Vector3.new(6.8, 15.2, 6.8), Vector3.new(x, FLOOR_Y + 8.5, z), Color3.fromRGB(220, 232, 238), Enum.Material.Ice)
+		frost.Shape = Enum.PartType.Cylinder
+		frost.Orientation = Vector3.new(0, 0, 90)
+		frost.Transparency = 0.78
+		local core = p("CryoInnerCore", Vector3.new(2.4, 11, 2.4), Vector3.new(x, FLOOR_Y + 8.5, z), tint(accent, Color3.fromRGB(200, 230, 245), 0.3), Enum.Material.Neon)
+		core.Shape = Enum.PartType.Cylinder
+		core.Orientation = Vector3.new(0, 0, 90)
+		core.Transparency = 0.25
+		p("CryoCapTop", Vector3.new(8.2, 1.4, 8.2), Vector3.new(x, FLOOR_Y + 16.4, z), LAB_TRIM, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		local lamp = Instance.new("PointLight")
+		lamp.Brightness = 0.4
+		lamp.Range = 14
+		lamp.Color = tint(accent, Color3.fromRGB(220, 240, 250), 0.45)
+		lamp.Parent = core
+		local mist = p("CryoFloorMist", Vector3.new(9, 0.06, 9), Vector3.new(x, FLOOR_Y + 0.18, z), Color3.fromRGB(220, 232, 238), Enum.Material.SmoothPlastic)
+		mist.Shape = Enum.PartType.Cylinder
+		mist.Orientation = Vector3.new(0, 0, 90)
+		mist.Transparency = 0.55
+	elseif id == "ToxicReactor" then
+		-- Area 6: kompakter Reaktor-Pillar mit gruenem Energiekern.
 		local col = p("ReactorPillar", Vector3.new(6, 17, 6), Vector3.new(x, FLOOR_Y + 8.5, z), LAB_DARK, Enum.Material.Metal)
 		col.Shape = Enum.PartType.Cylinder
 		col.Orientation = Vector3.new(0, 0, 90)
-		local glass = p("ReactorGlass", Vector3.new(4.4, 11, 4.4), Vector3.new(x, FLOOR_Y + 8.5, z), tint(accent, LAB_WHITE, 0.4), Enum.Material.Glass)
+		local glass = p("ReactorGlass", Vector3.new(4.4, 13, 4.4), Vector3.new(x, FLOOR_Y + 8.5, z), tint(accent, LAB_WHITE, 0.4), Enum.Material.Glass)
 		glass.Shape = Enum.PartType.Cylinder
 		glass.Orientation = Vector3.new(0, 0, 90)
-		glass.Transparency = 0.5
-		local core = p("ReactorCoreBall", Vector3.new(3.4, 3.4, 3.4), Vector3.new(x, FLOOR_Y + 8.5, z), tint(accent, Color3.fromRGB(225, 232, 220), 0.3), Enum.Material.Neon)
+		glass.Transparency = 0.55
+		local core = p("ReactorCoreBall", Vector3.new(3, 3, 3), Vector3.new(x, FLOOR_Y + 8.5, z), tint(accent, Color3.fromRGB(225, 232, 220), 0.25), Enum.Material.Neon)
 		core.Shape = Enum.PartType.Ball
-		local rl = Instance.new("PointLight")
-		rl.Brightness = 0.5
-		rl.Range = 14
-		rl.Color = tint(accent, Color3.fromRGB(220, 228, 215), 0.4)
-		rl.Parent = core
-	elseif id == "ParasiteGrowth" then
-		local stalk = p("ParasiteStalk", Vector3.new(4, 14, 4), Vector3.new(x, FLOOR_Y + 7, z), tint(LAB_OLIVE, accent, 0.45), Enum.Material.SmoothPlastic)
+		core.Transparency = 0.1
+		for i = 0, 3 do
+			local ang = i * math.pi / 2
+			p("ReactorPipe" .. i, Vector3.new(0.7, 5.5, 0.7), Vector3.new(x + math.cos(ang) * 3.6, FLOOR_Y + 14, z + math.sin(ang) * 3.6), Color3.fromRGB(86, 92, 94), Enum.Material.Metal)
+		end
+		p("ReactorBaseCap", Vector3.new(8, 1.2, 8), Vector3.new(x, FLOOR_Y + 0.6, z), Color3.fromRGB(58, 62, 64), Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		local lamp = Instance.new("PointLight")
+		lamp.Brightness = 0.55
+		lamp.Range = 16
+		lamp.Color = tint(accent, Color3.fromRGB(220, 240, 200), 0.4)
+		lamp.Parent = core
+	elseif id == "SporePod" then
+		-- Area 7: Glas-Dome mit infiziertem Spore-Wachstum.
+		p("SporeDomeBase", Vector3.new(10, 1.2, 10), Vector3.new(x, FLOOR_Y + 0.6, z), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		local dome = p("SporeDome", Vector3.new(9, 9, 9), Vector3.new(x, FLOOR_Y + 5.5, z), tint(accent, LAB_WHITE, 0.5), Enum.Material.Glass)
+		dome.Shape = Enum.PartType.Ball
+		dome.Transparency = 0.6
+		local stalk = p("SporeStalk", Vector3.new(1.3, 6, 1.3), Vector3.new(x, FLOOR_Y + 4, z), tint(LAB_OLIVE, accent, 0.4), Enum.Material.SmoothPlastic)
 		stalk.Shape = Enum.PartType.Cylinder
 		stalk.Orientation = Vector3.new(0, 0, 90)
-		stalk.Transparency = 0.08
-		for i = 1, 3 do
-			local pod = p("ParasitePod" .. i, Vector3.new(2.6 + i * 0.3, 2.6 + i * 0.3, 2.6 + i * 0.3), Vector3.new(x + (i - 2) * 1.6, FLOOR_Y + 3 + i * 3, z + 1.4), tint(accent, LAB_OLIVE, 0.3), Enum.Material.SmoothPlastic)
+		for i = 1, 4 do
+			local ang = i * math.pi / 2
+			local pod = p("SporeBlossom" .. i, Vector3.new(1.6, 1.6, 1.6), Vector3.new(x + math.cos(ang) * 1.6, FLOOR_Y + 5 + (i % 2) * 1.2, z + math.sin(ang) * 1.6), tint(accent, Color3.fromRGB(184, 122, 220), 0.25), Enum.Material.Neon)
 			pod.Shape = Enum.PartType.Ball
 			pod.Transparency = 0.18
 		end
-		local goo = p("ParasiteGoo", Vector3.new(6, 0.07, 5), Vector3.new(x, FLOOR_Y + 0.23, z + 2), tint(LAB_OLIVE, accent, 0.35), Enum.Material.SmoothPlastic)
-		goo.Transparency = 0.3
-	elseif id == "ControlBank" then
-		p("ControlBankBody", Vector3.new(10, 7, 3), Vector3.new(x, FLOOR_Y + 3.7, z), Color3.fromRGB(46, 52, 54), Enum.Material.Metal)
-		for i = -1, 1 do
-			local mon = p("ControlMonitor", Vector3.new(2.6, 2, 0.3), Vector3.new(x + i * 3, FLOOR_Y + 5, z + 1.6), tint(accent, Color3.fromRGB(40, 48, 50), 0.4), Enum.Material.SmoothPlastic)
-			mon.Transparency = 0.18
+		local cap = p("SporeCap", Vector3.new(3.2, 1.6, 3.2), Vector3.new(x, FLOOR_Y + 8.6, z), tint(accent, Color3.fromRGB(180, 120, 220), 0.35), Enum.Material.SmoothPlastic)
+		cap.Shape = Enum.PartType.Ball
+		cap.Transparency = 0.1
+		local glow = Instance.new("PointLight")
+		glow.Brightness = 0.35
+		glow.Range = 12
+		glow.Color = tint(accent, Color3.fromRGB(190, 150, 220), 0.35)
+		glow.Parent = cap
+		local roots = p("SporeFloorRoots", Vector3.new(8, 0.06, 8), Vector3.new(x, FLOOR_Y + 0.2, z), tint(LAB_OLIVE, accent, 0.4), Enum.Material.SmoothPlastic)
+		roots.Shape = Enum.PartType.Cylinder
+		roots.Orientation = Vector3.new(0, 0, 90)
+		roots.Transparency = 0.4
+	elseif id == "BlackSiteChamber" then
+		-- Area 8: dunkle, klassifizierte Versuchskammer mit Rotglas.
+		p("BSiteBase", Vector3.new(8, 1.4, 8), Vector3.new(x, FLOOR_Y + 0.7, z), Color3.fromRGB(18, 18, 22), Enum.Material.Metal)
+		local frame = p("BSiteFrame", Vector3.new(7.6, 15, 4.4), Vector3.new(x, FLOOR_Y + 8, z), Color3.fromRGB(22, 22, 26), Enum.Material.Metal)
+		local glass = p("BSiteGlass", Vector3.new(5.5, 11, 0.45), Vector3.new(x, FLOOR_Y + 8, z + 2.3), tint(accent, Color3.fromRGB(20, 20, 24), 0.55), Enum.Material.Glass)
+		glass.Transparency = 0.42
+		local glow = p("BSiteInnerGlow", Vector3.new(4, 8, 1.4), Vector3.new(x, FLOOR_Y + 7.5, z + 1.2), tint(accent, Color3.fromRGB(50, 16, 24), 0.35), Enum.Material.Neon)
+		glow.Transparency = 0.45
+		p("BSiteTopBar", Vector3.new(8, 1.1, 4.6), Vector3.new(x, FLOOR_Y + 15.6, z), LAB_DARK, Enum.Material.Metal)
+		local plate = p("BSitePlate", Vector3.new(3.2, 1.6, 0.4), Vector3.new(x, FLOOR_Y + 4.6, z + 2.4), Color3.fromRGB(18, 18, 18), Enum.Material.Metal)
+		label(plate, "RESTRICTED", accent, 28, UDim2.fromOffset(140, 26), Vector3.new(0, 0, 0))
+		p("BSiteRedLamp", Vector3.new(0.9, 0.9, 0.9), Vector3.new(x, FLOOR_Y + 14.4, z + 2.4), accent, Enum.Material.Neon).Shape = Enum.PartType.Ball
+		local lamp = Instance.new("PointLight")
+		lamp.Brightness = 0.4
+		lamp.Range = 11
+		lamp.Color = tint(accent, Color3.fromRGB(140, 30, 40), 0.4)
+		lamp.Parent = glow
+	elseif id == "OmegaHelix" then
+		-- Area 9: golden-weisser DNA-Helix-Pillar, hochwertig und premium.
+		p("OmegaBase", Vector3.new(9, 1.2, 9), Vector3.new(x, FLOOR_Y + 0.6, z), Color3.fromRGB(206, 210, 214), Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		p("OmegaBaseRing", Vector3.new(10, 0.4, 10), Vector3.new(x, FLOOR_Y + 1.4, z), accent, Enum.Material.SmoothPlastic).Shape = Enum.PartType.Cylinder
+		local glass = p("OmegaGlass", Vector3.new(5.2, 15, 5.2), Vector3.new(x, FLOOR_Y + 9, z), tint(accent, Color3.fromRGB(245, 240, 226), 0.5), Enum.Material.Glass)
+		glass.Shape = Enum.PartType.Cylinder
+		glass.Orientation = Vector3.new(0, 0, 90)
+		glass.Transparency = 0.62
+		for i = 0, 9 do
+			local t = i / 9
+			local ang = t * math.pi * 3.2
+			local node = p("OmegaNode" .. i, Vector3.new(0.9, 0.9, 0.9), Vector3.new(x + math.cos(ang) * 1.6, FLOOR_Y + 2.5 + t * 13, z + math.sin(ang) * 0.7), accent, Enum.Material.Neon)
+			node.Shape = Enum.PartType.Ball
+			node.Transparency = 0.12
+			local mirror = p("OmegaNodeM" .. i, Vector3.new(0.9, 0.9, 0.9), Vector3.new(x - math.cos(ang) * 1.6, FLOOR_Y + 2.5 + t * 13, z - math.sin(ang) * 0.7), Color3.fromRGB(245, 240, 220), Enum.Material.Neon)
+			mirror.Shape = Enum.PartType.Ball
+			mirror.Transparency = 0.18
 		end
-		p("ControlBankTrim", Vector3.new(10.4, 0.5, 3.2), Vector3.new(x, FLOOR_Y + 7.3, z), LAB_DARK, Enum.Material.Metal)
-		p("ControlBankStatus", Vector3.new(0.8, 0.8, 0.3), Vector3.new(x + 4.5, FLOOR_Y + 6.6, z + 1.7), LAB_GREEN, Enum.Material.Neon).Shape = Enum.PartType.Ball
-	else -- FinalReactor
-		local base = p("FinalReactorBase", Vector3.new(12, 1.4, 12), Vector3.new(x, FLOOR_Y + 0.7, z), LAB_DARK, Enum.Material.Metal)
+		p("OmegaCapTop", Vector3.new(7, 1.2, 7), Vector3.new(x, FLOOR_Y + 17, z), Color3.fromRGB(206, 210, 214), Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		local lamp = Instance.new("PointLight")
+		lamp.Brightness = 0.55
+		lamp.Range = 16
+		lamp.Color = tint(accent, Color3.fromRGB(245, 230, 200), 0.35)
+		lamp.Parent = glass
+	else
+		-- Area 10: FinalVirusCore - massiver roter Reaktor-Pillar.
+		local base = p("FinalReactorBase", Vector3.new(12, 1.4, 12), Vector3.new(x, FLOOR_Y + 0.7, z), Color3.fromRGB(18, 16, 18), Enum.Material.Metal)
 		base.Shape = Enum.PartType.Cylinder
 		base.Orientation = Vector3.new(0, 0, 90)
-		local glass = p("FinalReactorGlass", Vector3.new(8, 19, 8), Vector3.new(x, FLOOR_Y + 10, z), tint(accent, LAB_WHITE, 0.35), Enum.Material.Glass)
+		p("FinalReactorBaseRing", Vector3.new(13, 0.4, 13), Vector3.new(x, FLOOR_Y + 1.5, z), accent, Enum.Material.SmoothPlastic).Shape = Enum.PartType.Cylinder
+		local glass = p("FinalReactorGlass", Vector3.new(8, 20, 8), Vector3.new(x, FLOOR_Y + 10.5, z), tint(accent, Color3.fromRGB(36, 22, 26), 0.45), Enum.Material.Glass)
 		glass.Shape = Enum.PartType.Cylinder
-		glass.Transparency = 0.48
-		local core = p("FinalReactorCore", Vector3.new(4.6, 12, 4.6), Vector3.new(x, FLOOR_Y + 10, z), tint(accent, Color3.fromRGB(230, 220, 220), 0.25), Enum.Material.Neon)
+		glass.Transparency = 0.5
+		local core = p("FinalReactorCore", Vector3.new(4.6, 13, 4.6), Vector3.new(x, FLOOR_Y + 10.5, z), tint(accent, Color3.fromRGB(255, 200, 200), 0.2), Enum.Material.Neon)
 		core.Shape = Enum.PartType.Cylinder
+		core.Transparency = 0.05
+		for i = 0, 3 do
+			local ang = i * math.pi / 2 + math.pi / 4
+			p("FinalReactorRib" .. i, Vector3.new(0.9, 18, 0.9), Vector3.new(x + math.cos(ang) * 3.6, FLOOR_Y + 10, z + math.sin(ang) * 3.6), Color3.fromRGB(28, 22, 24), Enum.Material.Metal)
+		end
+		p("FinalReactorTop", Vector3.new(10, 1.2, 10), Vector3.new(x, FLOOR_Y + 19, z), Color3.fromRGB(18, 16, 18), Enum.Material.Metal).Shape = Enum.PartType.Cylinder
 		local fl = Instance.new("PointLight")
-		fl.Brightness = 0.7
-		fl.Range = 18
-		fl.Color = tint(accent, Color3.fromRGB(225, 215, 215), 0.4)
+		fl.Brightness = 0.85
+		fl.Range = 20
+		fl.Color = tint(accent, Color3.fromRGB(255, 200, 200), 0.35)
 		fl.Parent = core
-		p("FinalReactorRedLamp", Vector3.new(1.2, 1.2, 1.2), Vector3.new(x, FLOOR_Y + 20.5, z), LAB_WARNING_RED, Enum.Material.Neon).Shape = Enum.PartType.Ball
+		p("FinalReactorRedLamp", Vector3.new(1.4, 1.4, 1.4), Vector3.new(x, FLOOR_Y + 21, z), accent, Enum.Material.Neon).Shape = Enum.PartType.Ball
+	end
+end
+
+-- ---- Eingangsbogen pro Area (nur Area 2..10) -----------------------------
+-- Sitzt direkt nach dem Area-Gate und sorgt fuer das "Boah, neues Gebiet"-
+-- Reveal-Moment. Spannt nicht den Laufweg (Z=0) ein -- die Pfeiler stehen am
+-- Rand des Korridors (z = +/-34), das Querbalken ueberspannt den Pfad.
+local function buildAreaEntranceArch(parent, area, hallX, theme, accent)
+	local deco = makeFolder("AreaEntranceArch", parent)
+	local archX = hallX + L.GateOffsetX + 20 -- 20 Studs hinter dem Gate
+	local archZL, archZR = -34, 34
+	local pillarHeight = 28
+	local pillarWidth = 3.6
+	local pillarDepth = 4.4
+	local archTopY = FLOOR_Y + pillarHeight
+
+	local function p(name, size, pos, color, mat, collide)
+		return makePart(deco, name, size, pos, color, mat, collide == true)
+	end
+
+	-- Pfeiler links/rechts.
+	for _, pz in ipairs({ archZL, archZR }) do
+		p("ArchPillar", Vector3.new(pillarWidth, pillarHeight, pillarDepth), Vector3.new(archX, FLOOR_Y + pillarHeight / 2, pz), Color3.fromRGB(56, 60, 64), Enum.Material.Metal)
+		p("ArchPillarCap", Vector3.new(pillarWidth + 1.2, 0.7, pillarDepth + 1.2), Vector3.new(archX, FLOOR_Y + pillarHeight - 0.35, pz), LAB_DARK, Enum.Material.Metal)
+		p("ArchPillarFoot", Vector3.new(pillarWidth + 1.6, 1.2, pillarDepth + 1.6), Vector3.new(archX, FLOOR_Y + 0.6, pz), LAB_DARK, Enum.Material.Metal)
+		-- Akzent-LED auf der Pfeiler-Innenseite.
+		local insetZ = pz + (if pz < 0 then 1 else -1) * (pillarDepth / 2 + 0.1)
+		neonStrip(deco, Vector3.new(0.4, pillarHeight - 6, 0.4), Vector3.new(archX, FLOOR_Y + pillarHeight / 2, insetZ), accent, 0.45)
+	end
+
+	-- Querbalken ueber dem Laufweg.
+	local beam = p("ArchTopBeam", Vector3.new(pillarWidth + 2, 3.2, archZR - archZL + pillarDepth), Vector3.new(archX, archTopY + 1.6, 0), Color3.fromRGB(28, 30, 32), Enum.Material.Metal)
+	p("ArchTopBeamRim", Vector3.new(pillarWidth + 2.6, 0.6, archZR - archZL + pillarDepth + 0.6), Vector3.new(archX, archTopY + 3.3, 0), LAB_DARK, Enum.Material.Metal)
+
+	-- Akzent-Lichtleiste unter dem Balken.
+	neonStrip(deco, Vector3.new(0.6, 0.4, archZR - archZL - 4), Vector3.new(archX, archTopY + 0.2, 0), accent, 0.4)
+
+	-- Frontschild mit Area-Bezeichnung (Spielrichtung zugewandt).
+	local signFront = p("ArchSignFront", Vector3.new(pillarWidth + 1.4, 2.6, 12), Vector3.new(archX - 1.6, archTopY - 1.3, 0), Color3.fromRGB(18, 20, 22), Enum.Material.Metal)
+	label(signFront, theme.wallText, accent:Lerp(Color3.fromRGB(245, 248, 244), 0.35), 80, UDim2.fromOffset(360, 70), Vector3.new(-1, 0, 0))
+	-- Rueckschild (sichtbar fuer den Spieler beim Zurueckblicken).
+	local signBack = p("ArchSignBack", Vector3.new(pillarWidth + 1.4, 2.6, 12), Vector3.new(archX + 1.6, archTopY - 1.3, 0), Color3.fromRGB(18, 20, 22), Enum.Material.Metal)
+	label(signBack, "ZONE " .. tostring(area.index), Color3.fromRGB(220, 225, 220), 60, UDim2.fromOffset(240, 60), Vector3.new(1, 0, 0))
+
+	-- Bodenmarkierung direkt am Eingang -> klare Schwelle ins Gebiet.
+	local thresholdColor = if theme.id == "BlackSite" then Color3.fromRGB(120, 30, 40) else accent
+	p("ArchFloorThreshold", Vector3.new(2.4, 0.1, archZR - archZL), Vector3.new(archX, LAYER_CONTAM, 0), LAB_DARK, Enum.Material.SmoothPlastic).Transparency = 0.05
+	local stripe = p("ArchFloorStripe", Vector3.new(1.2, 0.12, archZR - archZL - 4), Vector3.new(archX, LAYER_CONTAM + 0.04, 0), thresholdColor, Enum.Material.SmoothPlastic)
+	stripe.Transparency = 0.3
+
+	-- Pro-Area Akzentlampe oben am Balken.
+	local lamp = p("ArchTopLamp", Vector3.new(1.4, 1.4, 1.4), Vector3.new(archX, archTopY + 3.8, 0), accent, Enum.Material.Neon)
+	lamp.Shape = Enum.PartType.Ball
+	lamp.Transparency = 0.18
+	local light = Instance.new("PointLight")
+	light.Brightness = 0.5
+	light.Range = 18
+	light.Color = accent:Lerp(Color3.fromRGB(240, 240, 230), 0.45)
+	light.Parent = lamp
+end
+
+-- ---- Hero-Centerpiece pro Area (nur Area 2..10) --------------------------
+-- Eine einzigartige, deutlich erkennbare Landmark in der Halle. Steht NICHT
+-- im Laufweg (Z=0..+/-9) und nicht in den Egg-Stationen (Z=+96). Positioniert
+-- in der "Tiefe" der Halle (z = +28), zwischen den wiederkehrenden SideProp-
+-- Slots, damit die Silhouette der Area dominant bleibt.
+local function buildAreaCenterpiece(parent, area, hallX, theme, accent)
+	if area.index <= 1 then
+		return
+	end
+	local deco = makeFolder("AreaCenterpiece", parent)
+	local cx = hallX
+	local cz = 28 -- inside back tunnel wall (wall at z=+38), nahe an Side-Slots
+	local function p(name, size, pos, color, mat, collide)
+		return makePart(deco, name, size, pos, color, mat, collide == true)
+	end
+
+	local id = theme.id
+
+	-- Sockel + Hintergrundpaneel sind universell -- gibt jeder Landmark Halt.
+	local pad = p("CenterPad", Vector3.new(18, 0.5, 12), Vector3.new(cx, FLOOR_Y + 0.25, cz), tint(LAB_PANEL, accent, 0.18), Enum.Material.SmoothPlastic)
+	pad.Transparency = 0.05
+	p("CenterPadEdge", Vector3.new(18.6, 0.1, 12.6), Vector3.new(cx, FLOOR_Y + 0.55, cz), accent:Lerp(LAB_DARK, 0.45), Enum.Material.SmoothPlastic).Transparency = 0.35
+	local backplate = p("CenterBackplate", Vector3.new(20, 14, 0.6), Vector3.new(cx, FLOOR_Y + 7, cz + 6.2), Color3.fromRGB(34, 38, 40), Enum.Material.Metal)
+	label(backplate, theme.wallText, accent:Lerp(Color3.fromRGB(238, 242, 236), 0.35), 80, UDim2.fromOffset(360, 60), Vector3.new(0, 4, 0))
+
+	if id == "Quarantine" then
+		-- Decon-Bogen mit zwei Saeulen, Scanner-Strahl und Warnstreifen.
+		for _, dx in ipairs({ -6, 6 }) do
+			local pillar = p("QArchPillar", Vector3.new(2.4, 16, 2.4), Vector3.new(cx + dx, FLOOR_Y + 8, cz), LAB_DARK, Enum.Material.Metal)
+			for k = 0, 6 do
+				p("QArchStripe", Vector3.new(2.6, 0.7, 2.6), Vector3.new(cx + dx, FLOOR_Y + 1.5 + k * 2.2, cz), if k % 2 == 0 then LAB_WARNING_YELLOW else LAB_DARK, Enum.Material.SmoothPlastic)
+			end
+		end
+		local crossBar = p("QArchCross", Vector3.new(14, 2.4, 2.4), Vector3.new(cx, FLOOR_Y + 16.6, cz), Color3.fromRGB(40, 44, 46), Enum.Material.Metal)
+		local scanBeam = p("QScanBeam", Vector3.new(11, 0.5, 0.5), Vector3.new(cx, FLOOR_Y + 8, cz), LAB_WARNING_YELLOW, Enum.Material.Neon)
+		scanBeam.Transparency = 0.35
+		local lamp = p("QArchLamp", Vector3.new(1.2, 1.2, 1.2), Vector3.new(cx, FLOOR_Y + 18.4, cz), LAB_WARNING_RED, Enum.Material.Neon)
+		lamp.Shape = Enum.PartType.Ball
+		local light = Instance.new("PointLight"); light.Brightness = 0.55; light.Range = 16; light.Color = Color3.fromRGB(255, 220, 120); light.Parent = scanBeam
+	elseif id == "MutationResearch" then
+		-- Grosse DNA-Helix in Glaszylinder.
+		p("DNATankBase", Vector3.new(10, 1.2, 10), Vector3.new(cx, FLOOR_Y + 0.6, cz), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		local glass = p("DNATankGlass", Vector3.new(7, 20, 7), Vector3.new(cx, FLOOR_Y + 11, cz), tint(accent, LAB_WHITE, 0.45), Enum.Material.Glass)
+		glass.Shape = Enum.PartType.Cylinder
+		glass.Orientation = Vector3.new(0, 0, 90)
+		glass.Transparency = 0.6
+		for i = 0, 13 do
+			local t = i / 13
+			local ang = t * math.pi * 3.4
+			local node = p("DNANode" .. i, Vector3.new(1.2, 1.2, 1.2), Vector3.new(cx + math.cos(ang) * 2.1, FLOOR_Y + 2 + t * 18, cz + math.sin(ang) * 0.8), tint(accent, LAB_WHITE, 0.2), Enum.Material.Neon)
+			node.Shape = Enum.PartType.Ball
+			node.Transparency = 0.12
+			local mirror = p("DNANodeM" .. i, Vector3.new(1.05, 1.05, 1.05), Vector3.new(cx - math.cos(ang) * 2.1, FLOOR_Y + 2 + t * 18, cz - math.sin(ang) * 0.8), tint(LAB_OLIVE, accent, 0.6), Enum.Material.Neon)
+			mirror.Shape = Enum.PartType.Ball
+			mirror.Transparency = 0.2
+			if i % 2 == 0 then
+				local rung = p("DNARung" .. i, Vector3.new(4.2, 0.4, 0.4), Vector3.new(cx, FLOOR_Y + 2 + t * 18, cz + math.sin(ang) * 0.3), tint(accent, LAB_WHITE, 0.55), Enum.Material.Neon)
+				rung.Transparency = 0.45
+			end
+		end
+		p("DNATankTop", Vector3.new(10, 1.2, 10), Vector3.new(cx, FLOOR_Y + 21.3, cz), LAB_TRIM, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		local lamp = Instance.new("PointLight"); lamp.Brightness = 0.55; lamp.Range = 22; lamp.Color = tint(accent, LAB_WHITE, 0.45); lamp.Parent = glass
+	elseif id == "Processing" then
+		-- Industrie-Reaktor: schwere Maschinerie + Rohre + Auspuff.
+		p("ProcReactorBase", Vector3.new(14, 1.6, 11), Vector3.new(cx, FLOOR_Y + 0.8, cz), LAB_DARK, Enum.Material.Metal)
+		p("ProcReactorBody", Vector3.new(12, 14, 9), Vector3.new(cx, FLOOR_Y + 8, cz), Color3.fromRGB(78, 82, 86), Enum.Material.Metal)
+		p("ProcReactorTop", Vector3.new(13, 1.2, 10), Vector3.new(cx, FLOOR_Y + 15.6, cz), Color3.fromRGB(38, 40, 42), Enum.Material.Metal)
+		for i = -1, 1 do
+			local s = p("ProcReactorBand", Vector3.new(12.4, 1.1, 9.4), Vector3.new(cx, FLOOR_Y + 4 + i * 4, cz), accent, Enum.Material.SmoothPlastic)
+			s.Transparency = 0.1
+		end
+		for _, dx in ipairs({ -4, 0, 4 }) do
+			local stack = p("ProcStack", Vector3.new(1.7, 9, 1.7), Vector3.new(cx + dx, FLOOR_Y + 20, cz), Color3.fromRGB(80, 84, 86), Enum.Material.Metal)
+			stack.Shape = Enum.PartType.Cylinder
+			stack.Orientation = Vector3.new(0, 0, 90)
+			p("ProcStackTop", Vector3.new(2.4, 0.8, 2.4), Vector3.new(cx + dx, FLOOR_Y + 24.5, cz), LAB_DARK, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		end
+		local glow = p("ProcReactorGlow", Vector3.new(6, 5, 0.4), Vector3.new(cx, FLOOR_Y + 8, cz - 4.5), tint(accent, Color3.fromRGB(245, 200, 140), 0.2), Enum.Material.Neon)
+		glow.Transparency = 0.35
+		local panel = p("ProcReactorPanel", Vector3.new(4.4, 2.6, 0.4), Vector3.new(cx + 2.8, FLOOR_Y + 4.2, cz - 4.55), Color3.fromRGB(24, 26, 28), Enum.Material.Metal)
+		label(panel, "PROCESS\nMODULE", accent, 26, UDim2.fromOffset(150, 50), Vector3.new(0, 0, 0))
+		for _, dx in ipairs({ -5.5, 5.5 }) do
+			p("ProcReactorRib", Vector3.new(1.4, 14, 1.4), Vector3.new(cx + dx, FLOOR_Y + 8, cz), LAB_DARK, Enum.Material.Metal)
+		end
+		local lamp = Instance.new("PointLight"); lamp.Brightness = 0.4; lamp.Range = 14; lamp.Color = accent; lamp.Parent = glow
+	elseif id == "Cryo" then
+		-- Drei tall cryo capsules + frosted base + cold mist.
+		p("CryoStageBase", Vector3.new(18, 1.4, 11), Vector3.new(cx, FLOOR_Y + 0.7, cz), LAB_DARK, Enum.Material.Metal)
+		p("CryoStagePlate", Vector3.new(16, 0.18, 9), Vector3.new(cx, FLOOR_Y + 1.5, cz), tint(accent, LAB_WHITE, 0.6), Enum.Material.SmoothPlastic).Transparency = 0.1
+		for i = -1, 1 do
+			local px = cx + i * 5
+			p("CryoCapBaseRing", Vector3.new(4.6, 0.4, 4.6), Vector3.new(px, FLOOR_Y + 1.9, cz), accent:Lerp(LAB_WHITE, 0.55), Enum.Material.SmoothPlastic).Shape = Enum.PartType.Cylinder
+			local glass = p("CryoMainCap", Vector3.new(3.6, 17, 3.6), Vector3.new(px, FLOOR_Y + 10, cz), tint(accent, LAB_WHITE, 0.55), Enum.Material.Glass)
+			glass.Shape = Enum.PartType.Cylinder
+			glass.Orientation = Vector3.new(0, 0, 90)
+			glass.Transparency = 0.68
+			local frost = p("CryoMainFrost", Vector3.new(3.8, 17.2, 3.8), Vector3.new(px, FLOOR_Y + 10, cz), Color3.fromRGB(220, 232, 238), Enum.Material.Ice)
+			frost.Shape = Enum.PartType.Cylinder
+			frost.Orientation = Vector3.new(0, 0, 90)
+			frost.Transparency = 0.8
+			local core = p("CryoMainCore", Vector3.new(1.6, 13, 1.6), Vector3.new(px, FLOOR_Y + 10, cz), tint(accent, Color3.fromRGB(210, 235, 250), 0.3), Enum.Material.Neon)
+			core.Shape = Enum.PartType.Cylinder
+			core.Orientation = Vector3.new(0, 0, 90)
+			core.Transparency = 0.25
+			p("CryoMainCapTop", Vector3.new(4.6, 1.2, 4.6), Vector3.new(px, FLOOR_Y + 18.6, cz), LAB_TRIM, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+			local lamp = Instance.new("PointLight"); lamp.Brightness = 0.45; lamp.Range = 14; lamp.Color = tint(accent, Color3.fromRGB(225, 240, 250), 0.35); lamp.Parent = core
+		end
+		-- Bodendecke (Kaltnebel).
+		local mist = p("CryoFloorMist", Vector3.new(18, 0.06, 11), Vector3.new(cx, LAYER_CONTAM, cz), Color3.fromRGB(220, 232, 238), Enum.Material.SmoothPlastic)
+		mist.Transparency = 0.55
+	elseif id == "ToxicReactor" then
+		-- Grosser Toxic-Reaktor-Kern mit Energie-Saeule.
+		p("TRBase", Vector3.new(14, 1.4, 11), Vector3.new(cx, FLOOR_Y + 0.7, cz), Color3.fromRGB(28, 30, 30), Enum.Material.Metal)
+		p("TRBaseRing", Vector3.new(13, 0.4, 10), Vector3.new(cx, FLOOR_Y + 1.5, cz), accent, Enum.Material.SmoothPlastic).Transparency = 0.1
+		local col = p("TRPillar", Vector3.new(7, 20, 7), Vector3.new(cx, FLOOR_Y + 11, cz), Color3.fromRGB(22, 24, 24), Enum.Material.Metal)
+		col.Shape = Enum.PartType.Cylinder
+		col.Orientation = Vector3.new(0, 0, 90)
+		local glass = p("TRGlass", Vector3.new(5.2, 17, 5.2), Vector3.new(cx, FLOOR_Y + 11, cz), tint(accent, LAB_WHITE, 0.45), Enum.Material.Glass)
+		glass.Shape = Enum.PartType.Cylinder
+		glass.Orientation = Vector3.new(0, 0, 90)
+		glass.Transparency = 0.55
+		local core = p("TRCore", Vector3.new(3, 15, 3), Vector3.new(cx, FLOOR_Y + 11, cz), tint(accent, Color3.fromRGB(230, 245, 200), 0.2), Enum.Material.Neon)
+		core.Shape = Enum.PartType.Cylinder
+		core.Orientation = Vector3.new(0, 0, 90)
+		core.Transparency = 0.05
+		for i = 0, 5 do
+			local ang = i * math.pi / 3
+			local ring = p("TRRing" .. i, Vector3.new(0.8, 0.8, 0.8), Vector3.new(cx + math.cos(ang) * 3.4, FLOOR_Y + 6 + (i % 3) * 4.5, cz + math.sin(ang) * 1.2), accent, Enum.Material.Neon)
+			ring.Shape = Enum.PartType.Ball
+			ring.Transparency = 0.2
+		end
+		for _, dx in ipairs({ -5.2, 5.2 }) do
+			p("TRConduit", Vector3.new(0.9, 18, 0.9), Vector3.new(cx + dx, FLOOR_Y + 10, cz), Color3.fromRGB(40, 44, 46), Enum.Material.Metal)
+		end
+		p("TRTop", Vector3.new(8, 1.2, 8), Vector3.new(cx, FLOOR_Y + 20.5, cz), Color3.fromRGB(22, 24, 24), Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		local lamp = Instance.new("PointLight"); lamp.Brightness = 0.85; lamp.Range = 20; lamp.Color = tint(accent, Color3.fromRGB(220, 245, 180), 0.4); lamp.Parent = core
+	elseif id == "Greenhouse" then
+		-- Bio-Dome mit zentralem Spore-Baum.
+		p("GHDomeBase", Vector3.new(14, 1.4, 11), Vector3.new(cx, FLOOR_Y + 0.7, cz), LAB_DARK, Enum.Material.Metal)
+		p("GHDomeFloor", Vector3.new(13, 0.18, 10), Vector3.new(cx, FLOOR_Y + 1.5, cz), tint(LAB_OLIVE, accent, 0.4), Enum.Material.SmoothPlastic).Transparency = 0.15
+		local dome = p("GHDome", Vector3.new(14, 14, 11), Vector3.new(cx, FLOOR_Y + 8.5, cz), tint(accent, LAB_WHITE, 0.55), Enum.Material.Glass)
+		dome.Shape = Enum.PartType.Ball
+		dome.Transparency = 0.62
+		-- zentraler Spore-Baum
+		local trunk = p("GHTrunk", Vector3.new(1.6, 10, 1.6), Vector3.new(cx, FLOOR_Y + 6, cz), tint(LAB_OLIVE, accent, 0.4), Enum.Material.SmoothPlastic)
+		trunk.Shape = Enum.PartType.Cylinder
+		trunk.Orientation = Vector3.new(0, 0, 90)
+		for i = 1, 6 do
+			local ang = i * math.pi / 3
+			local r = 2 + (i % 2) * 0.6
+			local bloom = p("GHBloom" .. i, Vector3.new(2.2, 2.2, 2.2), Vector3.new(cx + math.cos(ang) * r, FLOOR_Y + 8 + (i % 3) * 1.5, cz + math.sin(ang) * (r * 0.5)), tint(accent, Color3.fromRGB(180, 120, 220), 0.3), Enum.Material.Neon)
+			bloom.Shape = Enum.PartType.Ball
+			bloom.Transparency = 0.18
+		end
+		local cap = p("GHTreeCap", Vector3.new(4.4, 2.6, 4.4), Vector3.new(cx, FLOOR_Y + 11.6, cz), tint(accent, LAB_OLIVE, 0.2), Enum.Material.SmoothPlastic)
+		cap.Shape = Enum.PartType.Ball
+		cap.Transparency = 0.05
+		-- Wurzel-Wachstum am Boden.
+		for i = 1, 4 do
+			local ang = i * math.pi / 2 + 0.4
+			local root = p("GHRoot" .. i, Vector3.new(0.7, 0.3, 4.5), Vector3.new(cx + math.cos(ang) * 2.4, LAYER_CONTAM, cz + math.sin(ang) * 2.4), tint(LAB_OLIVE, accent, 0.4), Enum.Material.SmoothPlastic)
+			root.Orientation = Vector3.new(0, math.deg(ang), 0)
+			root.Transparency = 0.18
+		end
+		local lamp = Instance.new("PointLight"); lamp.Brightness = 0.5; lamp.Range = 16; lamp.Color = tint(accent, Color3.fromRGB(170, 220, 150), 0.4); lamp.Parent = cap
+	elseif id == "BlackSite" then
+		-- Klassifizierte Containment-Kapsel mit Rotglas + Stahlrahmen.
+		p("BSBase", Vector3.new(14, 1.4, 11), Vector3.new(cx, FLOOR_Y + 0.7, cz), Color3.fromRGB(18, 18, 22), Enum.Material.Metal)
+		p("BSPlatform", Vector3.new(12, 0.2, 9), Vector3.new(cx, FLOOR_Y + 1.5, cz), Color3.fromRGB(24, 24, 28), Enum.Material.Metal).Transparency = 0.1
+		local cage = p("BSCage", Vector3.new(10, 18, 7), Vector3.new(cx, FLOOR_Y + 10, cz), Color3.fromRGB(14, 14, 18), Enum.Material.Metal)
+		local glass = p("BSGlass", Vector3.new(7.6, 14, 0.6), Vector3.new(cx, FLOOR_Y + 9, cz - 3.4), tint(accent, Color3.fromRGB(14, 8, 12), 0.55), Enum.Material.Glass)
+		glass.Transparency = 0.4
+		local inner = p("BSInnerGlow", Vector3.new(6, 11, 1.4), Vector3.new(cx, FLOOR_Y + 9, cz - 1.4), tint(accent, Color3.fromRGB(48, 14, 22), 0.3), Enum.Material.Neon)
+		inner.Transparency = 0.42
+		p("BSCageTop", Vector3.new(11, 1.2, 8), Vector3.new(cx, FLOOR_Y + 19.4, cz), Color3.fromRGB(10, 10, 14), Enum.Material.Metal)
+		-- Rote Warnleuchten oben.
+		for _, dx in ipairs({ -4.2, 0, 4.2 }) do
+			local rl = p("BSRedLamp", Vector3.new(0.9, 0.9, 0.9), Vector3.new(cx + dx, FLOOR_Y + 19.4, cz - 3), accent, Enum.Material.Neon)
+			rl.Shape = Enum.PartType.Ball
+		end
+		-- Vertikale Stahlrippen (Cage-Optik).
+		for i = -2, 2 do
+			p("BSCageRib", Vector3.new(0.45, 16, 0.45), Vector3.new(cx + i * 1.7, FLOOR_Y + 10, cz - 3.3), Color3.fromRGB(8, 8, 10), Enum.Material.Metal)
+		end
+		-- Bodenmarkierung -> "DO NOT CROSS".
+		local floorStripe = p("BSFloorWarn", Vector3.new(11, 0.07, 9.4), Vector3.new(cx, LAYER_CONTAM, cz), Color3.fromRGB(40, 12, 18), Enum.Material.SmoothPlastic)
+		floorStripe.Transparency = 0.2
+		local plate = p("BSPlate", Vector3.new(4.4, 1.6, 0.45), Vector3.new(cx, FLOOR_Y + 4, cz - 3.7), Color3.fromRGB(8, 8, 10), Enum.Material.Metal)
+		label(plate, "RESTRICTED", accent, 36, UDim2.fromOffset(180, 30), Vector3.new(0, 0, 0))
+		local lamp = Instance.new("PointLight"); lamp.Brightness = 0.5; lamp.Range = 14; lamp.Color = tint(accent, Color3.fromRGB(160, 30, 40), 0.4); lamp.Parent = inner
+	elseif id == "OmegaDNA" then
+		-- Riesige goldene DNA-Helix in Premium-Glaszylinder mit Ringen.
+		p("OmegaCBase", Vector3.new(15, 1.4, 12), Vector3.new(cx, FLOOR_Y + 0.7, cz), Color3.fromRGB(206, 210, 214), Enum.Material.Metal)
+		p("OmegaCBaseRing", Vector3.new(13, 0.5, 10.5), Vector3.new(cx, FLOOR_Y + 1.65, cz), accent, Enum.Material.Neon).Transparency = 0.25
+		local glass = p("OmegaCGlass", Vector3.new(6.4, 22, 6.4), Vector3.new(cx, FLOOR_Y + 12, cz), tint(accent, Color3.fromRGB(245, 240, 226), 0.5), Enum.Material.Glass)
+		glass.Shape = Enum.PartType.Cylinder
+		glass.Orientation = Vector3.new(0, 0, 90)
+		glass.Transparency = 0.62
+		for i = 0, 19 do
+			local t = i / 19
+			local ang = t * math.pi * 4
+			local node = p("OmegaCNode" .. i, Vector3.new(1, 1, 1), Vector3.new(cx + math.cos(ang) * 1.9, FLOOR_Y + 2 + t * 20, cz + math.sin(ang) * 0.7), accent, Enum.Material.Neon)
+			node.Shape = Enum.PartType.Ball
+			node.Transparency = 0.1
+			local mirror = p("OmegaCNodeM" .. i, Vector3.new(1, 1, 1), Vector3.new(cx - math.cos(ang) * 1.9, FLOOR_Y + 2 + t * 20, cz - math.sin(ang) * 0.7), Color3.fromRGB(245, 240, 218), Enum.Material.Neon)
+			mirror.Shape = Enum.PartType.Ball
+			mirror.Transparency = 0.16
+			if i % 3 == 0 then
+				local rung = p("OmegaCRung" .. i, Vector3.new(3.8, 0.32, 0.32), Vector3.new(cx, FLOOR_Y + 2 + t * 20, cz + math.sin(ang) * 0.2), accent, Enum.Material.Neon)
+				rung.Transparency = 0.42
+			end
+		end
+		-- Auessen-Energiering (orbitiert um die Helix).
+		for i = 0, 3 do
+			local h = FLOOR_Y + 5 + i * 5
+			local ring = p("OmegaCFloatingRing" .. i, Vector3.new(8.4, 0.32, 8.4), Vector3.new(cx, h, cz), accent, Enum.Material.Neon)
+			ring.Shape = Enum.PartType.Cylinder
+			ring.Orientation = Vector3.new(0, 0, 90)
+			ring.Transparency = 0.55
+		end
+		p("OmegaCTop", Vector3.new(11, 1.6, 11), Vector3.new(cx, FLOOR_Y + 23.5, cz), Color3.fromRGB(206, 210, 214), Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		local lamp = Instance.new("PointLight"); lamp.Brightness = 0.7; lamp.Range = 22; lamp.Color = tint(accent, Color3.fromRGB(245, 230, 200), 0.35); lamp.Parent = glass
+	else
+		-- FinalCore (Area 10): massiver Virus-Kern mit Stahlkaefig + Energie.
+		p("FCBase", Vector3.new(18, 1.6, 13), Vector3.new(cx, FLOOR_Y + 0.8, cz), Color3.fromRGB(14, 12, 14), Enum.Material.Metal)
+		p("FCBaseRing", Vector3.new(16, 0.5, 11), Vector3.new(cx, FLOOR_Y + 1.85, cz), accent, Enum.Material.Neon).Transparency = 0.15
+		local glass = p("FCGlass", Vector3.new(9, 24, 9), Vector3.new(cx, FLOOR_Y + 13, cz), tint(accent, Color3.fromRGB(36, 18, 22), 0.45), Enum.Material.Glass)
+		glass.Shape = Enum.PartType.Cylinder
+		glass.Transparency = 0.5
+		local core = p("FCCore", Vector3.new(5.4, 18, 5.4), Vector3.new(cx, FLOOR_Y + 13, cz), tint(accent, Color3.fromRGB(255, 195, 195), 0.18), Enum.Material.Neon)
+		core.Shape = Enum.PartType.Cylinder
+		core.Transparency = 0.04
+		-- Schwebende Energiekugeln um den Kern.
+		for i = 0, 5 do
+			local ang = i * math.pi / 3
+			local r = 3.5
+			local sphere = p("FCEnergyOrb" .. i, Vector3.new(1.4, 1.4, 1.4), Vector3.new(cx + math.cos(ang) * r, FLOOR_Y + 7 + i * 2.6, cz + math.sin(ang) * (r * 0.4)), accent, Enum.Material.Neon)
+			sphere.Shape = Enum.PartType.Ball
+			sphere.Transparency = 0.12
+		end
+		-- Stahlrippen-Kaefig.
+		for i = 0, 5 do
+			local ang = i * math.pi / 3
+			p("FCRib" .. i, Vector3.new(0.9, 22, 0.9), Vector3.new(cx + math.cos(ang) * 4.4, FLOOR_Y + 12, cz + math.sin(ang) * (4.4 * 0.5)), Color3.fromRGB(18, 14, 16), Enum.Material.Metal)
+		end
+		p("FCTop", Vector3.new(12, 1.6, 12), Vector3.new(cx, FLOOR_Y + 25.2, cz), Color3.fromRGB(14, 12, 14), Enum.Material.Metal).Shape = Enum.PartType.Cylinder
+		p("FCTopLamp", Vector3.new(1.8, 1.8, 1.8), Vector3.new(cx, FLOOR_Y + 26.6, cz), accent, Enum.Material.Neon).Shape = Enum.PartType.Ball
+		local lamp = Instance.new("PointLight"); lamp.Brightness = 1.0; lamp.Range = 26; lamp.Color = tint(accent, Color3.fromRGB(255, 200, 200), 0.3); lamp.Parent = core
 	end
 end
 
@@ -1216,8 +1626,14 @@ local function addBacteriaLabDetails(parent, area, hallX, primary)
 	end
 
 	-- Wiederkehrendes Thema-Hero-Objekt -> jede Area sieht anders aus.
+	-- Fuer Area 2..10 ist der mittlere Rueckwand-Slot dem Hero-Centerpiece
+	-- vorbehalten (siehe buildAreaCenterpiece). Sonst kollidieren Side-Prop
+	-- und Centerpiece in derselben Z-Reihe.
 	for _, x in ipairs({ hallX - 100, hallX + 10, hallX + 120 }) do
 		for _, z in ipairs({ BACTERIA_LEFT_LIMIT_Z + 8, BACTERIA_RIGHT_LIMIT_Z - 8 }) do
+			if area.index > 1 and x == hallX + 10 and z == BACTERIA_RIGHT_LIMIT_Z - 8 then
+				continue
+			end
 			buildThemeSideProp(deco, theme, x, z, accent)
 		end
 	end
@@ -2823,6 +3239,14 @@ function VirusLabBuilder.build()
 		buildShellSegment(areaModel, hallX, L.AreaSpan, primary, secondary, true, area.id, area.index > 1)
 		liftBacteriaLabCeiling(areaModel)
 		addBacteriaLabDetails(areaModel, area, hallX, primary)
+
+		-- Eigenstaendige Identitaet pro Area 2..10: Eingangsbogen + Hero-Landmark.
+		-- Bewusst NICHT in Area 1 (Bacteria Lab bleibt unangetastet).
+		if area.index > 1 then
+			local theme = themeFor(area.index)
+			buildAreaEntranceArch(areaModel, area, hallX, theme, theme.accent)
+			buildAreaCenterpiece(areaModel, area, hallX, theme, theme.accent)
+		end
 
 		-- Trainingsbereich (vor der Halle) + ggf. Rebirth-Gate.
 		buildTrainingArea(areaModel, bedsFolder, gatesFolder, area, hallX + L.TrainingOffsetX)
