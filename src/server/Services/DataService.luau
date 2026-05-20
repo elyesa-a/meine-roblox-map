@@ -82,6 +82,7 @@ export type Profile = {
 	EquippedTitle: string?,
 	TitleStats: { [string]: number },
 	BossDefeats: { [string]: number },
+	HighestBossDefeated: number,
 	ZonesReached: { [string]: boolean },
 	OwnedGamepasses: { [string]: boolean },
 	Settings: Settings,
@@ -114,6 +115,7 @@ local function getDefaultProfile(): Profile
 		EquippedTitle = "Rookie",
 		TitleStats = {},
 		BossDefeats = {},
+		HighestBossDefeated = 0,
 		ZonesReached = {},
 		OwnedGamepasses = {},
 		Settings = {

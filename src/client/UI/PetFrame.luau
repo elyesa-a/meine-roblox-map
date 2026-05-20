@@ -25,6 +25,8 @@ local PetFrame = {}
 type Refs = {
 	backdrop: Frame,
 	root: Frame,
+	header: TextLabel,
+	eggPanel: Frame,
 	eggScroll: ScrollingFrame,
 	eggNameLabel: TextLabel,
 	eggReqLabel: TextLabel,
@@ -38,8 +40,10 @@ type Refs = {
 	resultNameLabel: TextLabel,
 	resultRarityLabel: TextLabel,
 	resultMultiplierLabel: TextLabel,
+	infoRow: Frame,
 	countLabel: TextLabel,
 	multLabel: TextLabel,
+	actionRow: Frame,
 	scroll: ScrollingFrame,
 	bestButton: TextButton,
 	unequipAllButton: TextButton,
@@ -47,6 +51,7 @@ type Refs = {
 	lastState: { [string]: any }?,
 	previewSpin: number,
 	previewModel: Model?,
+	eggOnlyMode: boolean,
 }
 
 local PET_CARD_SIZE = Vector2.new(136, 104)
@@ -501,6 +506,8 @@ function PetFrame.create(parent: ScreenGui): Refs
 	local refs: Refs = {
 		backdrop = backdrop,
 		root = root,
+		header = header,
+		eggPanel = eggPanel,
 		eggScroll = eggScroll,
 		eggNameLabel = eggNameLabel,
 		eggReqLabel = eggReqLabel,
@@ -514,8 +521,10 @@ function PetFrame.create(parent: ScreenGui): Refs
 		resultNameLabel = resultNameLabel,
 		resultRarityLabel = resultRarityLabel,
 		resultMultiplierLabel = resultMultiplierLabel,
+		infoRow = infoRow,
 		countLabel = countLabel,
 		multLabel = multLabel,
+		actionRow = actionRow,
 		scroll = scroll,
 		bestButton = bestButton,
 		unequipAllButton = unequipAllButton,
@@ -523,6 +532,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 		lastState = nil,
 		previewSpin = 0,
 		previewModel = nil,
+		eggOnlyMode = false,
 	}
 
 	-- Sanfte, kostengünstige Eigen-Rotation der Hatch-Vorschau. Dreht nur,
@@ -569,7 +579,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 				refs.selectedEggId = chooseEggForArea(refs.lastState or {}, areaIndex) or refs.selectedEggId
 			end
 		end
-		PetFrame.show(refs)
+		PetFrame.show(refs, true)
 		if refs.lastState then
 			PetFrame.update(refs, refs.lastState)
 		end
@@ -630,8 +640,42 @@ function PetFrame.create(parent: ScreenGui): Refs
 	return refs
 end
 
-function PetFrame.show(refs: Refs)
+local function setEggOnlyMode(refs: Refs, enabled: boolean)
+	refs.eggOnlyMode = enabled
+	if enabled then
+		refs.header.Text = "EGG SHOP"
+		refs.root.Size = UDim2.new(0, 760, 0, 270)
+		refs.eggPanel.Position = UDim2.new(0, 16, 0, 52)
+		refs.eggPanel.Size = UDim2.new(1, -32, 1, -68)
+		refs.eggPanel.Visible = true
+		refs.infoRow.Visible = false
+		refs.actionRow.Visible = false
+		refs.scroll.Visible = false
+	else
+		refs.header.Text = "PET INVENTORY"
+		refs.root.Size = UDim2.new(0, 760, 0, 430)
+		refs.eggPanel.Visible = false
+		refs.infoRow.Position = UDim2.new(0, 16, 0, 54)
+		refs.infoRow.Visible = true
+		refs.actionRow.Position = UDim2.new(0, 16, 0, 88)
+		refs.actionRow.Visible = true
+		refs.scroll.Position = UDim2.new(0, 16, 0, 140)
+		refs.scroll.Size = UDim2.new(1, -32, 1, -156)
+		refs.scroll.Visible = true
+	end
+end
+
+function PetFrame.show(refs: Refs, eggOnly: boolean?)
+	setEggOnlyMode(refs, eggOnly == true)
 	UIAnimator.framePopIn(refs.backdrop, refs.root)
+end
+
+function PetFrame.showInventory(refs: Refs)
+	PetFrame.show(refs, false)
+end
+
+function PetFrame.showEggShop(refs: Refs)
+	PetFrame.show(refs, true)
 end
 
 function PetFrame.update(refs: Refs, state)

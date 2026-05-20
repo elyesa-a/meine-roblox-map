@@ -19,6 +19,7 @@ type Entry = {
 
 local ENTRIES: { Entry } = {
 	{ id = "Pets",     icon = "EGG", label = "Pets",     color = Theme.Colors.Blue },
+	{ id = "Teleport", icon = "TP",  label = "Teleport", color = Theme.Colors.Green },
 	{ id = "Quests",   icon = "!",   label = "Quests",   color = Theme.Colors.Yellow },
 	{ id = "Rebirth",  icon = "DNA", label = "Rebirth",  color = Theme.Colors.Red },
 	{ id = "Settings", icon = "SET", label = "Settings", color = Theme.Colors.PanelMedium },
@@ -30,7 +31,7 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 	holder.Name = "LeftButtons"
 	holder.AnchorPoint = Vector2.new(0, 0.5)
 	holder.Position = UDim2.new(0, 16, 0.5, 0)
-	holder.Size = UDim2.new(0, 112, 0, #ENTRIES * 39 + 16)
+	holder.Size = UDim2.new(0, 126, 0, #ENTRIES * 44 + 18)
 	holder.BackgroundColor3 = Color3.fromRGB(9, 13, 20)
 	holder.BackgroundTransparency = 0.18
 	holder.Parent = parent
@@ -83,7 +84,7 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 	for _, entry in ipairs(ENTRIES) do
 		local button = Instance.new("TextButton")
 		button.Name = entry.id .. "Button"
-		button.Size = UDim2.new(0, 94, 0, 34)
+		button.Size = UDim2.new(0, 108, 0, 38)
 		button.Text = ""
 		Theme.applyButtonStyle(button, Color3.fromRGB(24, 31, 43))
 		local buttonStroke = button:FindFirstChildOfClass("UIStroke")
@@ -110,7 +111,7 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 		iconFrame.Name = "IconSlot"
 		iconFrame.AnchorPoint = Vector2.new(0, 0.5)
 		iconFrame.Position = UDim2.new(0, 8, 0.5, 0)
-		iconFrame.Size = UDim2.new(0, 23, 0, 23)
+		iconFrame.Size = UDim2.new(0, 26, 0, 26)
 		iconFrame.BackgroundColor3 = entry.color
 		iconFrame.BackgroundTransparency = 0.12
 		iconFrame.BorderSizePixel = 0
@@ -125,7 +126,7 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 		iconLabel.BackgroundTransparency = 1
 		iconLabel.Font = Enum.Font.GothamBlack
 		iconLabel.Text = entry.icon
-		iconLabel.TextSize = if #entry.icon <= 1 then 15 else 9
+		iconLabel.TextSize = if #entry.icon <= 1 then 16 else 10
 		iconLabel.TextScaled = false
 		iconLabel.TextColor3 = Theme.Colors.White
 		iconLabel.TextStrokeColor3 = Theme.Colors.Black
@@ -135,13 +136,13 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 		local textLabel = Instance.new("TextLabel")
 		textLabel.Name = "ButtonLabel"
 		textLabel.AnchorPoint = Vector2.new(0, 0.5)
-		textLabel.Position = UDim2.new(0, 38, 0.5, 0)
-		textLabel.Size = UDim2.new(1, -42, 1, -8)
+		textLabel.Position = UDim2.new(0, 42, 0.5, 0)
+		textLabel.Size = UDim2.new(1, -46, 1, -8)
 		textLabel.BackgroundTransparency = 1
 		textLabel.Font = Theme.Font
 		textLabel.Text = entry.label
 		textLabel.TextXAlignment = Enum.TextXAlignment.Left
-		textLabel.TextSize = 12
+		textLabel.TextSize = 13
 		textLabel.TextScaled = false
 		textLabel.TextColor3 = Theme.Colors.White
 		textLabel.TextStrokeTransparency = 1

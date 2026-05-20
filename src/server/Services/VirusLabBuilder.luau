@@ -1803,13 +1803,13 @@ local function buildEggStation(parent, areaIndex, stationIndex, eggDef, pos)
 	local accent = eggDef.color
 
 	-- Eigener Inkubator-Sockel + Rueckpaneel (markiert die Side-Bay).
-	local bayPad = makePart(model, "IncubatorBayPad", Vector3.new(15, 0.4, 15), pos + Vector3.new(0, -0.2, 0), tint(LAB_PANEL, accent, 0.12), Enum.Material.SmoothPlastic, true)
+	local bayPad = makePart(model, "IncubatorBayPad", Vector3.new(15, 0.32, 15), pos + Vector3.new(0, -0.24, 0), Color3.fromRGB(128, 42, 42), Enum.Material.SmoothPlastic, true)
 	bayPad.Transparency = 0.05
-	makePart(model, "IncubatorBayEdge", Vector3.new(15.4, 0.1, 15.4), pos + Vector3.new(0, 0.05, 0), accent:Lerp(LAB_DARK, 0.5), Enum.Material.SmoothPlastic, false).Transparency = 0.4
+	makePart(model, "IncubatorBayEdge", Vector3.new(15.4, 0.08, 15.4), pos + Vector3.new(0, 0.02, 0), Color3.fromRGB(85, 28, 28), Enum.Material.SmoothPlastic, false).Transparency = 0.28
 	local backPanel = makePart(model, "IncubatorBackPanel", Vector3.new(13, 11, 0.5), pos + Vector3.new(0, 6, 7), Color3.fromRGB(40, 45, 46), Enum.Material.Metal, false)
 	label(backPanel, string.format("%s INCUBATOR", string.upper(tier)), accent:Lerp(Color3.fromRGB(225, 230, 222), 0.5), 30, UDim2.fromOffset(150, 36), Vector3.new(0, 3.6, 0))
 
-	local base = makePart(model, "EggBase", Vector3.new(12, 1.2, 12), pos, LAB_DARK, Enum.Material.Metal, true)
+	local base = makePart(model, "EggBase", Vector3.new(12, 0.85, 12), pos + Vector3.new(0, -0.15, 0), Color3.fromRGB(112, 36, 36), Enum.Material.Metal, true)
 	base.Shape = Enum.PartType.Cylinder
 	base.Orientation = Vector3.new(0, 0, 90)
 
@@ -2987,106 +2987,8 @@ local function buildSpawnFloorDetail(parent, cx)
 	model.Name = "SpawnFloorDetail"
 	model.Parent = parent
 
-	-- ===== 1) Labor-Bodenplatten =========================================
-	-- Hand-gepflegte Liste mit Mix aus Groessen. Liegen ausserhalb des
-	-- Hub-Achtecks (cx +/- 39, hubZ=-45 +/- 39), des SpawnLocation
-	-- (cx +/- 7, z=0 +/- 7) und der Kiosk-Reihe (z ~ 76..88).
-	local tiles = {
-		-- ---- BACK ZONE (links vom Hub: x < cx-39 = -219) ----
-		-- Schmale Randstreifen direkt vor der Rueckwand
-		{ n = "TileBackEdgeA", x = cx - 140, z = -65, sx = 8, sz = 36, c = LAB_FLOOR_TILE_DARK },
-		{ n = "TileBackEdgeB", x = cx - 140, z = 0, sx = 8, sz = 26, c = LAB_FLOOR_TILE_MID },
-		{ n = "TileBackEdgeC", x = cx - 140, z = 60, sx = 8, sz = 70, c = LAB_FLOOR_TILE_DARK },
-		{ n = "TileBackEdgeD", x = cx - 140, z = 115, sx = 8, sz = 28, c = LAB_FLOOR_TILE_MID },
-		-- Grosse Hauptplatten des Hinter-Bereichs
-		{ n = "TileBackA", x = cx - 110, z = -65, sx = 50, sz = 36, c = LAB_FLOOR_TILE_LIGHT },
-		{ n = "TileBackB", x = cx - 110, z = 0, sx = 50, sz = 26, c = LAB_FLOOR_TILE_MID },
-		{ n = "TileBackC", x = cx - 110, z = 60, sx = 50, sz = 70, c = LAB_FLOOR_TILE_LIGHT },
-		{ n = "TileBackD", x = cx - 110, z = 115, sx = 50, sz = 24, c = LAB_FLOOR_TILE_DARK },
-		-- Mittelband zwischen Back-Hauptplatten und Hub-Achteck
-		-- HINWEIS: x ueberlappt UpgradeLab-Kiosk-Spalte (cx-64) -> z-Bereich
-		-- muss um Kiosk-Body z[79,85] (inkl. NPC z[~74,76]) freibleiben.
-		{ n = "TileBackInnerA", x = cx - 65, z = -65, sx = 32, sz = 30, c = LAB_FLOOR_TILE_MID },
-		{ n = "TileBackInnerB", x = cx - 65, z = 48, sx = 32, sz = 40, c = LAB_FLOOR_TILE_MID },
-		{ n = "TileBackInnerC", x = cx - 65, z = 110, sx = 32, sz = 22, c = LAB_FLOOR_TILE_LIGHT },
-
-		-- ---- ABOVE-HUB / BETWEEN HUB UND KIOSK (z 14..70) ----
-		-- Liegt im Hub-x-Band, aber AUSSERHALB des Hub-z-Bereichs (-84..-6).
-		-- SpawnLocation z[-7..7] meiden -> Tile bei z=22 ist sicher.
-		{ n = "TileAboveHubA", x = cx, z = 22, sx = 70, sz = 18, c = LAB_FLOOR_TILE_LIGHT },
-		{ n = "TileAboveHubB", x = cx, z = 50, sx = 70, sz = 22, c = LAB_FLOOR_TILE_MID },
-
-		-- ---- FRONT ZONE (rechts vom Hub: x > cx+39 = -141) ----
-		-- Spalte cx+62 (zwischen Hub-rechts und Mittel-Spalte). Pet-Egg bei
-		-- (cx+70, _, 55), daher Spalte hier auf z != 50..62 setzen.
-		{ n = "TileFrontA1", x = cx + 62, z = -55, sx = 30, sz = 50, c = LAB_FLOOR_TILE_LIGHT },
-		{ n = "TileFrontA2", x = cx + 62, z = -15, sx = 30, sz = 18, c = LAB_FLOOR_TILE_MID },
-		{ n = "TileFrontA3", x = cx + 62, z = 25, sx = 30, sz = 20, c = LAB_FLOOR_TILE_LIGHT },
-		{ n = "TileFrontA4", x = cx + 62, z = 100, sx = 30, sz = 28, c = LAB_FLOOR_TILE_DARK },
-		-- Mittel-Spalte cx+100
-		{ n = "TileFrontB1", x = cx + 100, z = -55, sx = 44, sz = 50, c = LAB_FLOOR_TILE_MID },
-		{ n = "TileFrontB2", x = cx + 100, z = -15, sx = 44, sz = 18, c = LAB_FLOOR_TILE_LIGHT },
-		{ n = "TileFrontB3", x = cx + 100, z = 25, sx = 44, sz = 20, c = LAB_FLOOR_TILE_MID },
-		{ n = "TileFrontB4", x = cx + 100, z = 105, sx = 44, sz = 22, c = LAB_FLOOR_TILE_LIGHT },
-		-- Vorder-Spalte cx+150 (kurz vor Area 1)
-		{ n = "TileFrontC1", x = cx + 150, z = -55, sx = 40, sz = 50, c = LAB_FLOOR_TILE_LIGHT },
-		{ n = "TileFrontC2", x = cx + 150, z = -15, sx = 40, sz = 18, c = LAB_FLOOR_TILE_MID },
-		{ n = "TileFrontC3", x = cx + 150, z = 25, sx = 40, sz = 20, c = LAB_FLOOR_TILE_LIGHT },
-		{ n = "TileFrontC4", x = cx + 150, z = 70, sx = 40, sz = 20, c = LAB_FLOOR_TILE_MID },
-		{ n = "TileFrontC5", x = cx + 150, z = 110, sx = 40, sz = 20, c = LAB_FLOOR_TILE_DARK },
-	}
-	for _, t in ipairs(tiles) do
-		local p = makePart(
-			model,
-			t.n,
-			Vector3.new(t.sx, 0.06, t.sz),
-			Vector3.new(t.x, LAYER_SPAWN_TILE, t.z),
-			t.c,
-			Enum.Material.SmoothPlastic,
-			false
-		)
-		p.Transparency = 0.06
-	end
-
-	-- ===== 2) Fugenlinien (dunkler Plattenraster) ========================
-	-- Vertikale Fugen (parallel zu Z) und horizontale Fugen (parallel zu X).
-	local seams = {
-		-- Hinter-Bereich Vertikale: zwischen Edge-Streifen und Hauptplatten
-		{ n = "SeamBackV1", x = cx - 135, z = 22, sx = 0.45, sz = 220 },
-		-- Hinter-Bereich Vertikale: zwischen Hauptplatten und Mittelband
-		{ n = "SeamBackV2", x = cx - 84, z = 22, sx = 0.45, sz = 220 },
-		-- Hinter-Bereich Vertikale: zwischen Mittelband und Hub
-		{ n = "SeamBackV3", x = cx - 48, z = 22, sx = 0.45, sz = 220 },
-		-- Hinter-Bereich Horizontale (auf Hoehe der Tile-Grenzen)
-		{ n = "SeamBackH1", x = cx - 92, z = -47, sx = 100, sz = 0.4 },
-		{ n = "SeamBackH2", x = cx - 92, z = 14, sx = 100, sz = 0.4 },
-		{ n = "SeamBackH3", x = cx - 92, z = 95, sx = 100, sz = 0.4 },
-		{ n = "SeamBackH4", x = cx - 92, z = 128, sx = 100, sz = 0.4 },
-		-- Above-Hub Band (in x-Mitte zwischen Hub und Kiosks)
-		{ n = "SeamAboveH1", x = cx, z = 13, sx = 76, sz = 0.4 },
-		{ n = "SeamAboveH2", x = cx, z = 39, sx = 76, sz = 0.4 },
-		{ n = "SeamAboveH3", x = cx, z = 62, sx = 76, sz = 0.4 },
-		-- Front-Bereich Vertikale
-		{ n = "SeamFrontV1", x = cx + 78, z = 25, sx = 0.45, sz = 220 },
-		{ n = "SeamFrontV2", x = cx + 124, z = 25, sx = 0.45, sz = 220 },
-		{ n = "SeamFrontV3", x = cx + 172, z = 25, sx = 0.45, sz = 220 },
-		-- Front-Bereich Horizontale (Z-Werte 90+ liegen NACH den Kiosks z[79,85])
-		{ n = "SeamFrontH1", x = cx + 110, z = -32, sx = 130, sz = 0.4 },
-		{ n = "SeamFrontH2", x = cx + 110, z = 4, sx = 130, sz = 0.4 },
-		{ n = "SeamFrontH3", x = cx + 110, z = 44, sx = 130, sz = 0.4 },
-		{ n = "SeamFrontH4", x = cx + 110, z = 92, sx = 130, sz = 0.4 },
-	}
-	for _, s in ipairs(seams) do
-		makePart(
-			model,
-			s.n,
-			Vector3.new(s.sx, 0.06, s.sz),
-			Vector3.new(s.x, LAYER_SPAWN_SEAM, s.z),
-			LAB_FLOOR_SEAM_COLOR,
-			Enum.Material.SmoothPlastic,
-			false
-		)
-	end
+	-- Die kleinen hellen Rechteck-Bodenplatten wurden entfernt. Der Spawn
+	-- nutzt weiter den sauberen Grundboden plus Kabel, Markierungen und Props.
 
 	-- ===== 3) Eingelassene Kabelkanaele ==================================
 	-- Verbinden den Hub visuell mit Back-Bereich, Kiosk-Reihe und Area-1.
@@ -3289,21 +3191,48 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	buildConsole(model, "StorageConsole", Vector3.new(cx - 112, FLOOR_Y, 92), LAB_GREEN, "SCAN")
 	buildTestTubeRack(model, "SampleTubeRack", Vector3.new(cx + 42, FLOOR_Y, 96), LAB_GREEN)
 	buildCrateStack(model, "LabStorageCratesA", Vector3.new(cx + 88, FLOOR_Y, -76), LAB_CYAN)
-	buildCrateStack(model, "LabStorageCratesB", Vector3.new(cx + 92, FLOOR_Y, 88), LAB_GREEN)
 
-	-- Dediziertes Pet-Egg (bestehendes System; Main verdrahtet "OpenEgg").
-	local eggBase = makePart(model, "PetEggBase", Vector3.new(12, 1.4, 12), Vector3.new(cx + 70, FLOOR_Y + 0.7, 55), LAB_DARK, Enum.Material.Metal, true)
-	eggBase.Shape = Enum.PartType.Cylinder
-	eggBase.Orientation = Vector3.new(0, 0, 90)
-	local egg = makePart(model, "PetEgg", Vector3.new(7, 9, 7), Vector3.new(cx + 70, FLOOR_Y + 6, 55), Color3.fromRGB(180, 230, 255), Enum.Material.SmoothPlastic, false)
+	-- Dediziertes Pet-Egg: mit Abstand auf der anderen Seite der Shop-Reihe.
+	-- Das breite rote Podest inszeniert das Ei wie eine wichtige Labor-Probe
+	-- auf einem Thron, blockiert aber keinen Hauptweg.
+	local shopEggPos = Vector3.new(cx + 118, FLOOR_Y, 82)
+	local thronePad = makePart(model, "PetEggThronePedestal", Vector3.new(32, 1.1, 22), shopEggPos + Vector3.new(0, 0.55, 0), Color3.fromRGB(112, 32, 32), Enum.Material.Metal, true)
+	thronePad.Transparency = 0.03
+	makePart(model, "PetEggThroneFrontStep", Vector3.new(34, 0.35, 5.5), shopEggPos + Vector3.new(0, 0.18, -13.8), Color3.fromRGB(78, 22, 22), Enum.Material.SmoothPlastic, true)
+	local hoverRing = makePart(model, "PetEggHoverRing", Vector3.new(18, 0.12, 18), shopEggPos + Vector3.new(0, 1.18, 0), Color3.fromRGB(54, 190, 86), Enum.Material.Neon, false)
+	hoverRing.Shape = Enum.PartType.Cylinder
+	hoverRing.Orientation = Vector3.new(0, 0, 90)
+	hoverRing.Transparency = 0.55
+	local egg = makePart(model, "PetEgg", Vector3.new(8.8, 10.8, 8.8), shopEggPos + Vector3.new(0, 8.7, 0), Color3.fromRGB(52, 210, 92), Enum.Material.SmoothPlastic, false)
 	egg.CanQuery = true -- anklickbar (OpenEgg ClickDetector; Main verdrahtet)
 	egg.Shape = Enum.PartType.Ball
 	egg.Transparency = 0.05
+	local virusGlow = Instance.new("PointLight")
+	virusGlow.Name = "VirusEggGlow"
+	virusGlow.Brightness = 0.9
+	virusGlow.Range = 16
+	virusGlow.Color = Color3.fromRGB(80, 255, 120)
+	virusGlow.Parent = egg
+	for i = 0, 7 do
+		local a = i * math.pi * 2 / 8
+		local spike = makePart(model, "VirusEggNodule", Vector3.new(1.35, 1.35, 1.35), egg.Position + Vector3.new(math.cos(a) * 5.4, 0.5 + math.sin(i * 1.7) * 1.3, math.sin(a) * 5.4), Color3.fromRGB(44, 170, 76), Enum.Material.SmoothPlastic, false)
+		spike.Shape = Enum.PartType.Ball
+		spike.CanCollide = false
+	end
 	local cd = Instance.new("ClickDetector")
 	cd.Name = "OpenEgg"
 	cd.MaxActivationDistance = 16
 	cd.Parent = egg
-	label(egg, "PET EGG\nClick to open", Color3.fromRGB(180, 230, 255), 40, UDim2.fromOffset(190, 60), Vector3.new(0, 7, 0))
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "OpenEggPrompt"
+	prompt.ActionText = "View Egg"
+	prompt.ObjectText = "Virus Egg"
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = egg
+	label(egg, "VIRUS EGG\nClick to open", Color3.fromRGB(105, 255, 145), 40, UDim2.fromOffset(190, 60), Vector3.new(0, 7, 0))
 	VirusLabBuilder.PetEgg = egg
 
 	local headerSign = makePart(model, "SpawnLabHeader", Vector3.new(0.7, 5, 38), Vector3.new(cx - 148, FLOOR_Y + L.WallHeight - 7, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.SmoothPlastic, false)
@@ -3450,6 +3379,8 @@ function VirusLabBuilder.build()
 	clearChildren(bordersFolder)
 	local gatesFolder = makeFolder("AreaGates", Workspace)
 	clearChildren(gatesFolder)
+	local teleportFolder = makeFolder("TeleportPoints", Workspace)
+	clearChildren(teleportFolder)
 	local eggFolder = makeFolder("EggStations", Workspace)
 	clearChildren(eggFolder)
 	local bedsFolder = makeFolder("TrainingBeds", Workspace)
@@ -3532,6 +3463,21 @@ function VirusLabBuilder.build()
 		-- Labor-Luke: Power-Anforderung aus der zentralen Area-Progression.
 		local gateReq = area.requiredPower
 		buildGate(gatesFolder, area, hallX + L.GateOffsetX, gateReq)
+		local teleportPoint = makePart(
+			teleportFolder,
+			"TeleportPoint_Area" .. tostring(area.index),
+			Vector3.new(2, 1, 2),
+			Vector3.new(hallX + L.GateOffsetX + 8, FLOOR_Y + 1, 0),
+			Color3.new(1, 1, 1),
+			Enum.Material.SmoothPlastic,
+			false
+		)
+		teleportPoint.Transparency = 1
+		teleportPoint.CanCollide = false
+		teleportPoint.CanTouch = false
+		teleportPoint.CanQuery = false
+		teleportPoint:SetAttribute("AreaNumber", area.index)
+		teleportPoint:SetAttribute("AreaName", area.displayName)
 
 		for i, def in ipairs(defs) do
 			local ex = startX + L.EnemySpacing * (i - 1)

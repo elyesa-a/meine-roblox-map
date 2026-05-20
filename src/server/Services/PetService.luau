@@ -366,6 +366,61 @@ function PetService.grantPet(player: Player, petId: string): string?
 	return instanceId
 end
 
+function PetService.grantEggReward(player: Player, eggId: string, sourceName: string?): boolean
+	local profile = DataService.getProfile(player)
+	if not profile then
+		return false
+	end
+	ensurePetTables(profile)
+
+	local egg = PetConfig.getEggById(eggId)
+	if not egg then
+		ShowPopup:FireClient(player, "Unknown egg.")
+		return false
+	end
+	local hasAccess, reason = hasEggAccess(profile, egg)
+	if not hasAccess then
+		ShowPopup:FireClient(player, reason or "Egg locked.")
+		return false
+	end
+	if countDict(profile.Pets) >= PetConfig.MaxInventorySize then
+		ShowPopup:FireClient(player, "Inventory Full")
+		return false
+	end
+
+	local petDef = PetConfig.rollRandomPetForEgg(egg.id, rng, getLuckMultiplier(player))
+	if not petDef then
+		ShowPopup:FireClient(player, "Egg pool is empty.")
+		return false
+	end
+
+	local instanceId = addPetToInventory(profile, petDef.id, egg.id)
+	if not instanceId then
+		ShowPopup:FireClient(player, "Inventory Full")
+		return false
+	end
+
+	local multiplier = getPetPowerMultiplier(petDef)
+	HatchPetResult:FireClient(player, {
+		instanceId = instanceId,
+		petId = petDef.id,
+		displayName = petDef.displayName,
+		rarity = petDef.rarity,
+		powerMultiplier = multiplier,
+		eggId = egg.id,
+		eggName = egg.displayName,
+	})
+	ShowPopup:FireClient(player, string.format(
+		"%s: %s (%s)",
+		sourceName or "Egg Caught",
+		petDef.displayName,
+		petDef.rarity
+	))
+	StatService.broadcastProfile(player)
+	StatService.playSound(player, "Reward")
+	return true
+end
+
 function PetService.hatchEgg(player: Player, eggId: string)
 	local profile = DataService.getProfile(player)
 	if not profile then

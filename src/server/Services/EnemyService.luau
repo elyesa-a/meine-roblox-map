@@ -48,6 +48,7 @@ local AuraService
 local BoostService
 local DailyQuestService
 local TitleService
+local TeleportService
 
 local statesByModel: { [Model]: EnemyState } = {}
 local statesByRoot: { [BasePart]: EnemyState } = {}
@@ -59,6 +60,8 @@ local rng = Random.new()
 
 local PLAYER_AUTO_ATTACK_INTERVAL = 0.5
 local AUTO_FIGHT_RETRY_DELAY = 0.75
+local AUTO_FIGHT_MOVE_TIMEOUT = 14
+local AUTO_FIGHT_REPATH_INTERVAL = 0.8
 local getEnemyAccessPower: (EnemyState) -> number
 
 local function getCharacterRoot(player: Player): BasePart?
@@ -327,6 +330,7 @@ local function endBattle(state: EnemyState, message: string?)
 	local owner = state.battleOwner
 	if owner and battlesByPlayer[owner] == state then
 		battlesByPlayer[owner] = nil
+		owner:SetAttribute("InCombat", false)
 	end
 	state.battleOwner = nil
 	state.battleToken += 1
@@ -460,6 +464,9 @@ local function defeatEnemy(player: Player, state: EnemyState)
 		else
 			TitleService.evaluatePlayer(player)
 		end
+	end
+	if state.def.IsBoss and TeleportService then
+		TeleportService.recordBossDefeat(player, state.def.AreaIndex)
 	end
 	playDefeatEffect(state)
 	setModelVisible(state, false)
@@ -610,6 +617,7 @@ local function startBattle(player: Player, state: EnemyState, silent: boolean?):
 	state.battleToken += 1
 	state.battleOrigin = getHomePosition(state)
 	battlesByPlayer[player] = state
+	player:SetAttribute("InCombat", true)
 	state.model:SetAttribute("BattleChasing", true)
 	setBattlePromptEnabled(state, false)
 	state.battleHumanoidDiedConn = humanoid.Died:Connect(function()
@@ -730,15 +738,28 @@ local function movePlayerNearEnemy(player: Player, target: EnemyState, token: nu
 	if not humanoid or humanoid.Health <= 0 or not hrp then
 		return false
 	end
-	local targetPos = target.root.Position + Vector3.new(-math.max(6, EnemyConfig.EnemyAttackRange - 1), 3, 0)
-	hrp.CFrame = CFrame.new(targetPos, target.root.Position)
-	task.wait(0.15)
-	hrp = getCharacterRoot(player)
-	return isAutoFightEnabled(player, token)
-		and target.alive
-		and target.model.Parent ~= nil
-		and hrp ~= nil
-		and (hrp.Position - target.root.Position).Magnitude <= EnemyConfig.BattlePromptDistance + 4
+	local startedAt = os.clock()
+	local lastMoveAt = 0
+	while isAutoFightEnabled(player, token) and target.alive and target.model.Parent do
+		humanoid = getCharacterHumanoid(player)
+		hrp = getCharacterRoot(player)
+		if not humanoid or humanoid.Health <= 0 or not hrp then
+			return false
+		end
+		if (hrp.Position - target.root.Position).Magnitude <= EnemyConfig.BattlePromptDistance + 4 then
+			return true
+		end
+		if os.clock() - startedAt > AUTO_FIGHT_MOVE_TIMEOUT then
+			return false
+		end
+		if os.clock() - lastMoveAt >= AUTO_FIGHT_REPATH_INTERVAL then
+			lastMoveAt = os.clock()
+			local offset = Vector3.new(-math.max(6, EnemyConfig.EnemyAttackRange - 1), 0, 0)
+			humanoid:MoveTo(target.root.Position + offset)
+		end
+		task.wait(0.1)
+	end
+	return false
 end
 
 local function runAutoFightLoop(player: Player, token: number)
@@ -762,7 +783,6 @@ local function runAutoFightLoop(player: Player, token: number)
 				break
 			end
 			if not reached then
-				teleportToSpawnLab(player)
 				task.wait(AUTO_FIGHT_RETRY_DELAY)
 				continue
 			end
@@ -784,12 +804,7 @@ local function runAutoFightLoop(player: Player, token: number)
 			if not isAutoFightEnabled(player, token) then
 				break
 			end
-			if not target.alive or target.rewardGiven then
-				teleportToSpawnLab(player)
-				task.wait(AUTO_FIGHT_RETRY_DELAY)
-			else
-				task.wait(AUTO_FIGHT_RETRY_DELAY)
-			end
+			task.wait(AUTO_FIGHT_RETRY_DELAY)
 		end
 	end)
 end
@@ -879,6 +894,7 @@ function EnemyService.start(deps)
 	BoostService = deps.BoostService
 	DailyQuestService = deps.DailyQuestService
 	TitleService = deps.TitleService
+	TeleportService = deps.TeleportService
 
 	registerFolder(Workspace:FindFirstChild("EnemyAreas"))
 	registerFolder(Workspace:FindFirstChild("BossFields"))
