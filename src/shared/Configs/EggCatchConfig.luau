@@ -6,11 +6,9 @@
 --   Area 2: Common 400  / Rare 2.000 / Epic 10.000
 --   Area 3: Common 1.600/ Rare 8.000 / Epic 40.000  ...
 --
--- HINWEIS: Das bestehende Pet-Egg-System (PetService.openEgg) nutzt einen
--- einzelnen globalen EggCost. Diese Tabelle liefert die Map-/Anzeige-Daten
--- (Seltenheit, Kosten, Farbe). Die Stationen werden ueber EggCatchService an
--- PetService.openEgg gekoppelt, damit sie echte Funktion haben -- die hier
--- gelisteten Kosten sind Anzeige-/Datenwerte (Platzhalter-Oekonomie).
+-- Diese Tabelle liefert die Map-/Anzeige-Daten fuer VirusLabBuilder. Die
+-- eigentlichen Hatch-Pools und dieselben Kosten liegen in PetConfig; die
+-- Stationen werden ueber EggCatchService an die Pet-Hatch-UI gekoppelt.
 
 export type EggTier = "Common" | "Rare" | "Epic"
 
