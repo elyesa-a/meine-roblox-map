@@ -19,6 +19,7 @@ local PetConfig = require(Configs:WaitForChild("PetConfig"))
 
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local NumberFormatter = require(Modules:WaitForChild("NumberFormatter"))
+local PetVisualBuilder = require(Modules:WaitForChild("PetVisualBuilder"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestEquipPet = Remotes:WaitForChild("RequestEquipPet") :: RemoteEvent
@@ -46,6 +47,11 @@ type VisualState = {
 	slot: number,
 	pos: Vector3,
 	phase: number,
+	rank: number,
+	yaw: number,
+	yawSpeed: number,
+	bobAmp: number,
+	bobSpeed: number,
 }
 
 local VISUAL_FOLDER_NAME = "EquippedPetVisuals"
@@ -102,43 +108,11 @@ local function getVisualFolder(): Folder
 	return visualFolder :: Folder
 end
 
-local function rarityRank(rarity: string?): number
-	return if rarity then (PetConfig.RarityOrder[rarity] or 1) else 1
-end
-
-local function rarityColor(rarity: string?): Color3
-	if rarity and PetConfig.RarityColor[rarity] then
-		return PetConfig.RarityColor[rarity]
-	end
-	return Color3.fromRGB(235, 238, 240)
-end
-
-local function makeVisualPart(parent: Instance, name: string, shape: Enum.PartType?, size: Vector3, cframe: CFrame, color: Color3, material: Enum.Material): Part
-	local part = Instance.new("Part")
-	part.Name = name
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanTouch = false
-	part.CanQuery = false
-	part.Massless = true
-	part.Size = size
-	part.CFrame = cframe
-	part.Color = color
-	part.Material = material
-	part.TopSurface = Enum.SurfaceType.Smooth
-	part.BottomSurface = Enum.SurfaceType.Smooth
-	if shape then
-		part.Shape = shape
-	end
-	part.Parent = parent
-	return part
-end
-
 local function addPetLabel(core: BasePart, ownerName: string, petName: string, color: Color3)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "PetOwnerLabel"
-	billboard.Size = UDim2.fromOffset(150, 42)
-	billboard.StudsOffset = Vector3.new(0, 2.3, 0)
+	billboard.Size = UDim2.fromOffset(160, 44)
+	billboard.StudsOffset = Vector3.new(0, 2.6, 0)
 	billboard.AlwaysOnTop = true
 	billboard.MaxDistance = 55
 	billboard.Parent = core
@@ -155,12 +129,7 @@ local function addPetLabel(core: BasePart, ownerName: string, petName: string, c
 	label.Parent = billboard
 end
 
-local function createPetModel(player: Player, instanceId: string, def, slot: number): Model
-	local rarity = def.rarity or "Common"
-	local rank = rarityRank(rarity)
-	local color = rarityColor(rarity)
-	local softColor = color:Lerp(Color3.fromRGB(245, 248, 248), 0.32)
-	local darkColor = color:Lerp(Color3.fromRGB(12, 16, 22), 0.55)
+local function createPetModel(player: Player, instanceId: string, def, slot: number): (Model, { core: Part, palette: any, scale: number, rank: number })
 	local model = Instance.new("Model")
 	model.Name = string.format("%s_Pet_%d", player.Name, slot)
 	model:SetAttribute("OwnerUserId", player.UserId)
@@ -169,54 +138,11 @@ local function createPetModel(player: Player, instanceId: string, def, slot: num
 	model:SetAttribute("PetId", def.id)
 	model:SetAttribute("Slot", slot)
 
-	local size = 1.8 + math.min(rank, 6) * 0.08
-	local core = makeVisualPart(model, "PetCore", Enum.PartType.Ball, Vector3.new(size, size, size), CFrame.new(), color, Enum.Material.SmoothPlastic)
-	model.PrimaryPart = core
-
-	makeVisualPart(model, "LeftEye", Enum.PartType.Ball, Vector3.new(0.32, 0.32, 0.16), CFrame.new(-0.34, 0.24, -0.78), Color3.fromRGB(245, 250, 245), Enum.Material.SmoothPlastic)
-	makeVisualPart(model, "RightEye", Enum.PartType.Ball, Vector3.new(0.32, 0.32, 0.16), CFrame.new(0.34, 0.24, -0.78), Color3.fromRGB(245, 250, 245), Enum.Material.SmoothPlastic)
-	makeVisualPart(model, "LeftPupil", Enum.PartType.Ball, Vector3.new(0.13, 0.13, 0.08), CFrame.new(-0.34, 0.24, -0.88), Color3.fromRGB(10, 13, 18), Enum.Material.SmoothPlastic)
-	makeVisualPart(model, "RightPupil", Enum.PartType.Ball, Vector3.new(0.13, 0.13, 0.08), CFrame.new(0.34, 0.24, -0.88), Color3.fromRGB(10, 13, 18), Enum.Material.SmoothPlastic)
-
-	for i, offset in ipairs({
-		Vector3.new(0, 0.95, 0),
-		Vector3.new(0.9, 0.1, 0),
-		Vector3.new(-0.9, 0.1, 0),
-		Vector3.new(0, -0.05, 0.9),
-	}) do
-		local spike = makeVisualPart(model, "VirusNode" .. tostring(i), Enum.PartType.Ball, Vector3.new(0.34, 0.34, 0.34), CFrame.new(offset), softColor, Enum.Material.SmoothPlastic)
-		spike.Transparency = 0.04
-	end
-
-	local ring = makeVisualPart(model, "PetGlowRing", Enum.PartType.Cylinder, Vector3.new(0.12, 2.25, 2.25), CFrame.Angles(0, 0, math.rad(90)), softColor, Enum.Material.Neon)
-	ring.Transparency = if rank >= 4 then 0.45 else 0.65
-
-	if rank >= 3 then
-		local light = Instance.new("PointLight")
-		light.Name = "RarityGlow"
-		light.Color = color
-		light.Brightness = if rank >= 5 then 0.85 else 0.45
-		light.Range = if rank >= 5 then 12 else 8
-		light.Parent = core
-	end
-
-	if rank >= 5 then
-		local aura = Instance.new("ParticleEmitter")
-		aura.Name = "RarePetAura"
-		aura.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-		aura.Color = ColorSequence.new(color, softColor)
-		aura.LightEmission = 0.35
-		aura.Rate = if rank >= 6 then 5 else 3
-		aura.Lifetime = NumberRange.new(0.7, 1.2)
-		aura.Speed = NumberRange.new(0.25, 0.8)
-		aura.SpreadAngle = Vector2.new(60, 60)
-		aura.Size = NumberSequence.new(0.24, 0.02)
-		aura.Parent = core
-	end
-
-	addPetLabel(core, player.DisplayName, def.displayName, softColor:Lerp(darkColor, 0.15))
+	local result = PetVisualBuilder.build(model, def)
+	local labelColor = result.palette.soft:Lerp(result.palette.dark, 0.18)
+	addPetLabel(result.core, player.DisplayName, def.displayName, labelColor)
 	model.Parent = getVisualFolder()
-	return model
+	return model, result
 end
 
 local function getCharacterRoot(player: Player): BasePart?
@@ -224,12 +150,17 @@ local function getCharacterRoot(player: Player): BasePart?
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
-local function desiredPetPosition(hrp: BasePart, slot: number, t: number): Vector3
-	local side = if slot == 1 then 3 elseif slot == 2 then -3 else 0
-	local behind = if slot == 3 then 6.3 else 5
-	local height = if slot == 3 then 2.75 else 2.2
-	local bob = math.sin(t * 2.2 + slot * 1.7) * 0.35
-	return hrp.Position - hrp.CFrame.LookVector * behind + hrp.CFrame.RightVector * side + Vector3.new(0, height + bob, 0)
+-- Triangulares Layout fuer bis zu 3 Pets: zwei nach links/rechts + einer
+-- mittig leicht weiter hinten/hoeher -> klare, ueberlappungsfreie Silhouetten.
+local function desiredPetPosition(hrp: BasePart, slot: number, t: number, bobAmp: number, bobSpeed: number): Vector3
+	local side = if slot == 1 then 3.2 elseif slot == 2 then -3.2 else 0
+	local behind = if slot == 3 then 6.4 else 5.0
+	local height = if slot == 3 then 2.85 else 2.2
+	local bob = math.sin(t * bobSpeed + slot * 1.7) * bobAmp
+	return hrp.Position
+		- hrp.CFrame.LookVector * behind
+		+ hrp.CFrame.RightVector * side
+		+ Vector3.new(0, height + bob, 0)
 end
 
 local function clearPetVisuals(player: Player)
@@ -242,6 +173,16 @@ local function clearPetVisuals(player: Player)
 		end
 	end
 	visualsByPlayer[player] = nil
+end
+
+-- Bewegungs-Parameter pro Rarity: hoehere Rarity bobbst etwas lebhafter und
+-- dreht sich etwas schneller -> Mythic wirkt sichtbar "lebendiger" als Common,
+-- ohne hektisch zu werden.
+local function motionForRank(rank: number): (number, number, number)
+	local bobAmp = 0.32 + math.min(rank, 6) * 0.04 -- 0.36 .. 0.56
+	local bobSpeed = 2.0 + math.min(rank, 6) * 0.10 -- 2.1 .. 2.6
+	local yawSpeed = 0.55 + math.min(rank, 6) * 0.20 -- 0.75 .. 1.75
+	return bobAmp, bobSpeed, yawSpeed
 end
 
 local function refreshPetVisuals(player: Player)
@@ -261,9 +202,11 @@ local function refreshPetVisuals(player: Player)
 		local entry = profile.Pets[instanceId]
 		local def = entry and PetConfig.getById(entry.id)
 		if def then
-			local model = createPetModel(player, instanceId, def, slot)
-			local startPos = desiredPetPosition(hrp, slot, os.clock())
-			model:PivotTo(CFrame.lookAt(startPos, startPos + hrp.CFrame.LookVector))
+			local model, visualInfo = createPetModel(player, instanceId, def, slot)
+			local rank = visualInfo.rank
+			local bobAmp, bobSpeed, yawSpeed = motionForRank(rank)
+			local startPos = desiredPetPosition(hrp, slot, os.clock(), bobAmp, bobSpeed)
+			model:PivotTo(CFrame.new(startPos) * CFrame.Angles(0, math.atan2(-hrp.CFrame.LookVector.X, -hrp.CFrame.LookVector.Z), 0))
 			table.insert(states, {
 				player = player,
 				model = model,
@@ -272,6 +215,11 @@ local function refreshPetVisuals(player: Player)
 				slot = slot,
 				pos = startPos,
 				phase = rng:NextNumber(0, math.pi * 2),
+				rank = rank,
+				yaw = rng:NextNumber(0, math.pi * 2),
+				yawSpeed = yawSpeed,
+				bobAmp = bobAmp,
+				bobSpeed = bobSpeed,
 			})
 		end
 	end
@@ -288,11 +236,16 @@ local function updatePetVisuals(dt: number)
 			continue
 		end
 		local look = hrp.CFrame.LookVector
+		local playerYaw = math.atan2(-look.X, -look.Z)
 		for _, state in ipairs(states) do
 			if state.model.Parent then
-				local target = desiredPetPosition(hrp, state.slot, now + state.phase)
+				local target = desiredPetPosition(hrp, state.slot, now + state.phase, state.bobAmp, state.bobSpeed)
 				state.pos = state.pos:Lerp(target, math.clamp(dt * 7, 0, 1))
-				state.model:PivotTo(CFrame.lookAt(state.pos, state.pos + look))
+				-- Pet schaut grob in Spielerblickrichtung + dreht zusaetzlich
+				-- sanft um die eigene Y-Achse. Hoehere Rarity -> mehr Spin.
+				state.yaw = (state.yaw + dt * state.yawSpeed) % (math.pi * 2)
+				local yaw = playerYaw + math.sin(state.yaw) * 0.35
+				state.model:PivotTo(CFrame.new(state.pos) * CFrame.Angles(0, yaw, 0))
 			end
 		end
 	end

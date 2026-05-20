@@ -3,10 +3,12 @@
 -- creating a parallel UI.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Theme = require(script.Parent:WaitForChild("Theme"))
 local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
 local NumberFormatter = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("NumberFormatter"))
+local PetVisualBuilder = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("PetVisualBuilder"))
 
 local Configs = ReplicatedStorage:WaitForChild("Configs")
 local PetConfig = require(Configs:WaitForChild("PetConfig"))
@@ -30,6 +32,9 @@ type Refs = {
 	eggChanceLabel: TextLabel,
 	hatchButton: TextButton,
 	resultPanel: Frame,
+	resultPreview: ViewportFrame,
+	resultPreviewWorld: WorldModel,
+	resultPreviewCamera: Camera,
 	resultNameLabel: TextLabel,
 	resultRarityLabel: TextLabel,
 	resultMultiplierLabel: TextLabel,
@@ -40,6 +45,8 @@ type Refs = {
 	unequipAllButton: TextButton,
 	selectedEggId: string?,
 	lastState: { [string]: any }?,
+	previewSpin: number,
+	previewModel: Model?,
 }
 
 local PET_CARD_SIZE = Vector2.new(136, 104)
@@ -342,9 +349,42 @@ function PetFrame.create(parent: ScreenGui): Refs
 	resultPanel.ZIndex = 8
 	resultPanel.Parent = eggPanel
 
-	local resultNameLabel = makeSmallLabel(resultPanel, "New Pet", UDim2.new(0, 8, 0, 5), UDim2.new(1, -16, 0, 18), 14)
+	-- Live 3D-Vorschau des frisch geschluepften Pets. Eigene WorldModel +
+	-- Kamera -> isoliert vom Workspace, kein Performance-Bezug zur Welt.
+	local resultPreview = Instance.new("ViewportFrame")
+	resultPreview.Name = "ResultPreview"
+	resultPreview.Position = UDim2.new(0, 4, 0, 4)
+	resultPreview.Size = UDim2.new(0, 46, 0, 46)
+	resultPreview.BackgroundColor3 = Color3.fromRGB(14, 18, 26)
+	resultPreview.BorderSizePixel = 0
+	resultPreview.LightDirection = Vector3.new(-0.4, -1, -0.5).Unit
+	resultPreview.Ambient = Color3.fromRGB(160, 170, 185)
+	resultPreview.LightColor = Color3.fromRGB(255, 250, 245)
+	resultPreview.ZIndex = 9
+	resultPreview.Parent = resultPanel
+
+	local previewCorner = Instance.new("UICorner")
+	previewCorner.CornerRadius = UDim.new(0, 6)
+	previewCorner.Parent = resultPreview
+
+	local previewStroke = Instance.new("UIStroke")
+	previewStroke.Thickness = 1.2
+	previewStroke.Transparency = 0.45
+	previewStroke.Color = Color3.fromRGB(95, 110, 130)
+	previewStroke.Parent = resultPreview
+
+	local resultPreviewWorld = Instance.new("WorldModel")
+	resultPreviewWorld.Name = "PreviewWorld"
+	resultPreviewWorld.Parent = resultPreview
+
+	local resultPreviewCamera = Instance.new("Camera")
+	resultPreviewCamera.FieldOfView = 50
+	resultPreviewCamera.Parent = resultPreview
+	resultPreview.CurrentCamera = resultPreviewCamera
+
+	local resultNameLabel = makeSmallLabel(resultPanel, "New Pet", UDim2.new(0, 56, 0, 5), UDim2.new(1, -64, 0, 18), 14)
 	resultNameLabel.TextXAlignment = Enum.TextXAlignment.Left
-	local resultRarityLabel = makeSmallLabel(resultPanel, "Rarity", UDim2.new(0, 8, 0, 24), UDim2.new(0.5, -8, 0, 16), 12, Theme.Colors.Green)
+	local resultRarityLabel = makeSmallLabel(resultPanel, "Rarity", UDim2.new(0, 56, 0, 24), UDim2.new(0.5, -32, 0, 16), 12, Theme.Colors.Green)
 	resultRarityLabel.TextXAlignment = Enum.TextXAlignment.Left
 	local resultMultiplierLabel = makeSmallLabel(resultPanel, "1x Power", UDim2.new(0.5, 0, 0, 24), UDim2.new(0.5, -8, 0, 16), 12, Theme.Colors.Yellow)
 	resultMultiplierLabel.TextXAlignment = Enum.TextXAlignment.Right
@@ -439,6 +479,9 @@ function PetFrame.create(parent: ScreenGui): Refs
 		eggChanceLabel = eggChanceLabel,
 		hatchButton = hatchButton,
 		resultPanel = resultPanel,
+		resultPreview = resultPreview,
+		resultPreviewWorld = resultPreviewWorld,
+		resultPreviewCamera = resultPreviewCamera,
 		resultNameLabel = resultNameLabel,
 		resultRarityLabel = resultRarityLabel,
 		resultMultiplierLabel = resultMultiplierLabel,
@@ -449,7 +492,23 @@ function PetFrame.create(parent: ScreenGui): Refs
 		unequipAllButton = unequipAllButton,
 		selectedEggId = PetConfig.DefaultEggId,
 		lastState = nil,
+		previewSpin = 0,
+		previewModel = nil,
 	}
+
+	-- Sanfte, kostengünstige Eigen-Rotation der Hatch-Vorschau. Dreht nur,
+	-- solange ein Modell vorhanden ist; sonst Early-Out -> 0 Kosten.
+	RunService.RenderStepped:Connect(function(dt)
+		local model = refs.previewModel
+		if not model or not model.Parent then
+			return
+		end
+		refs.previewSpin = (refs.previewSpin + dt * 0.9) % (math.pi * 2)
+		local pp = model.PrimaryPart
+		if pp then
+			model:PivotTo(CFrame.new(pp.Position.X, pp.Position.Y, pp.Position.Z) * CFrame.Angles(0, refs.previewSpin, 0))
+		end
+	end)
 
 	hatchButton.MouseButton1Click:Connect(function()
 		local egg = findSelectedEgg(refs)
@@ -502,6 +561,40 @@ function PetFrame.create(parent: ScreenGui): Refs
 		refs.resultRarityLabel.Text = rarity
 		refs.resultRarityLabel.TextColor3 = color
 		refs.resultMultiplierLabel.Text = string.format("%.2gx Power", mult)
+
+		-- Live-Vorschau: alten Preview-Inhalt loeschen, neues Pet-Modell mit
+		-- PetVisualBuilder bauen und in das ViewportFrame setzen.
+		local world = refs.resultPreviewWorld
+		if world then
+			for _, child in ipairs(world:GetChildren()) do
+				child:Destroy()
+			end
+			refs.previewModel = nil
+
+			local def = PetConfig.getById(tostring(payload.petId or ""))
+			if def then
+				local previewModel = Instance.new("Model")
+				previewModel.Name = "PreviewPet"
+				local _ = PetVisualBuilder.build(previewModel, def)
+				previewModel.Parent = world
+				if previewModel.PrimaryPart then
+					previewModel:PivotTo(CFrame.new(0, 0, 0))
+				end
+
+				-- Kamera so positionieren, dass das Pet rarity-skaliert ins Bild passt.
+				local rank = PetVisualBuilder.getRank(def.rarity)
+				local distance = 5.4 + math.min(rank, 6) * 0.45
+				refs.resultPreviewCamera.CFrame = CFrame.lookAt(
+					Vector3.new(0, 1.1, distance),
+					Vector3.new(0, 0.4, 0)
+				)
+				refs.resultPreview.BackgroundColor3 = color:Lerp(Color3.fromRGB(10, 13, 20), 0.78)
+
+				refs.previewSpin = 0
+				refs.previewModel = previewModel
+			end
+		end
+
 		UIAnimator.buttonPunch(refs.resultPanel)
 	end)
 
