@@ -20,6 +20,7 @@ type Refs = {
 	zoneReq: TextLabel,
 	zoneCurrent: TextLabel,
 	zoneFill: Frame,
+	missionHeader: TextLabel,
 	missionTitle: TextLabel,
 	missionDesc: TextLabel,
 	missionProgress: TextLabel,
@@ -184,14 +185,14 @@ function ProgressionPanel.create(parent: ScreenGui): Refs
 	local root = Instance.new("Frame")
 	root.Name = "RightObjectivePanel"
 	root.AnchorPoint = Vector2.new(1, 0)
-	root.Position = UDim2.new(1, -24, 0, 135)
+	root.Position = UDim2.new(1, -12, 0, 78)
 	root.Size = UDim2.new(0, 300, 0, 190)
 	root.BackgroundTransparency = 1
 	root.Parent = parent
 
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Vertical
-	layout.Padding = UDim.new(0, 8)
+	layout.Padding = UDim.new(0, 6)
 	layout.Parent = root
 
 	local mission = Instance.new("Frame")
@@ -263,31 +264,41 @@ function ProgressionPanel.create(parent: ScreenGui): Refs
 	zoneName.Text = "Toxic Cell Zone"
 
 	local zoneReq = makeLabel(nextZone, "RequiredPower", 12, Color3.fromRGB(195, 224, 230), false)
-	zoneReq.Position = UDim2.new(0, 10, 0, 44)
+	zoneReq.Position = UDim2.new(0, 10, 0, 43)
 	zoneReq.Size = UDim2.new(1, -20, 0, 15)
 	zoneReq.Text = "Required: 500 PWR"
 
-	local zoneFill = makeProgress(nextZone, 62, Theme.Colors.Green)
+	local zoneFill = makeProgress(nextZone, 59, Theme.Colors.Green)
 
 	local zoneCurrent = makeLabel(nextZone, "CurrentPower", 11, Color3.fromRGB(175, 255, 230), false)
-	zoneCurrent.Position = UDim2.new(0, 10, 0, 74)
+	zoneCurrent.Position = UDim2.new(0, 10, 0, 70)
 	zoneCurrent.Size = UDim2.new(1, -20, 0, 12)
 	zoneCurrent.Text = "0 / 500"
 
 	local collapsed = false
-	missionCollapse.MouseButton1Click:Connect(function()
-		collapsed = not collapsed
+	local function applyMissionCollapse()
 		missionCollapse.Text = if collapsed then "+" else "-"
+		missionHeader.Text = if collapsed then "MISSION" else "CURRENT MISSION"
 		missionDesc.Visible = not collapsed
-		missionProgress.Visible = not collapsed
 		missionReward.Visible = not collapsed
 		missionFill.Parent.Visible = not collapsed
+		missionProgress.Visible = true
+		missionTitle.Position = if collapsed then UDim2.new(0, 10, 0, 24) else UDim2.new(0, 10, 0, 24)
+		missionTitle.Size = if collapsed then UDim2.new(0.6, -10, 0, 18) else UDim2.new(1, -20, 0, 18)
+		missionProgress.Position = if collapsed then UDim2.new(0.6, 0, 0, 27) else UDim2.new(0, 10, 0, 72)
+		missionProgress.Size = if collapsed then UDim2.new(0.4, -10, 0, 14) else UDim2.new(0.5, -10, 0, 12)
+		missionProgress.TextXAlignment = if collapsed then Enum.TextXAlignment.Right else Enum.TextXAlignment.Left
 		TweenService:Create(mission, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Size = if collapsed then UDim2.new(1, 0, 0, 48) else UDim2.new(1, 0, 0, 88),
+			Size = if collapsed then UDim2.new(1, 0, 0, 52) else UDim2.new(1, 0, 0, 88),
 		}):Play()
 		TweenService:Create(root, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 			Size = if collapsed then UDim2.new(0, 300, 0, 146) else UDim2.new(0, 300, 0, 190),
 		}):Play()
+	end
+
+	missionCollapse.MouseButton1Click:Connect(function()
+		collapsed = not collapsed
+		applyMissionCollapse()
 	end)
 
 	return {
@@ -297,6 +308,7 @@ function ProgressionPanel.create(parent: ScreenGui): Refs
 		zoneReq = zoneReq,
 		zoneCurrent = zoneCurrent,
 		zoneFill = zoneFill,
+		missionHeader = missionHeader,
 		missionTitle = missionTitle,
 		missionDesc = missionDesc,
 		missionProgress = missionProgress,
@@ -317,7 +329,7 @@ function ProgressionPanel.update(refs: Refs, state)
 		refs.zoneCurrent.Text = if progress >= 0.9 and progress < 1 then currentText .. "  Almost unlocked!" else currentText
 		refs.zoneFill.Size = UDim2.new(progress, 0, 1, 0)
 	else
-		refs.zoneName.Text = "All Areas Unlocked"
+		refs.zoneName.Text = "ALL AREAS UNLOCKED"
 		refs.zoneReq.Text = "Keep evolving your mutation"
 		refs.zoneCurrent.Text = "MAX"
 		refs.zoneFill.Size = UDim2.fromScale(1, 1)

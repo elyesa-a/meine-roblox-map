@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Configs = ReplicatedStorage:WaitForChild("Configs")
+local AreaConfig = require(Configs:WaitForChild("AreaConfig"))
 local EnemyConfig = require(Configs:WaitForChild("EnemyConfig"))
 
 -- Gegnerwerte skalieren *4 (bis ~4e61). Anzeigen daher abgekuerzt
@@ -17,6 +18,9 @@ local NumberFormatter = require(Modules:WaitForChild("NumberFormatter"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestAttackEnemy = Remotes:WaitForChild("RequestAttackEnemy") :: RemoteEvent
+local RequestAutoFight = Remotes:WaitForChild("RequestAutoFight") :: RemoteEvent
+local AutoFightState = Remotes:WaitForChild("AutoFightState") :: RemoteEvent
+local AutoTrainingState = Remotes:WaitForChild("AutoTrainingState") :: RemoteEvent
 local EnemyUpdate = Remotes:WaitForChild("EnemyUpdate") :: RemoteEvent
 local ShowPopup = Remotes:WaitForChild("ShowPopup") :: RemoteEvent
 
@@ -50,7 +54,12 @@ local statesByRoot: { [BasePart]: EnemyState } = {}
 local statesById: { [string]: EnemyState } = {}
 local battlesByPlayer: { [Player]: EnemyState } = {}
 local lastAttackAt: { [Player]: number } = {}
+local autoFightByPlayer: { [Player]: { enabled: boolean, token: number } } = {}
 local rng = Random.new()
+
+local PLAYER_AUTO_ATTACK_INTERVAL = 0.5
+local AUTO_FIGHT_RETRY_DELAY = 0.75
+local getEnemyAccessPower: (EnemyState) -> number
 
 local function getCharacterRoot(player: Player): BasePart?
 	local char = player.Character
@@ -60,6 +69,19 @@ end
 local function getCharacterHumanoid(player: Player): Humanoid?
 	local char = player.Character
 	return char and char:FindFirstChildOfClass("Humanoid") :: Humanoid?
+end
+
+local function teleportToSpawnLab(player: Player)
+	local hrp = getCharacterRoot(player)
+	if not hrp then
+		return
+	end
+	local spawn = Workspace:FindFirstChild("LabSpawn", true)
+	if spawn and spawn:IsA("BasePart") then
+		hrp.CFrame = spawn.CFrame + Vector3.new(0, 5, 0)
+	else
+		hrp.CFrame = CFrame.new(-180, 6, 0)
+	end
 end
 
 local function isCloseEnough(player: Player, state: EnemyState, maxDistance: number): boolean
@@ -462,7 +484,7 @@ function EnemyService.attack(player: Player, state: EnemyState?)
 	if not profile then
 		return
 	end
-	if profile.Power < state.def.RequiredPower then
+	if profile.Power < getEnemyAccessPower(state) then
 		ShowPopup:FireClient(player, "You need more Power!")
 		return
 	end
@@ -483,6 +505,22 @@ function EnemyService.attack(player: Player, state: EnemyState?)
 	if state.health <= 0 then
 		defeatEnemy(player, state)
 	end
+end
+
+local function startPlayerAutoAttackLoop(state: EnemyState, player: Player, token: number)
+	task.spawn(function()
+		while state.alive and state.battleOwner == player and state.battleToken == token do
+			task.wait(PLAYER_AUTO_ATTACK_INTERVAL)
+			if not state.alive or state.battleOwner ~= player or state.battleToken ~= token then
+				break
+			end
+			local humanoid = getCharacterHumanoid(player)
+			if not humanoid or humanoid.Health <= 0 then
+				break
+			end
+			EnemyService.attack(player, state)
+		end
+	end)
 end
 
 local function findStateFromInstance(instance: Instance?): EnemyState?
@@ -524,37 +562,48 @@ local function ensureBattlePrompt(root: BasePart, def): ProximityPrompt
 	return prompt
 end
 
-local function startBattle(player: Player, state: EnemyState)
+local function startBattle(player: Player, state: EnemyState, silent: boolean?): boolean
 	if not state.alive then
-		return
+		return false
 	end
 	if not isCloseEnough(player, state, EnemyConfig.BattlePromptDistance + 3) then
-		return
+		return false
 	end
 	local profile = DataService.getProfile(player)
 	if not profile then
-		return
+		return false
 	end
-	if profile.Power < state.def.RequiredPower then
-		ShowPopup:FireClient(player, "You need more Power!")
-		return
+	if profile.Power < getEnemyAccessPower(state) then
+		if not silent then
+			ShowPopup:FireClient(player, "You need more Power!")
+		end
+		return false
 	end
 	local humanoid = getCharacterHumanoid(player)
 	if not humanoid or humanoid.Health <= 0 then
-		return
+		return false
 	end
 	if state.battleOwner == player then
-		ShowPopup:FireClient(player, "Battle already started!")
-		return
+		if not silent then
+			ShowPopup:FireClient(player, "Battle already started!")
+		end
+		return true
 	end
 	if state.battleOwner then
-		ShowPopup:FireClient(player, "This enemy is already in battle!")
-		return
+		if not silent then
+			ShowPopup:FireClient(player, "This enemy is already in battle!")
+		end
+		return false
 	end
 
 	local previousBattle = battlesByPlayer[player]
 	if previousBattle and previousBattle ~= state then
 		endBattle(previousBattle, "Previous battle ended.")
+	end
+
+	if player:GetAttribute("AutoTrainingEnabled") == true then
+		player:SetAttribute("AutoTrainingEnabled", false)
+		AutoTrainingState:FireClient(player, false)
 	end
 
 	state.battleOwner = player
@@ -569,9 +618,200 @@ local function startBattle(player: Player, state: EnemyState)
 		end
 	end)
 
-	ShowPopup:FireClient(player, "Battle started!")
+	if not silent then
+		ShowPopup:FireClient(player, "Battle started!")
+	end
 	startEnemyChaseLoop(state, player, state.battleToken)
 	startEnemyAttackLoop(state, player, state.battleToken)
+	startPlayerAutoAttackLoop(state, player, state.battleToken)
+	return true
+end
+
+function getEnemyAccessPower(state: EnemyState): number
+	if state.def.EnemyIndex == 1 then
+		local area = AreaConfig.getById(state.def.AreaName)
+		return if area then area.requiredPower or 0 else 0
+	end
+	return state.def.RequiredGatePower or 0
+end
+
+local function findBestEnemyForPlayer(player: Player): EnemyState?
+	local profile = DataService.getProfile(player)
+	if not profile then
+		return nil
+	end
+	local currentPower = profile.Power or 0
+	local best: EnemyState? = nil
+	local bestRequirement = -1
+	local bestPriority = -1
+	for _, state in pairs(statesById) do
+		if not state.alive or not state.model.Parent or state.battleOwner ~= nil then
+			continue
+		end
+		local accessPower = getEnemyAccessPower(state)
+		if accessPower > currentPower then
+			continue
+		end
+		local priority = state.def.GlobalIndex or state.def.EnemyIndex or 0
+		if accessPower > bestRequirement or (accessPower == bestRequirement and priority > bestPriority) then
+			best = state
+			bestRequirement = accessPower
+			bestPriority = priority
+		end
+	end
+	return best
+end
+
+local function canAutoFightTarget(player: Player, state: EnemyState): boolean
+	local profile = DataService.getProfile(player)
+	return profile ~= nil and (profile.Power or 0) >= getEnemyAccessPower(state)
+end
+
+local function getAutoFightState(player: Player)
+	local state = autoFightByPlayer[player]
+	if not state then
+		state = { enabled = false, token = 0 }
+		autoFightByPlayer[player] = state
+	end
+	return state
+end
+
+local function isAutoFightEnabled(player: Player, token: number): boolean
+	local state = autoFightByPlayer[player]
+	return state ~= nil
+		and state.enabled
+		and state.token == token
+		and player.Parent ~= nil
+		and player:GetAttribute("AutoFightEnabled") == true
+		and player:GetAttribute("AutoTrainingEnabled") ~= true
+end
+
+local function stopAutoFight(player: Player, message: string?)
+	local state = getAutoFightState(player)
+	if not state.enabled and message == nil then
+		AutoFightState:FireClient(player, false)
+		return
+	end
+	state.enabled = false
+	state.token += 1
+	player:SetAttribute("AutoFightEnabled", false)
+	AutoFightState:FireClient(player, false)
+	local humanoid = getCharacterHumanoid(player)
+	local hrp = getCharacterRoot(player)
+	if humanoid and hrp then
+		humanoid:MoveTo(hrp.Position)
+	end
+	local activeBattle = battlesByPlayer[player]
+	if activeBattle then
+		endBattle(activeBattle)
+	end
+	if message and player.Parent then
+		ShowPopup:FireClient(player, message)
+	end
+end
+
+local function bindAutoTrainingCancel(player: Player)
+	player:GetAttributeChangedSignal("AutoTrainingEnabled"):Connect(function()
+		if player:GetAttribute("AutoTrainingEnabled") == true then
+			stopAutoFight(player)
+		end
+	end)
+	player:GetAttributeChangedSignal("AutoFightEnabled"):Connect(function()
+		local state = autoFightByPlayer[player]
+		if player:GetAttribute("AutoFightEnabled") ~= true and state and state.enabled then
+			stopAutoFight(player)
+		end
+	end)
+end
+
+local function movePlayerNearEnemy(player: Player, target: EnemyState, token: number): boolean
+	local humanoid = getCharacterHumanoid(player)
+	local hrp = getCharacterRoot(player)
+	if not humanoid or humanoid.Health <= 0 or not hrp then
+		return false
+	end
+	local targetPos = target.root.Position + Vector3.new(-math.max(6, EnemyConfig.EnemyAttackRange - 1), 3, 0)
+	hrp.CFrame = CFrame.new(targetPos, target.root.Position)
+	task.wait(0.15)
+	hrp = getCharacterRoot(player)
+	return isAutoFightEnabled(player, token)
+		and target.alive
+		and target.model.Parent ~= nil
+		and hrp ~= nil
+		and (hrp.Position - target.root.Position).Magnitude <= EnemyConfig.BattlePromptDistance + 4
+end
+
+local function runAutoFightLoop(player: Player, token: number)
+	task.spawn(function()
+		while isAutoFightEnabled(player, token) do
+			local humanoid = getCharacterHumanoid(player)
+			if not humanoid or humanoid.Health <= 0 then
+				stopAutoFight(player)
+				break
+			end
+
+			local target = findBestEnemyForPlayer(player)
+			if not target then
+				stopAutoFight(player, "No valid enemy found")
+				break
+			end
+
+			ShowPopup:FireClient(player, "Targeting strongest enemy")
+			local reached = movePlayerNearEnemy(player, target, token)
+			if not isAutoFightEnabled(player, token) then
+				break
+			end
+			if not reached then
+				teleportToSpawnLab(player)
+				task.wait(AUTO_FIGHT_RETRY_DELAY)
+				continue
+			end
+			if not canAutoFightTarget(player, target) then
+				task.wait(AUTO_FIGHT_RETRY_DELAY)
+				continue
+			end
+
+			local started = startBattle(player, target, true)
+			if not started then
+				task.wait(AUTO_FIGHT_RETRY_DELAY)
+				continue
+			end
+
+			while isAutoFightEnabled(player, token) and target.alive and battlesByPlayer[player] == target do
+				task.wait(0.25)
+			end
+
+			if not isAutoFightEnabled(player, token) then
+				break
+			end
+			if not target.alive or target.rewardGiven then
+				teleportToSpawnLab(player)
+				task.wait(AUTO_FIGHT_RETRY_DELAY)
+			else
+				task.wait(AUTO_FIGHT_RETRY_DELAY)
+			end
+		end
+	end)
+end
+
+local function setAutoFightEnabled(player: Player, enabled: boolean)
+	local state = getAutoFightState(player)
+	if enabled then
+		if state.enabled then
+			AutoFightState:FireClient(player, true)
+			return
+		end
+		player:SetAttribute("AutoTrainingEnabled", false)
+		AutoTrainingState:FireClient(player, false)
+		player:SetAttribute("AutoFightEnabled", true)
+		state.enabled = true
+		state.token += 1
+		AutoFightState:FireClient(player, true)
+		ShowPopup:FireClient(player, "Auto Fight enabled")
+		runAutoFightLoop(player, state.token)
+	else
+		stopAutoFight(player, "Auto Fight disabled")
+	end
 end
 
 local function registerEnemy(model: Model)
@@ -653,8 +893,20 @@ function EnemyService.start(deps)
 		end
 	end)
 
+	AntiExploitService.safeBind(RequestAutoFight, 2, function(player, enabled)
+		setAutoFightEnabled(player, enabled == true)
+	end)
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		bindAutoTrainingCancel(player)
+	end
+	Players.PlayerAdded:Connect(bindAutoTrainingCancel)
+
 	Players.PlayerRemoving:Connect(function(player)
 		lastAttackAt[player] = nil
+		autoFightByPlayer[player] = nil
+		player:SetAttribute("AutoFightEnabled", false)
+		player:SetAttribute("AutoTrainingEnabled", false)
 		local activeBattle = battlesByPlayer[player]
 		if activeBattle then
 			endBattle(activeBattle)

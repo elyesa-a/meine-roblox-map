@@ -9,9 +9,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Theme = require(script.Parent:WaitForChild("Theme"))
 local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
+local NumberFormatter = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("NumberFormatter"))
+
+local Configs = ReplicatedStorage:WaitForChild("Configs")
+local BoostConfig = require(Configs:WaitForChild("BoostConfig"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestPromptPurchase = Remotes:WaitForChild("RequestPromptPurchase") :: RemoteEvent
+local RequestBuyBoost = Remotes:WaitForChild("RequestBuyBoost") :: RemoteEvent
 
 local GamepassFrame = {}
 
@@ -34,6 +39,8 @@ local ENTRIES: { Entry } = {
 	{ id = "AutoClicker", displayName = "AUTO CLICKER", subText = "Clicks automatically", robux = 99,  color = Theme.Colors.Pink },
 	{ id = "GlitchPet",   displayName = "GLITCH PET",   subText = "Guaranteed Mythic", robux = 279, color = Theme.Colors.Purple },
 }
+
+local BOOST_ORDER = { "Dna2x", "Luck2x", "Power2x" }
 
 local function makeCard(parent: ScrollingFrame, entry: Entry, onPurchase: (Entry) -> ()): Frame
 	local card = Instance.new("Frame")
@@ -80,6 +87,62 @@ local function makeCard(parent: ScrollingFrame, entry: Entry, onPurchase: (Entry
 	btn.MouseButton1Click:Connect(function()
 		UIAnimator.buttonPunch(btn)
 		onPurchase(entry)
+	end)
+
+	return card
+end
+
+local function makeBoostCard(parent: ScrollingFrame, boostId: string): Frame?
+	local def = BoostConfig.getById(boostId)
+	if not def then
+		return nil
+	end
+
+	local card = Instance.new("Frame")
+	card.Name = "Boost_" .. boostId
+	card.Size = UDim2.new(1, 0, 0, 86)
+	Theme.applyPanelStyle(card, def.color)
+	card.ZIndex = 7
+	card.Parent = parent
+
+	local name = Instance.new("TextLabel")
+	name.Size = UDim2.new(1, -190, 0, 30)
+	name.Position = UDim2.new(0, 16, 0, 9)
+	Theme.applyLabelStyle(name)
+	name.TextXAlignment = Enum.TextXAlignment.Left
+	name.Text = string.upper(def.displayName)
+	name.TextSize = 20
+	name.TextScaled = false
+	name.ZIndex = 8
+	name.Parent = card
+
+	local sub = Instance.new("TextLabel")
+	sub.Size = UDim2.new(1, -190, 0, 24)
+	sub.Position = UDim2.new(0, 16, 0, 45)
+	Theme.applyLabelStyle(sub)
+	sub.TextXAlignment = Enum.TextXAlignment.Left
+	sub.Text = string.format("%d min %s boost", math.floor(def.durationSec / 60), def.affects)
+	sub.TextSize = 14
+	sub.TextScaled = false
+	sub.TextColor3 = Color3.fromRGB(197, 224, 230)
+	sub.ZIndex = 8
+	sub.Parent = card
+
+	local btn = Instance.new("TextButton")
+	btn.Name = "BuyButton"
+	btn.AnchorPoint = Vector2.new(1, 0.5)
+	btn.Size = UDim2.new(0, 160, 0, 54)
+	btn.Position = UDim2.new(1, -12, 0.5, 0)
+	Theme.applyButtonStyle(btn, Theme.Colors.Green)
+	btn.Text = NumberFormatter.format(def.priceDna) .. " DNA"
+	btn.TextSize = 17
+	btn.TextScaled = false
+	btn.ZIndex = 9
+	btn.Parent = card
+
+	btn.MouseButton1Click:Connect(function()
+		UIAnimator.buttonPunch(btn)
+		RequestBuyBoost:FireServer(boostId)
 	end)
 
 	return card
@@ -133,7 +196,7 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 	note.Size = UDim2.new(1, -32, 0, 28)
 	note.Position = UDim2.new(0, 16, 0, 52)
 	Theme.applyLabelStyle(note)
-	note.Text = "Placeholder -- real Robux purchases follow in Phase 5."
+	note.Text = "Buy boosts with DNA or open premium offers."
 	note.TextSize = 14
 	note.TextScaled = false
 	note.ZIndex = 7
@@ -167,11 +230,21 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 	padding.PaddingBottom = UDim.new(0, 8)
 	padding.Parent = scroll
 
-	for i, entry in ipairs(ENTRIES) do
+	local order = 1
+	for _, boostId in ipairs(BOOST_ORDER) do
+		local card = makeBoostCard(scroll, boostId)
+		if card then
+			card.LayoutOrder = order
+			order += 1
+		end
+	end
+
+	for _, entry in ipairs(ENTRIES) do
 		local card = makeCard(scroll, entry, function(e)
 			RequestPromptPurchase:FireServer(e.id)
 		end)
-		card.LayoutOrder = i
+		card.LayoutOrder = order
+		order += 1
 	end
 
 	return { backdrop = backdrop, root = root }

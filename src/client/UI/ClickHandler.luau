@@ -11,6 +11,10 @@ local SoundController = require(script.Parent:WaitForChild("SoundController"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestClick = Remotes:WaitForChild("RequestClick") :: RemoteEvent
+local RequestAutoFight = Remotes:WaitForChild("RequestAutoFight") :: RemoteEvent
+local AutoFightState = Remotes:WaitForChild("AutoFightState") :: RemoteEvent
+local RequestAutoTraining = Remotes:WaitForChild("RequestAutoTraining") :: RemoteEvent
+local AutoTrainingState = Remotes:WaitForChild("AutoTrainingState") :: RemoteEvent
 
 local ClickHandler = {}
 
@@ -101,7 +105,29 @@ local function setAutoButtonState(button: TextButton, enabled: boolean)
 	button.TextColor3 = if enabled then AUTO_ON_COLOR else AUTO_OFF_COLOR
 end
 
-function ClickHandler.bind(screen: ScreenGui, button: TextButton, color: Color3, autoButton: TextButton?)
+local function setAutoFightButtonState(button: TextButton, enabled: boolean)
+	button.Text = if enabled then "AUTO FIGHT: ON" else "AUTO FIGHT: OFF"
+	button.TextColor3 = if enabled then AUTO_ON_COLOR else AUTO_OFF_COLOR
+end
+
+local function setAutoTrainingButtonState(button: TextButton, enabled: boolean)
+	button.Text = if enabled then "AUTO TRAIN: ON" else "AUTO TRAIN: OFF"
+	button.TextColor3 = if enabled then AUTO_ON_COLOR else AUTO_OFF_COLOR
+end
+
+local function showAutoMessage(screen: ScreenGui, button: TextButton, text: string)
+	local absPos = button.AbsolutePosition + button.AbsoluteSize / 2
+	UIAnimator.floatText(screen, text, UDim2.fromOffset(absPos.X, absPos.Y - 24), AUTO_ON_COLOR)
+end
+
+function ClickHandler.bind(
+	screen: ScreenGui,
+	button: TextButton,
+	color: Color3,
+	autoButton: TextButton?,
+	autoFightButton: TextButton?,
+	autoTrainingButton: TextButton?
+)
 	button.MouseButton1Click:Connect(function()
 		requestPowerButtonClick(screen, button, color, true)
 	end)
@@ -132,9 +158,63 @@ function ClickHandler.bind(screen: ScreenGui, button: TextButton, color: Color3,
 	end
 
 	local autoEnabled = false
+	local autoFightEnabled = false
+	local autoTrainingEnabled = false
 	setAutoButtonState(autoButton, false)
+	if autoFightButton then
+		setAutoFightButtonState(autoFightButton, false)
+		AutoFightState.OnClientEvent:Connect(function(enabled: boolean)
+			autoFightEnabled = enabled == true
+			setAutoFightButtonState(autoFightButton, autoFightEnabled)
+			if autoFightEnabled and autoEnabled then
+				autoEnabled = false
+				setAutoButtonState(autoButton, false)
+				showAutoMessage(screen, autoFightButton, "Auto Clicker disabled")
+			end
+			if autoFightEnabled and autoTrainingEnabled then
+				autoTrainingEnabled = false
+				if autoTrainingButton then
+					setAutoTrainingButtonState(autoTrainingButton, false)
+				end
+				showAutoMessage(screen, autoFightButton, "Auto Training disabled")
+			end
+		end)
+	end
+	if autoTrainingButton then
+		setAutoTrainingButtonState(autoTrainingButton, false)
+		AutoTrainingState.OnClientEvent:Connect(function(enabled: boolean)
+			autoTrainingEnabled = enabled == true
+			setAutoTrainingButtonState(autoTrainingButton, autoTrainingEnabled)
+			if autoTrainingEnabled and autoEnabled then
+				autoEnabled = false
+				setAutoButtonState(autoButton, false)
+				showAutoMessage(screen, autoTrainingButton, "Auto Clicker disabled")
+			end
+			if autoTrainingEnabled and autoFightEnabled then
+				autoFightEnabled = false
+				if autoFightButton then
+					setAutoFightButtonState(autoFightButton, false)
+				end
+				showAutoMessage(screen, autoTrainingButton, "Auto Fight disabled")
+			end
+		end)
+	end
 
 	autoButton.MouseButton1Click:Connect(function()
+		if autoFightEnabled then
+			autoFightEnabled = false
+			if autoFightButton then
+				setAutoFightButtonState(autoFightButton, false)
+			end
+			RequestAutoFight:FireServer(false)
+		end
+		if autoTrainingEnabled then
+			autoTrainingEnabled = false
+			if autoTrainingButton then
+				setAutoTrainingButtonState(autoTrainingButton, false)
+			end
+			RequestAutoTraining:FireServer(false)
+		end
 		autoEnabled = not autoEnabled
 		setAutoButtonState(autoButton, autoEnabled)
 		UIAnimator.buttonPunch(autoButton)
@@ -144,12 +224,56 @@ function ClickHandler.bind(screen: ScreenGui, button: TextButton, color: Color3,
 		end
 
 		task.spawn(function()
-			while autoEnabled and autoButton.Parent do
+			while autoEnabled and not autoFightEnabled and not autoTrainingEnabled and autoButton.Parent do
 				requestPowerButtonClick(screen, button, color, false)
 				task.wait(AUTO_CLICK_INTERVALS.Free)
 			end
 		end)
 	end)
+
+	if autoFightButton then
+		autoFightButton.MouseButton1Click:Connect(function()
+			if autoEnabled then
+				autoEnabled = false
+				setAutoButtonState(autoButton, false)
+				showAutoMessage(screen, autoFightButton, "Auto Clicker disabled")
+			end
+			if autoTrainingEnabled then
+				autoTrainingEnabled = false
+				if autoTrainingButton then
+					setAutoTrainingButtonState(autoTrainingButton, false)
+				end
+				RequestAutoTraining:FireServer(false)
+				showAutoMessage(screen, autoFightButton, "Auto Training disabled")
+			end
+			autoFightEnabled = not autoFightEnabled
+			setAutoFightButtonState(autoFightButton, autoFightEnabled)
+			UIAnimator.buttonPunch(autoFightButton)
+			RequestAutoFight:FireServer(autoFightEnabled)
+		end)
+	end
+
+	if autoTrainingButton then
+		autoTrainingButton.MouseButton1Click:Connect(function()
+			if autoEnabled then
+				autoEnabled = false
+				setAutoButtonState(autoButton, false)
+				showAutoMessage(screen, autoTrainingButton, "Auto Clicker disabled")
+			end
+			if autoFightEnabled then
+				autoFightEnabled = false
+				if autoFightButton then
+					setAutoFightButtonState(autoFightButton, false)
+				end
+				RequestAutoFight:FireServer(false)
+				showAutoMessage(screen, autoTrainingButton, "Auto Fight disabled")
+			end
+			autoTrainingEnabled = not autoTrainingEnabled
+			setAutoTrainingButtonState(autoTrainingButton, autoTrainingEnabled)
+			UIAnimator.buttonPunch(autoTrainingButton)
+			RequestAutoTraining:FireServer(autoTrainingEnabled)
+		end)
+	end
 end
 
 return ClickHandler
