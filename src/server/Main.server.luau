@@ -37,10 +37,16 @@ local ZoneLockService = require(Services:WaitForChild("ZoneLockService"))
 local TrainingZoneService = require(Services:WaitForChild("TrainingZoneService"))
 local BorderService = require(Services:WaitForChild("BorderService"))
 local EggCatchService = require(Services:WaitForChild("EggCatchService"))
+local TeleportService = require(Services:WaitForChild("TeleportService"))
+
+local Configs = ReplicatedStorage:WaitForChild("Configs")
+local PetConfig = require(Configs:WaitForChild("PetConfig"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestClick = Remotes:WaitForChild("RequestClick") :: RemoteEvent
 local RequestSettingsChange = Remotes:WaitForChild("RequestSettingsChange") :: RemoteEvent
+local OpenPetEggShop = Remotes:WaitForChild("OpenPetEggShop") :: RemoteEvent
+local ShowPopup = Remotes:WaitForChild("ShowPopup") :: RemoteEvent
 
 -- 1. Welt.
 WorldBuilder.build()
@@ -107,7 +113,12 @@ ZoneLockService.start({ DataService = DataService })
 -- PWR-Borders + Labor-Luken (Virus-Labor). Reines Map-Gating, additiv.
 BorderService.start({ DataService = DataService })
 -- Egg-Catch-Stationen an das bestehende Pet-Egg-System koppeln.
-EggCatchService.start({ PetService = PetService })
+EggCatchService.start({ DataService = DataService, PetService = PetService })
+TeleportService.start({
+	DataService = DataService,
+	StatService = StatService,
+	AntiExploitService = AntiExploitService,
+})
 TrainingZoneService.start({
 	DataService = DataService,
 	StatService = StatService,
@@ -147,6 +158,7 @@ EnemyService.start({
 	BoostService = BoostService,
 	DailyQuestService = DailyQuestService,
 	TitleService = TitleService,
+	TeleportService = TeleportService,
 })
 -- Gegner-Bewegung (additiv, beruehrt EnemyService/Respawn nicht).
 EnemyMovementController.start()
@@ -163,13 +175,34 @@ CollectibleService.start({
 	TitleService = TitleService,
 })
 
--- 6a. Pet-Egg ClickDetector.
+-- 6a. Pet-Egg two-step interaction:
+--     first E/click previews the egg menu, second E/click hatches one egg.
+local PET_EGG_PREVIEW_WINDOW = 14
+local petEggPreviewAt: { [Player]: number } = {}
+
+local function handlePetEggInteraction(player: Player)
+	local now = os.clock()
+	local lastPreview = petEggPreviewAt[player] or 0
+	if now - lastPreview <= PET_EGG_PREVIEW_WINDOW then
+		petEggPreviewAt[player] = 0
+		PetService.openEgg(player, nil)
+		return
+	end
+	petEggPreviewAt[player] = now
+	OpenPetEggShop:FireClient(player, PetConfig.DefaultEggId)
+	ShowPopup:FireClient(player, "Preview opened. Press E again to hatch.")
+end
+
 if WorldBuilder.PetEgg then
 	local clicker = WorldBuilder.PetEgg:FindFirstChild("OpenEgg") :: ClickDetector?
 	if clicker then
 		clicker.MouseClick:Connect(function(player)
-			PetService.openEgg(player)
+			handlePetEggInteraction(player)
 		end)
+	end
+	local prompt = WorldBuilder.PetEgg:FindFirstChild("OpenEggPrompt") :: ProximityPrompt?
+	if prompt then
+		prompt.Triggered:Connect(handlePetEggInteraction)
 	end
 end
 
@@ -189,6 +222,7 @@ end)
 
 Players.PlayerRemoving:Connect(function(player)
 	lastPowerClickAt[player] = nil
+	petEggPreviewAt[player] = nil
 end)
 
 -- 6c. Settings-Remote.

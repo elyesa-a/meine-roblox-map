@@ -36,6 +36,7 @@ local trainingPulseCounter: { [Player]: number } = {}
 local autoTrainingByPlayer: { [Player]: { enabled: boolean, token: number, target: Model? } } = {}
 
 local AUTO_TRAIN_RECHECK_INTERVAL = 0.75
+local AUTO_TRAIN_ARRIVE_DISTANCE = 5
 
 local function isInsidePart(part: BasePart, pos: Vector3): boolean
 	local relative = part.CFrame:PointToObjectSpace(pos)
@@ -170,13 +171,17 @@ local function getBestTrainingBed(player: Player): (Model?, BasePart?, BasePart?
 	return bestModel, bestHitbox, bestTeleport
 end
 
-local function teleportToTraining(player: Player, point: BasePart, hitbox: BasePart)
+local function moveToTraining(player: Player, point: BasePart, hitbox: BasePart)
+	local humanoid = getCharacterHumanoid(player)
 	local hrp = getCharacterRoot(player)
-	if not hrp then
+	if not humanoid or humanoid.Health <= 0 or not hrp then
 		return
 	end
-	local look = hitbox.Position + Vector3.new(0, 0, -8)
-	hrp.CFrame = CFrame.new(point.Position + Vector3.new(0, 1.5, 0), look)
+	local target = point.Position + Vector3.new(0, 1.5, 0)
+	if (hrp.Position - target).Magnitude <= AUTO_TRAIN_ARRIVE_DISTANCE then
+		return
+	end
+	humanoid:MoveTo(target)
 end
 
 local function stopAutoTraining(player: Player, message: string?)
@@ -218,9 +223,12 @@ local function runAutoTrainingLoop(player: Player, token: number)
 			local state = getAutoTrainingState(player)
 			local hrp = getCharacterRoot(player)
 			if state.target ~= model or not hrp or not isInsidePart(hitbox, hrp.Position) then
+				local changedTarget = state.target ~= model
 				state.target = model
-				teleportToTraining(player, point, hitbox)
-				ShowPopup:FireClient(player, "Moving to best training area")
+				moveToTraining(player, point, hitbox)
+				if changedTarget then
+					ShowPopup:FireClient(player, "Moving to best training area")
+				end
 			end
 
 			task.wait(AUTO_TRAIN_RECHECK_INTERVAL)

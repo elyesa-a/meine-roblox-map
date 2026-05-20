@@ -26,6 +26,17 @@ local AUTO_CLICK_INTERVALS = {
 }
 local AUTO_ON_COLOR = Color3.fromRGB(80, 255, 150)
 local AUTO_OFF_COLOR = Color3.fromRGB(255, 95, 95)
+local MOVEMENT_KEYS = {
+	[Enum.KeyCode.W] = true,
+	[Enum.KeyCode.A] = true,
+	[Enum.KeyCode.S] = true,
+	[Enum.KeyCode.D] = true,
+	[Enum.KeyCode.Up] = true,
+	[Enum.KeyCode.Down] = true,
+	[Enum.KeyCode.Left] = true,
+	[Enum.KeyCode.Right] = true,
+	[Enum.KeyCode.Space] = true,
+}
 
 local tokens = CLIENT_RATE
 local lastRefill = os.clock()
@@ -199,6 +210,51 @@ function ClickHandler.bind(
 			end
 		end)
 	end
+
+	local function cancelAutoModesForManualMovement()
+		if UserInputService:GetFocusedTextBox() then
+			return
+		end
+		if autoFightEnabled then
+			autoFightEnabled = false
+			if autoFightButton then
+				setAutoFightButtonState(autoFightButton, false)
+				showAutoMessage(screen, autoFightButton, "Auto Fight disabled")
+			end
+			RequestAutoFight:FireServer(false)
+		end
+		if autoTrainingEnabled then
+			autoTrainingEnabled = false
+			if autoTrainingButton then
+				setAutoTrainingButtonState(autoTrainingButton, false)
+				showAutoMessage(screen, autoTrainingButton, "Auto Training disabled")
+			end
+			RequestAutoTraining:FireServer(false)
+		end
+	end
+
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed or (not autoFightEnabled and not autoTrainingEnabled) then
+			return
+		end
+		if input.UserInputType == Enum.UserInputType.Keyboard and MOVEMENT_KEYS[input.KeyCode] then
+			cancelAutoModesForManualMovement()
+		elseif input.UserInputType == Enum.UserInputType.Gamepad1 and input.KeyCode == Enum.KeyCode.ButtonA then
+			cancelAutoModesForManualMovement()
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input, gameProcessed)
+		if gameProcessed or (not autoFightEnabled and not autoTrainingEnabled) then
+			return
+		end
+		if input.UserInputType == Enum.UserInputType.Gamepad1 and input.KeyCode == Enum.KeyCode.Thumbstick1 then
+			local pos = input.Position
+			if math.abs(pos.X) > 0.18 or math.abs(pos.Y) > 0.18 then
+				cancelAutoModesForManualMovement()
+			end
+		end
+	end)
 
 	autoButton.MouseButton1Click:Connect(function()
 		if autoFightEnabled then

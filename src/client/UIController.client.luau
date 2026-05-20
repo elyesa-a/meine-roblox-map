@@ -31,6 +31,7 @@ local DailyChestFrame = require(UI:WaitForChild("DailyChestFrame"))
 local DailyQuestFrame = require(UI:WaitForChild("DailyQuestFrame"))
 local GamepassFrame = require(UI:WaitForChild("GamepassFrame"))
 local TitleFrame = require(UI:WaitForChild("TitleFrame"))
+local TeleportFrame = require(UI:WaitForChild("TeleportFrame"))
 local MenuController = require(UI:WaitForChild("MenuController"))
 local PopupHandler = require(UI:WaitForChild("PopupHandler"))
 local ClickHandler = require(UI:WaitForChild("ClickHandler"))
@@ -61,16 +62,18 @@ local dailyRefs = DailyChestFrame.create(screen)
 local dailyQuestRefs = DailyQuestFrame.create(screen)
 local gamepassRefs = GamepassFrame.create(screen)
 local titleRefs = TitleFrame.create(screen)
+local teleportRefs = TeleportFrame.create(screen)
 
 local menuController = MenuController.new({
 	Auras = { backdrop = auraRefs.backdrop, root = auraRefs.root, show = AuraFrame.show },
 	Daily = { backdrop = dailyRefs.backdrop, root = dailyRefs.root, show = DailyChestFrame.show },
 	DailyQuests = { backdrop = dailyQuestRefs.backdrop, root = dailyQuestRefs.root, show = DailyQuestFrame.show },
-	Pets = { backdrop = petRefs.backdrop, root = petRefs.root, show = PetFrame.show },
+	Pets = { backdrop = petRefs.backdrop, root = petRefs.root, show = PetFrame.showInventory },
 	Rebirth = { backdrop = rebirthRefs.backdrop, root = rebirthRefs.root, show = RebirthFrame.show },
 	Settings = { backdrop = settingsRefs.backdrop, root = settingsRefs.root, show = SettingsFrame.show },
 	Shop = { backdrop = gamepassRefs.backdrop, root = gamepassRefs.root, show = GamepassFrame.show },
 	Titles = { backdrop = titleRefs.backdrop, root = titleRefs.root, show = TitleFrame.show },
+	Teleport = { backdrop = teleportRefs.backdrop, root = teleportRefs.root, show = TeleportFrame.show },
 	Skills = { backdrop = upgradeRefs.backdrop, root = upgradeRefs.root, show = UpgradeFrame.show },
 	Spin = { backdrop = spinRefs.backdrop, root = spinRefs.root, show = SpinFrame.show },
 })
@@ -100,7 +103,10 @@ LeftButtons.create(screen, function(id)
 	elseif id == "Settings" then
 		menuController:openMenu("Settings")
 	elseif id == "Pets" then
-		menuController:openMenu("Pets")
+		menuController:closeAllMenus("Pets")
+		PetFrame.showInventory(petRefs)
+	elseif id == "Teleport" then
+		menuController:openMenu("Teleport")
 	elseif id == "Upgrades" then
 		menuController:openMenu("Skills")
 	elseif id == "Auras" then
@@ -148,6 +154,7 @@ local state: { [string]: any } = {
 	Spin = { LastFreeSpin = 0 },
 	Titles = { Rookie = true },
 	EquippedTitle = "Rookie",
+	HighestBossDefeated = 0,
 	ServerTime = 0,
 	_clientReceivedAt = os.clock(),
 }
@@ -162,6 +169,7 @@ local function applyState()
 	AuraFrame.update(auraRefs, state)
 	UpgradeFrame.update(upgradeRefs, state)
 	TitleFrame.update(titleRefs, state)
+	TeleportFrame.update(teleportRefs, state)
 	DailyQuestFrame.update(dailyQuestRefs, state)
 	AreaVisualController.update(state)
 end

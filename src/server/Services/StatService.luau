@@ -101,6 +101,8 @@ local function sendUpdate(player: Player)
 		Titles = profile.Titles,
 		EquippedTitle = profile.EquippedTitle,
 		TitleStats = profile.TitleStats,
+		BossDefeats = profile.BossDefeats,
+		HighestBossDefeated = profile.HighestBossDefeated or 0,
 		ZonesReached = profile.ZonesReached,
 		TitlePowerMultiplier = if TitleService then TitleService.getBonusMultiplier(player, "Power") else 1,
 		TitleDnaMultiplier = if TitleService then TitleService.getBonusMultiplier(player, "Dna") else 1,
