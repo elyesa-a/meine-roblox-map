@@ -1586,6 +1586,177 @@ local function addCeilingConduits(parent, cx)
 	end
 end
 
+-- ---- Decken-Stufen-Bulkhead ----------------------------------------------
+-- Schliesst die senkrechte Lücke zwischen zwei unterschiedlich hohen
+-- Korridor-Decken (Spawn-Decke Y=L.WallHeight, Area-Decke nach
+-- liftBacteriaLabCeiling Y=L.WallHeight+BACTERIA_CEILING_LIFT). Ohne diese
+-- Klappe sieht man oben durch den Stufen-Spalt den Himmel. Das Modul ist
+-- bewusst als Bulkhead-Träger gestaltet: helles Labor-Paneel als geschlossene
+-- Wand + schwarze Akzentkanten (oben/unten), senkrechte Trim-Stützen die
+-- saubere rechteckige Module bilden, Lüftungsgitter, sanfte Decken-Leuchten
+-- (matt, kein grelles Neon) und kleine Technikpaneele. Beide Seitenflächen
+-- bekommen die Detail-Schicht, damit der Übergang aus beiden Korridoren
+-- bewusst designed wirkt -- nicht zusammengeflickt.
+local function buildCeilingStepBulkhead(parent, atX, lowHeight, highHeight)
+	local stepHeight = highHeight - lowHeight
+	if stepHeight <= 0 then
+		return
+	end
+	local centerY = (lowHeight + highHeight) / 2
+	local panelThickness = 2.2
+
+	-- Geschlossene, kollidierende Bulkhead-Wand quer über den Korridor.
+	-- Verhindert jedes Sky-Leak durch den Stufen-Spalt und blockiert die
+	-- Kamera sauber wie eine echte Korridorwand.
+	local panel = makePart(
+		parent,
+		"BulkheadStepPanel",
+		Vector3.new(panelThickness, stepHeight, FLOOR_SIZE_Z),
+		Vector3.new(atX, centerY, FLOOR_CENTER_Z),
+		Color3.fromRGB(214, 219, 218),
+		Enum.Material.SmoothPlastic,
+		true
+	)
+	panel.TopSurface = Enum.SurfaceType.Smooth
+	panel.BottomSurface = Enum.SurfaceType.Smooth
+
+	-- Schwarze Akzentkanten an Ober- und Unterkante des Bulkheads -- gleicher
+	-- Stil wie WallBlackTrim/CeilingEdgeTrim im restlichen Map-Design.
+	makePart(
+		parent,
+		"BulkheadEdgeTrimBottom",
+		Vector3.new(panelThickness + 0.5, 0.7, FLOOR_SIZE_Z),
+		Vector3.new(atX, lowHeight + 0.35, FLOOR_CENTER_Z),
+		LAB_DARK,
+		Enum.Material.SmoothPlastic,
+		false
+	)
+	makePart(
+		parent,
+		"BulkheadEdgeTrimTop",
+		Vector3.new(panelThickness + 0.5, 0.7, FLOOR_SIZE_Z),
+		Vector3.new(atX, highHeight - 0.35, FLOOR_CENTER_Z),
+		LAB_DARK,
+		Enum.Material.SmoothPlastic,
+		false
+	)
+
+	-- Senkrechte Trim-Streben teilen den Bulkhead in saubere, rechteckige
+	-- Module (gleiche Logik wie WallPanelSeam/CeilingSupport).
+	local moduleCount = 6
+	for i = 0, moduleCount do
+		local sz = CORRIDOR_MIN_Z + FLOOR_SIZE_Z * i / moduleCount
+		makePart(
+			parent,
+			"BulkheadStrut",
+			Vector3.new(panelThickness + 0.4, stepHeight - 1.6, 0.7),
+			Vector3.new(atX, centerY, sz),
+			LAB_TRIM,
+			Enum.Material.Metal,
+			false
+		)
+	end
+
+	-- Beide sichtbaren Flächen (Spawn-Seite -X, Area-Seite +X) bekommen die
+	-- gleiche Detail-Schicht, damit der Übergang aus jeder Richtung bewusst
+	-- designed wirkt.
+	for _, face in ipairs({ -1, 1 }) do
+		local faceX = atX + face * (panelThickness / 2 + 0.05)
+		for i = 0, moduleCount - 1 do
+			local z = CORRIDOR_MIN_Z + FLOOR_SIZE_Z * (i + 0.5) / moduleCount
+
+			-- Inset-Paneel (dunkles Modul-Inneres) -- gibt dem Bulkhead Tiefe.
+			makePart(
+				parent,
+				"BulkheadInsetPanel",
+				Vector3.new(0.25, stepHeight - 3.4, 16),
+				Vector3.new(faceX, centerY, z),
+				Color3.fromRGB(70, 76, 78),
+				Enum.Material.Metal,
+				false
+			)
+
+			-- Lüftungsgitter mittig im Modul (gleicher Stil wie RoofVentGrille).
+			makePart(
+				parent,
+				"BulkheadVentGrille",
+				Vector3.new(0.32, math.max(2.2, stepHeight - 5.6), 9),
+				Vector3.new(faceX + face * 0.15, centerY, z),
+				Color3.fromRGB(74, 80, 82),
+				Enum.Material.Metal,
+				false
+			)
+
+			-- Kleines Technikpaneel unten links im Modul.
+			local techPanel = makePart(
+				parent,
+				"BulkheadTechPanel",
+				Vector3.new(0.35, 1.8, 3.4),
+				Vector3.new(faceX + face * 0.2, lowHeight + 1.3, z - 5.8),
+				Color3.fromRGB(46, 52, 54),
+				Enum.Material.Metal,
+				false
+			)
+			-- Winziger grüner Status-Punkt -- matt, kein Glow.
+			makePart(
+				parent,
+				"BulkheadStatusDot",
+				Vector3.new(0.36, 0.45, 0.45),
+				techPanel.Position + Vector3.new(face * 0.12, 0.45, 1),
+				LAB_GREEN,
+				Enum.Material.SmoothPlastic,
+				false
+			)
+
+			-- Sanfte Decken-Lampe direkt unter der Oberkante (matt-weiss,
+			-- gleicher Stil wie SoftLabLamp/RoofLightPanel-Frame: leichte
+			-- Eigenhelle über hohe Transparenz, KEIN grelles Neon).
+			local lamp = makePart(
+				parent,
+				"BulkheadLabLamp",
+				Vector3.new(0.32, 0.55, 12),
+				Vector3.new(faceX + face * 0.18, highHeight - 1.7, z),
+				Color3.fromRGB(228, 234, 232),
+				Enum.Material.SmoothPlastic,
+				false
+			)
+			lamp.Transparency = 0.18
+			-- Dunkler Lampen-Rahmen darunter -- konsistent mit RoofPanelFrame.
+			makePart(
+				parent,
+				"BulkheadLabLampFrame",
+				Vector3.new(0.3, 0.85, 13),
+				Vector3.new(faceX + face * 0.12, highHeight - 1.7, z),
+				LAB_DARK,
+				Enum.Material.SmoothPlastic,
+				false
+			)
+		end
+
+		-- Durchlaufender Kabelträger unter der Oberkante (gleicher Stil wie
+		-- CableTray im Bakterien-Tunnel).
+		makePart(
+			parent,
+			"BulkheadCableTray",
+			Vector3.new(0.4, 0.55, FLOOR_SIZE_Z - 12),
+			Vector3.new(faceX + face * 0.05, highHeight - 3.2, FLOOR_CENTER_Z),
+			LAB_DARK,
+			Enum.Material.Metal,
+			false
+		)
+		-- Schwarze Deckenstrebe als waagerechte Akzentkante zur Mitte.
+		makePart(
+			parent,
+			"BulkheadCenterStrut",
+			Vector3.new(0.36, 0.5, FLOOR_SIZE_Z - 6),
+			Vector3.new(faceX + face * 0.05, centerY, FLOOR_CENTER_Z),
+			LAB_DARK,
+			Enum.Material.Metal,
+			false
+		)
+	end
+end
+
 -- ---- Hero-Objekt: Virus-Statue (Spawn-Landmarke) -------------------------
 -- Eine grosse, kontrollierte Virus-Probe in einer Glas-Containment-Kuppel
 -- auf dunklem Stufensockel mit Metallrahmen. Bewusst clean + leicht
@@ -1864,6 +2035,20 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	addBackWallLabFeature(model, cx)
 	addCeilingConduits(model, cx)
 	addSpawnFloorArrows(model, cx, LAB_GREEN)
+
+	-- Decken-Stufen-Bulkhead am Übergang Spawn -> Area 1 (X = 0). Die
+	-- Spawn-Shell endet mit Decke auf Y = L.WallHeight (Slab 34..36), die
+	-- Area-Decke liegt nach liftBacteriaLabCeiling 10 Studs höher (Slab
+	-- 44..46). Dazwischen klafft eine senkrechte 8-Stud-Lücke (36..44),
+	-- durch die der Himmel scheint. Der Bulkhead sitzt EXAKT in dieser
+	-- Lücke (Y = 36..44) -- bündig zwischen den beiden Decken-Slabs, ohne
+	-- mit ihnen zu überlappen (kein Z-Fighting wie beim Boden-Bug).
+	buildCeilingStepBulkhead(
+		model,
+		0,
+		FLOOR_Y + L.WallHeight + 2,
+		FLOOR_Y + L.WallHeight + BACTERIA_CEILING_LIFT
+	)
 
 	-- Rueckwand hinter dem Spawn.
 	makePart(model, "SpawnBackWall", Vector3.new(4, L.WallHeight, FLOOR_SIZE_Z), Vector3.new(cx - 150, FLOOR_Y + L.WallHeight / 2, FLOOR_CENTER_Z), LAB_WHITE, Enum.Material.SmoothPlastic, true)
@@ -2184,9 +2369,21 @@ function VirusLabBuilder.build()
 		trig.CanTouch = false
 		trig:SetAttribute("DisplayName", area.displayName)
 
-		-- Abschlusswand nach der letzten Area.
+		-- Abschlusswand nach der letzten Area. Höhe entspricht der GELIFTETEN
+		-- Wand- und Decken-Höhe (L.WallHeight + BACTERIA_CEILING_LIFT), sonst
+		-- bleibt oben ein 10-Stud-Spalt zwischen Wand-Oberkante und Decke,
+		-- durch den der Himmel sichtbar wäre.
 		if area.index == AreaConfig.count() then
-			makePart(areaModel, "FinalWall", Vector3.new(4, L.WallHeight, FLOOR_SIZE_Z), Vector3.new(hallX + L.AreaSpan / 2, FLOOR_Y + L.WallHeight / 2, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.Metal, true)
+			local finalWallHeight = L.WallHeight + BACTERIA_CEILING_LIFT
+			makePart(
+				areaModel,
+				"FinalWall",
+				Vector3.new(4, finalWallHeight, FLOOR_SIZE_Z),
+				Vector3.new(hallX + L.AreaSpan / 2, FLOOR_Y + finalWallHeight / 2, FLOOR_CENTER_Z),
+				LAB_DARK,
+				Enum.Material.Metal,
+				true
+			)
 		end
 	end
 
