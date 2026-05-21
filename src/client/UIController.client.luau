@@ -38,9 +38,11 @@ local MenuController = require(UI:WaitForChild("MenuController"))
 local PopupHandler = require(UI:WaitForChild("PopupHandler"))
 local ClickHandler = require(UI:WaitForChild("ClickHandler"))
 local SoundController = require(UI:WaitForChild("SoundController"))
+local TrainingPadVisuals = require(UI:WaitForChild("TrainingPadVisuals"))
 local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
 
 SoundController.start()
+TrainingPadVisuals.start()
 
 -- ScreenGui anlegen.
 local screen = Instance.new("ScreenGui")
@@ -89,7 +91,7 @@ local SPAWN_CENTER_X = -180
 local STATION_TRIGGER_Z = 77
 local AUTO_STATION_ZONES = {
 	{ menu = "Skills", modelName = "UpgradeLabStation", fallback = Vector3.new(SPAWN_CENTER_X - 64, 4, STATION_TRIGGER_Z) },
-	{ menu = "Auras", modelName = "AuraStation", fallback = Vector3.new(SPAWN_CENTER_X - 24, 4, STATION_TRIGGER_Z) },
+	{ menu = "Auras", modelName = "AuraStation", fallback = Vector3.new(SPAWN_CENTER_X - 24, 4, STATION_TRIGGER_Z), auraTier = 1 },
 	{ menu = "Shop", modelName = "ShopTerminalStation", fallback = Vector3.new(SPAWN_CENTER_X + 16, 4, STATION_TRIGGER_Z) },
 	{ menu = "Daily", modelName = "DailyRewardStation", fallback = Vector3.new(SPAWN_CENTER_X + 56, 4, STATION_TRIGGER_Z) },
 }
@@ -201,14 +203,20 @@ local function isAnyMenuOpenExcept(exceptMenuName: string): boolean
 	return false
 end
 
-local function openStationMenuManually(menuName: string)
+local function openStationMenuManually(menuName: string, auraTier: number?)
 	autoOpenedMenu = nil
 	suppressedStationMenus[menuName] = false
+	if menuName == "Auras" then
+		AuraFrame.setShopTier(auraRefs, auraTier or 1)
+	end
 	menuController:openMenu(menuName)
 end
 
 local function toggleSidebarMenu(menuName: string)
 	autoOpenedMenu = nil
+	if menuName == "Auras" then
+		AuraFrame.setShopTier(auraRefs, 1)
+	end
 	menuController:toggleMenu(menuName)
 end
 
@@ -231,7 +239,8 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt)
 		return
 	end
 	if target == "Shop" or target == "Skills" or target == "Auras" or target == "Daily" then
-		openStationMenuManually(target)
+		local auraTier = prompt:GetAttribute("AuraTier")
+		openStationMenuManually(target, if type(auraTier) == "number" then auraTier else nil)
 	else
 		menuController:openMenu(target)
 	end
@@ -366,8 +375,9 @@ RunService.Heartbeat:Connect(function(dt)
 		if rootPart then
 			local nearestTarget: string? = nil
 			local nearestDistance = math.huge
+			local nearestAuraTier: number? = nil
 			local activeMenuDistance = math.huge
-			local function considerStation(target: string, distance: number)
+			local function considerStation(target: string, distance: number, auraTier: number?)
 				if distance > STATION_CLOSE_RADIUS then
 					suppressedStationMenus[target] = false
 				end
@@ -377,6 +387,7 @@ RunService.Heartbeat:Connect(function(dt)
 				if distance < nearestDistance then
 					nearestDistance = distance
 					nearestTarget = target
+					nearestAuraTier = auraTier
 				end
 			end
 
@@ -384,13 +395,14 @@ RunService.Heartbeat:Connect(function(dt)
 				local target = trigger:GetAttribute("MenuTarget")
 				if type(target) == "string" and menuController.menus[target] then
 					local distance = getDistanceToPartBounds(trigger, rootPart.Position)
-					considerStation(target, distance)
+					local auraTier = trigger:GetAttribute("AuraTier")
+					considerStation(target, distance, if type(auraTier) == "number" then auraTier else nil)
 				end
 			end
 			for _, zone in ipairs(AUTO_STATION_ZONES) do
 				local pos = findStationPosition(zone.modelName) or zone.fallback
 				local distance = getFlatDistance(pos, rootPart.Position)
-				considerStation(zone.menu, distance)
+				considerStation(zone.menu, distance, zone.auraTier)
 			end
 
 			if autoOpenedMenu then
@@ -416,6 +428,9 @@ RunService.Heartbeat:Connect(function(dt)
 					and not isAnyMenuOpenExcept(nearestTarget)
 				then
 					autoOpenedMenu = nearestTarget
+					if nearestTarget == "Auras" then
+						AuraFrame.setShopTier(auraRefs, nearestAuraTier or 1)
+					end
 					menuController:openMenu(nearestTarget)
 				end
 			end
