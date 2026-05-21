@@ -1,5 +1,6 @@
 --!strict
--- BoostService: zeitlich begrenzte Multiplikatoren. In Phase 4 kaufbar fuer DNA.
+-- BoostService: zeitlich begrenzte Multiplikatoren. Boosts koennen aktiv sein,
+-- werden aber nicht mehr fuer DNA verkauft.
 --
 -- Datenmodell:
 --   profile.ActiveBoosts = { [boostId] = expirationTimestamp (os.time) }
@@ -71,22 +72,7 @@ function BoostService.buyBoost(player: Player, boostId: string)
 	if not def then
 		return
 	end
-	if profile.DnaCoins < def.priceDna then
-		ShowPopup:FireClient(player, "Not enough DNA!")
-		return
-	end
-	profile.DnaCoins -= def.priceDna
-	-- Wenn schon aktiv: Restzeit + durationSec stacken.
-	local now = os.time()
-	local existing = profile.ActiveBoosts[boostId]
-	if existing and existing > now then
-		profile.ActiveBoosts[boostId] = existing + def.durationSec
-	else
-		profile.ActiveBoosts[boostId] = now + def.durationSec
-	end
-	ShowPopup:FireClient(player, string.format("%s activated!", def.displayName))
-	StatService.broadcastProfile(player)
-	StatService.playSound(player, "Purchase")
+	ShowPopup:FireClient(player, "Boost purchases are unavailable.")
 end
 
 function BoostService.start(deps)

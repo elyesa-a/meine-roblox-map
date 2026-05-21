@@ -23,6 +23,7 @@ type Refs = {
 	root: Frame,
 	scroll: ScrollingFrame,
 	infoLabel: TextLabel,
+	nextLabel: TextLabel,
 	cards: { [string]: { card: Frame, button: TextButton, status: TextLabel } },
 }
 
@@ -30,9 +31,10 @@ local function makeCard(parent: ScrollingFrame, def): { card: Frame, button: Tex
 	local card = Instance.new("Frame")
 	card.Name = "Aura_" .. def.id
 	card.Size = UDim2.new(1, 0, 0, 78)
-	card.LayoutOrder = def.priceDna
+	card.LayoutOrder = def.requiredTier * 100
 	Theme.applyPanelStyle(card, LabTheme.Colors.Card)
 	LabTheme.styleCard(card, def.color)
+	LabTheme.bindHoverPopout(card, 1.018)
 	card.ZIndex = 7
 	card.Parent = parent
 
@@ -72,7 +74,7 @@ local function makeCard(parent: ScrollingFrame, def): { card: Frame, button: Tex
 	Theme.applyLabelStyle(multi)
 	LabTheme.styleLabel(multi, def.color:Lerp(LabTheme.Colors.Text, 0.35), 18, true)
 	multi.TextXAlignment = Enum.TextXAlignment.Left
-	multi.Text = string.format("%.2gx Power", def.multiplier)
+	multi.Text = string.format("Tier %d  |  %.3gx Power", def.requiredTier, def.multiplier)
 	multi.TextSize = 18
 	multi.TextScaled = false
 	multi.ZIndex = 8
@@ -136,7 +138,7 @@ function AuraFrame.create(parent: ScreenGui): Refs
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
 	LabTheme.styleLabel(header, LabTheme.Colors.Text, 28, true)
-	header.Text = "AURAS"
+	header.Text = "AURA STABILIZER"
 	header.TextSize = 28
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -162,16 +164,28 @@ function AuraFrame.create(parent: ScreenGui): Refs
 	infoLabel.Position = UDim2.new(0, 16, 0, 52)
 	Theme.applyLabelStyle(infoLabel)
 	LabTheme.styleLabel(infoLabel, LabTheme.Colors.SubText, 16, false)
-	infoLabel.Text = "DNA: 0  |  Current Aura: -"
+	infoLabel.Text = "DNA: 0  |  Current Aura: -  |  Unlocked Tier: 1 / 10"
 	infoLabel.TextSize = 16
 	infoLabel.TextScaled = false
 	infoLabel.ZIndex = 7
 	infoLabel.Parent = root
 
+	local nextLabel = Instance.new("TextLabel")
+	nextLabel.Size = UDim2.new(1, -32, 0, 24)
+	nextLabel.Position = UDim2.new(0, 16, 0, 78)
+	Theme.applyLabelStyle(nextLabel)
+	LabTheme.styleLabel(nextLabel, LabTheme.Colors.Muted, 14, false)
+	nextLabel.Text = ""
+	nextLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nextLabel.TextSize = 14
+	nextLabel.TextScaled = false
+	nextLabel.ZIndex = 7
+	nextLabel.Parent = root
+
 	local scroll = Instance.new("ScrollingFrame")
 	scroll.Name = "AuraList"
-	scroll.Size = UDim2.new(1, -32, 1, -100)
-	scroll.Position = UDim2.new(0, 16, 0, 88)
+	scroll.Size = UDim2.new(1, -32, 1, -126)
+	scroll.Position = UDim2.new(0, 16, 0, 114)
 	scroll.BackgroundColor3 = LabTheme.Colors.Panel
 	scroll.BorderSizePixel = 0
 	scroll.ScrollBarThickness = 8
@@ -224,6 +238,7 @@ function AuraFrame.create(parent: ScreenGui): Refs
 		root = root,
 		scroll = scroll,
 		infoLabel = infoLabel,
+		nextLabel = nextLabel,
 		cards = cards,
 	}
 end
@@ -236,6 +251,7 @@ function AuraFrame.update(refs: Refs, state)
 	local auras = if type(state.Auras) == "table" then state.Auras else {}
 	local equipped = state.EquippedAura
 	local dna = state.DnaCoins or 0
+	local unlockedTier = AuraConfig.getUnlockedTier(state.HighestBossDefeated)
 
 	local equippedName = "-"
 	if equipped then
@@ -245,20 +261,42 @@ function AuraFrame.update(refs: Refs, state)
 		end
 	end
 	refs.infoLabel.Text = string.format(
-		"DNA: %s  |  Current Aura: %s",
+		"DNA: %s  |  Current Aura: %s  |  Unlocked Tier: %d / %d",
 		NumberFormatter.format(dna),
-		equippedName
+		equippedName,
+		unlockedTier,
+		AuraConfig.MaxTier
 	)
+	if unlockedTier < AuraConfig.MaxTier then
+		refs.nextLabel.Text = "Next Tier locked: Beat Area " .. tostring(unlockedTier) .. " Boss to unlock"
+	else
+		refs.nextLabel.Text = "Max aura tier unlocked."
+	end
 
-	for _, def in ipairs(AuraConfig.Auras) do
+	for index, def in ipairs(AuraConfig.Auras) do
 		local cardRefs = refs.cards[def.id]
 		if not cardRefs then
 			continue
 		end
 		local owned = auras[def.id] == true
-		local isEquipped = equipped == def.id
+		if not owned and def.legacyIds then
+			for _, legacyId in ipairs(def.legacyIds) do
+				if auras[legacyId] == true then
+					owned = true
+					break
+				end
+			end
+		end
+		local isEquipped = AuraConfig.matchesId(def, equipped)
+		local isCurrentTier = def.requiredTier == unlockedTier
+		local isNextTier = def.requiredTier == unlockedTier + 1
+		local showCard = owned or isCurrentTier or isNextTier
 		local btn = cardRefs.button
 		local status = cardRefs.status
+		cardRefs.card.Visible = showCard
+		cardRefs.card.Size = if showCard then UDim2.new(1, 0, 0, 78) else UDim2.new(1, 0, 0, 0)
+		cardRefs.card.LayoutOrder = if isCurrentTier then index elseif owned then 1000 + index else 2000 + index
+		cardRefs.card.BackgroundTransparency = if isNextTier and not owned then 0.34 else 0
 
 		if isEquipped then
 			btn.Text = "EQUIPPED"
@@ -273,8 +311,15 @@ function AuraFrame.update(refs: Refs, state)
 			btn:SetAttribute("Action", "Equip")
 			status.Text = "Owned"
 			status.TextColor3 = LabTheme.Colors.Cyan
+		elseif def.requiredTier > unlockedTier then
+			btn.Text = "LOCKED"
+			LabTheme.styleButton(btn, LabTheme.Colors.Muted, false)
+			btn:SetAttribute("Action", "Locked")
+			status.Text = AuraConfig.getLockedText(def)
+			status.TextColor3 = LabTheme.Colors.Gold
+			LabTheme.styleCard(cardRefs.card, def.color, true)
 		else
-			btn.Text = "BUY"
+			btn.Text = if dna >= def.priceDna then "BUY" else "Need " .. NumberFormatter.format(def.priceDna) .. " DNA"
 			LabTheme.styleButton(btn, LabTheme.Colors.Green, dna >= def.priceDna)
 			btn:SetAttribute("Action", "Buy")
 			status.Text = string.format("Price: %s DNA", NumberFormatter.format(def.priceDna))

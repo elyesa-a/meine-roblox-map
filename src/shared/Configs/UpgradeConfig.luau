@@ -30,7 +30,7 @@ UpgradeConfig.Upgrades = {
 		statType = "Health",
 		perLevelDelta = 0,
 		maxLevel = 5,
-		costs = { 250, 500, 1000, 2500, 5000 },
+		costs = { 500, 1000, 2000, 5000, 10000 },
 		color = Color3.fromRGB(90, 210, 140),
 	},
 	{
@@ -72,7 +72,7 @@ UpgradeConfig.Upgrades = {
 		iconText = "SPD",
 		perLevelDelta = 0.5,
 		maxLevel = 4,
-		costs = { 300, 1000, 6000, 15000 },
+		costs = { 600, 2000, 12000, 30000 },
 		color = Color3.fromRGB(90, 245, 210),
 	},
 }
@@ -94,7 +94,7 @@ function UpgradeConfig.getCost(level: number, def: UpgradeDef?): number
 			return customCost
 		end
 	end
-	return math.floor(100 * (level + 1) ^ 1.8)
+	return math.floor(200 * (level + 1) ^ 1.8)
 end
 
 function UpgradeConfig.getMaxLevel(def: UpgradeDef?): number

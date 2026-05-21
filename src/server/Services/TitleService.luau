@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Configs = ReplicatedStorage:WaitForChild("Configs")
 local TitleConfig = require(Configs:WaitForChild("TitleConfig"))
+local AuraConfig = require(Configs:WaitForChild("AuraConfig"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestEquipTitle = Remotes:WaitForChild("RequestEquipTitle") :: RemoteEvent
@@ -18,6 +19,30 @@ local StatService
 local AntiExploitService
 
 local TITLE_BILLBOARD_NAME = "ActiveTitleBillboard"
+
+local function profileOwnsAura(profile, auraId: string?): boolean
+	if not auraId or not profile.Auras then
+		return false
+	end
+	if profile.Auras[auraId] == true then
+		return true
+	end
+	local def = AuraConfig.getById(auraId)
+	if not def then
+		return false
+	end
+	if profile.Auras[def.id] == true then
+		return true
+	end
+	if def.legacyIds then
+		for _, legacyId in ipairs(def.legacyIds) do
+			if profile.Auras[legacyId] == true then
+				return true
+			end
+		end
+	end
+	return false
+end
 
 local function ensureTitleData(profile)
 	profile.Titles = profile.Titles or {}
@@ -45,7 +70,7 @@ local function getConditionValue(profile, condition): number
 	elseif condition.kind == "Rebirth" then
 		return profile.Rebirths or 0
 	elseif condition.kind == "Aura" then
-		return if condition.key and profile.Auras and profile.Auras[condition.key] then 1 else 0
+		return if profileOwnsAura(profile, condition.key) then 1 else 0
 	elseif condition.kind == "Boss" then
 		return if condition.key and profile.BossDefeats then profile.BossDefeats[condition.key] or 0 else 0
 	elseif condition.kind == "Zone" then

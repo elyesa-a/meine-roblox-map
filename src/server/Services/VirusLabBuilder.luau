@@ -1889,49 +1889,29 @@ local function addBacteriaLabDetails(parent, area, hallX, primary)
 	addOutbreakStoryDetails(deco, area, hallX, theme, accent)
 end
 
--- ---- Trainingsbereich (mit Rebirth-Gate) ---------------------------------
+-- ---- Trainingsbereich -----------------------------------------------------
 
-local function buildTrainingArea(parent, bedsFolder, gatesFolder, area, x)
+local function buildTrainingArea(parent, bedsFolder, _gatesFolder, area, x)
 	local bedDef = TrainingBedConfig[area.index]
 	local primary = area.primaryColor
 	local model = Instance.new("Model")
 	model.Name = "Training_" .. area.id
 	model.Parent = parent
 
-	-- ---- Seitliche Trainings-Bay (links, -Z) -----------------------------
-	-- Bewusst NICHT mittig im Laufweg: eine eigene, abgesetzte Labor-Nische.
-	-- Der Spieler macht einen kurzen Abstecher zur Seite, um zu trainieren.
-	-- Der Korridor-Mittelweg (Z um 0) bleibt komplett frei.
+	-- ---- Seitlicher Trainingsbereich (links, -Z) -------------------------
+	-- Offen gebaut: keine Mauern/Portale um den Trainingsbereich, damit nur
+	-- die Trainingsstation selbst sichtbar bleibt und der Laufweg clean wirkt.
 	local bayZ = -54
 	local bayDepthZ = 42
 	local bayHalfZ = bayDepthZ / 2
 	local bayMouthZ = bayZ + bayHalfZ -- Richtung Laufweg (offene Seite)
-	local bayBackZ = bayZ - bayHalfZ
 	local bayWidthX = 78
 
-	-- Bay-Boden (klar abgesetzte Plattform).
+	-- Boden/Markierung bleibt als klare Trainingsflaeche erhalten.
 	makePart(model, "TrainingBayFloor", Vector3.new(bayWidthX, 0.6, bayDepthZ), Vector3.new(x, FLOOR_Y + 0.32, bayZ), tint(LAB_PANEL, primary, 0.14), Enum.Material.SmoothPlastic, true)
 	makePart(model, "TrainingBayFloorInset", Vector3.new(bayWidthX - 8, 0.1, bayDepthZ - 7), Vector3.new(x, FLOOR_Y + 0.62, bayZ), Color3.fromRGB(80, 86, 86), Enum.Material.Metal, false).Transparency = 0.2
 	-- Gelb-schwarze Schwelle als Eingangsmarkierung zum Laufweg.
 	makePart(model, "TrainingBayThreshold", Vector3.new(bayWidthX, 0.08, 1.8), Vector3.new(x, FLOOR_Y + 0.4, bayMouthZ - 1), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false).Transparency = 0.32
-
-	-- Nischen-Architektur (blockiert den Laufweg nicht; Mund bleibt offen).
-	makePart(model, "TrainingBayBackWall", Vector3.new(bayWidthX, 17, 1.3), Vector3.new(x, FLOOR_Y + 8.5, bayBackZ), LAB_WHITE, Enum.Material.SmoothPlastic, true)
-	makePart(model, "TrainingBayBackBase", Vector3.new(bayWidthX, 1.4, 1.6), Vector3.new(x, FLOOR_Y + 0.9, bayBackZ), LAB_DARK, Enum.Material.Metal, true)
-	makePart(model, "TrainingBayBackTopRail", Vector3.new(bayWidthX, 1.1, 1.6), Vector3.new(x, FLOOR_Y + 16.4, bayBackZ), LAB_DARK, Enum.Material.Metal, true)
-	for _, sx in ipairs({ x - bayWidthX / 2, x + bayWidthX / 2 }) do
-		makePart(model, "TrainingBaySideWall", Vector3.new(1.3, 17, bayDepthZ), Vector3.new(sx, FLOOR_Y + 8.5, bayZ), LAB_WHITE, Enum.Material.SmoothPlastic, true)
-		makePart(model, "TrainingBaySideTrim", Vector3.new(1.5, 1.2, bayDepthZ), Vector3.new(sx, FLOOR_Y + 0.85, bayZ), LAB_DARK, Enum.Material.Metal, true)
-	end
-	-- Glas-Trennscheiben an den Bay-Raendern -> Mitte als Durchgang offen.
-	for _, gx in ipairs({ x - 23, x + 23 }) do
-		local glass = makePart(model, "TrainingBayGlass", Vector3.new(18, 9, 0.4), Vector3.new(gx, FLOOR_Y + 5.2, bayMouthZ), tint(LAB_CYAN, LAB_WHITE, 0.45), Enum.Material.Glass, false)
-		glass.Transparency = 0.68
-	end
-	makePart(model, "TrainingBayPortalHeader", Vector3.new(bayWidthX, 3, 1.4), Vector3.new(x, FLOOR_Y + 15.5, bayMouthZ), LAB_DARK, Enum.Material.Metal, false)
-	for _, ledZ in ipairs({ bayMouthZ }) do
-		neonStrip(model, Vector3.new(bayWidthX - 4, 0.3, 0.3), Vector3.new(x, FLOOR_Y + 13.8, ledZ), primary, 0.5)
-	end
 
 	-- Ein breiter, klarer Power-Trainingsbereich. DNA/Luck-Training wurde
 	-- bewusst entfernt, damit die Bay nicht wie drei getrennte Shops wirkt.
@@ -1969,33 +1949,8 @@ local function buildTrainingArea(parent, bedsFolder, gatesFolder, area, x)
 	hitbox:SetAttribute("RequiredRebirth", bedDef.requiredRebirth)
 	hitbox:SetAttribute("PowerPerSecond", bedDef.powerPerSecond)
 
-	-- Rebirth-Gate vor dem Training (nur wenn Anforderung > 0).
-	if bedDef.requiredRebirth > 0 then
-		local gateX = x - 70
-		local gm = Instance.new("Model")
-		gm.Name = "TrainingGate_" .. area.id
-		gm.Parent = gatesFolder
-		for _, z in ipairs({ CORRIDOR_MIN_Z - 3, CORRIDOR_MAX_Z + 3 }) do
-			makePart(gm, "TGatePillar", Vector3.new(5, 20, 5), Vector3.new(gateX, FLOOR_Y + 10, z), LAB_WHITE, Enum.Material.Metal, true)
-		end
-		makePart(gm, "TGateBeam", Vector3.new(6, 5, BARRIER_SIZE_Z + 8), Vector3.new(gateX, FLOOR_Y + 21, FLOOR_CENTER_Z), LAB_WHITE, Enum.Material.Metal, true)
-		local field = makePart(gm, "TrainingGateField", Vector3.new(1.6, 18, BARRIER_SIZE_Z), Vector3.new(gateX, FLOOR_Y + 9.5, FLOOR_CENTER_Z), Color3.fromRGB(255, 170, 90), Enum.Material.ForceField, false)
-		field.Color = ACCESS_LOCKED
-		field.Transparency = 0.5
-		field.CanTouch = true
-		field:SetAttribute("RequiredPower", 0)
-		field:SetAttribute("RequiredRebirth", bedDef.requiredRebirth)
-		field:SetAttribute("AreaName", area.displayName .. " Training")
-		local s = makePart(gm, "TGateSign", Vector3.new(18, 6, 0.7), Vector3.new(gateX, FLOOR_Y + 26, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.SmoothPlastic, false)
-		label(
-			s,
-			string.format("TRAINING LOCK\nRequires Rebirth %d", bedDef.requiredRebirth),
-			ACCESS_LOCKED_SOFT,
-			80,
-			UDim2.fromOffset(260, 76),
-			Vector3.new(0, 0, 0)
-		)
-	end
+	-- Keine zusaetzlichen Training-Gates/Mauern: Zugriff und Auto-Training
+	-- bleiben serverseitig ueber Hitbox-Attribute/Rebirth-Anforderung geregelt.
 end
 
 -- ---- Egg-Catch-Station ----------------------------------------------------
@@ -3177,12 +3132,12 @@ local function buildLeaderboardBoard(parent: Instance, boardKey: string, title: 
 	model.Name = "Top" .. boardKey .. "Board"
 	model.Parent = parent
 
-	local frame = makePart(model, "BoardFrame", Vector3.new(0.8, 13, 17.5), pos, LAB_DARK, Enum.Material.Metal, false)
+	local frame = makePart(model, "BoardFrame", Vector3.new(0.85, 14.3, 20), pos, LAB_DARK, Enum.Material.Metal, false)
 	frame:SetAttribute("BoardKey", boardKey)
-	makePart(model, "BoardGlowRailTop", Vector3.new(0.95, 0.28, 15.6), pos + Vector3.new(0.06, 6.05, 0), accent, Enum.Material.SmoothPlastic, false).Transparency = 0.2
-	makePart(model, "BoardGlowRailBottom", Vector3.new(0.95, 0.2, 15.6), pos + Vector3.new(0.06, -6.05, 0), accent:Lerp(LAB_GREEN, 0.35), Enum.Material.SmoothPlastic, false).Transparency = 0.4
-	makePart(model, "BoardLeftTrim", Vector3.new(0.95, 12.5, 0.34), pos + Vector3.new(0.06, 0, -8.6), LAB_TRIM, Enum.Material.Metal, false)
-	makePart(model, "BoardRightTrim", Vector3.new(0.95, 12.5, 0.34), pos + Vector3.new(0.06, 0, 8.6), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(model, "BoardGlowRailTop", Vector3.new(1, 0.3, 18), pos + Vector3.new(0.06, 6.68, 0), accent, Enum.Material.SmoothPlastic, false).Transparency = 0.2
+	makePart(model, "BoardGlowRailBottom", Vector3.new(1, 0.22, 18), pos + Vector3.new(0.06, -6.68, 0), accent:Lerp(LAB_GREEN, 0.35), Enum.Material.SmoothPlastic, false).Transparency = 0.4
+	makePart(model, "BoardLeftTrim", Vector3.new(1, 13.7, 0.36), pos + Vector3.new(0.06, 0, -9.8), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(model, "BoardRightTrim", Vector3.new(1, 13.7, 0.36), pos + Vector3.new(0.06, 0, 9.8), LAB_TRIM, Enum.Material.Metal, false)
 
 	local gui = makeSurfaceGui(frame, "BoardGui", Vector2.new(520, 420))
 	local bg = Instance.new("Frame")
@@ -3250,15 +3205,15 @@ local function buildLeaderboardZone(parent: Instance, cx: number)
 	local accentGold = Color3.fromRGB(225, 190, 82)
 	local accentRed = Color3.fromRGB(184, 72, 72)
 
-	makePart(zone, "LeaderboardWallBacking", Vector3.new(1.4, 22, 90), Vector3.new(wallX - 0.4, FLOOR_Y + 11, baseZ), Color3.fromRGB(12, 16, 22), Enum.Material.Metal, false)
-	makePart(zone, "LeaderboardWallTopFrame", Vector3.new(2, 1.2, 94), Vector3.new(wallX + 0.1, FLOOR_Y + 21.4, baseZ), LAB_TRIM, Enum.Material.Metal, false)
-	makePart(zone, "LeaderboardWallBottomFrame", Vector3.new(2, 0.8, 94), Vector3.new(wallX + 0.1, FLOOR_Y + 1.2, baseZ), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(zone, "LeaderboardWallBacking", Vector3.new(1.4, 24, 102), Vector3.new(wallX - 0.4, FLOOR_Y + 12, baseZ), Color3.fromRGB(12, 16, 22), Enum.Material.Metal, false)
+	makePart(zone, "LeaderboardWallTopFrame", Vector3.new(2, 1.2, 106), Vector3.new(wallX + 0.1, FLOOR_Y + 23.4, baseZ), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(zone, "LeaderboardWallBottomFrame", Vector3.new(2, 0.8, 106), Vector3.new(wallX + 0.1, FLOOR_Y + 1.2, baseZ), LAB_TRIM, Enum.Material.Metal, false)
 
-	local boardY = FLOOR_Y + 10.5
-	buildLeaderboardBoard(zone, "Power", "TOP POWER", Vector3.new(wallX + 1, boardY, baseZ - 33), accentPower)
-	buildLeaderboardBoard(zone, "Mutations", "TOP MUTATIONS", Vector3.new(wallX + 1, boardY, baseZ - 11), accentCyan)
-	buildLeaderboardBoard(zone, "Dna", "TOP DNA", Vector3.new(wallX + 1, boardY, baseZ + 11), accentGold)
-	buildLeaderboardBoard(zone, "BossKills", "TOP BOSS KILLS", Vector3.new(wallX + 1, boardY, baseZ + 33), accentRed)
+	local boardY = FLOOR_Y + 11.2
+	buildLeaderboardBoard(zone, "Power", "TOP POWER", Vector3.new(wallX + 1, boardY, baseZ - 38), accentPower)
+	buildLeaderboardBoard(zone, "Mutations", "TOP MUTATIONS", Vector3.new(wallX + 1, boardY, baseZ - 13), accentCyan)
+	buildLeaderboardBoard(zone, "Dna", "TOP DNA", Vector3.new(wallX + 1, boardY, baseZ + 13), accentGold)
+	buildLeaderboardBoard(zone, "BossKills", "TOP BOSS KILLS", Vector3.new(wallX + 1, boardY, baseZ + 38), accentRed)
 
 	local podiumFolder = makeFolder("TopPlayerPodiums", zone)
 	local podiums = {

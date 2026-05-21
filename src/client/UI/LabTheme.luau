@@ -127,8 +127,51 @@ function LabTheme.styleLabel(label: TextLabel, color: Color3?, size: number?, bo
 	label.TextScaled = false
 end
 
+function LabTheme.bindHoverPopout(gui: GuiObject, hoverScale: number?)
+	if gui:GetAttribute("HoverPopoutBound") == true then
+		return
+	end
+	gui:SetAttribute("HoverPopoutBound", true)
+	local scale = gui:FindFirstChild("HoverPopoutScale")
+	if not scale or not scale:IsA("UIScale") then
+		scale = Instance.new("UIScale")
+		scale.Name = "HoverPopoutScale"
+		scale.Parent = gui
+	end
+	scale.Scale = 1
+
+	local targetScale = hoverScale or 1.035
+	gui.MouseEnter:Connect(function()
+		local stroke = gui:FindFirstChildOfClass("UIStroke")
+		if stroke then
+			gui:SetAttribute("HoverOriginalStrokeTransparency", stroke.Transparency)
+		end
+		TweenService:Create(scale, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Scale = targetScale,
+		}):Play()
+		if stroke then
+			TweenService:Create(stroke, TweenInfo.new(0.14), {
+				Transparency = math.max(0.08, stroke.Transparency - 0.16),
+			}):Play()
+		end
+	end)
+	gui.MouseLeave:Connect(function()
+		TweenService:Create(scale, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Scale = 1,
+		}):Play()
+		local stroke = gui:FindFirstChildOfClass("UIStroke")
+		if stroke then
+			local originalTransparency = gui:GetAttribute("HoverOriginalStrokeTransparency")
+			TweenService:Create(stroke, TweenInfo.new(0.14), {
+				Transparency = if type(originalTransparency) == "number" then originalTransparency else stroke.Transparency,
+			}):Play()
+		end
+	end)
+end
+
 function LabTheme.bindButtonFeedback(button: TextButton, accent: Color3?)
 	local color = accent or LabTheme.Colors.Green
+	LabTheme.bindHoverPopout(button, 1.045)
 	button.MouseEnter:Connect(function()
 		if button.Active == false then
 			return

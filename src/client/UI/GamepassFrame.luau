@@ -1,6 +1,6 @@
 --!strict
--- Shop / Gamepass-Fenster: rein dekorativ in Phase 4. Zeigt 4 Robux-Tiers
--- als Platzhalter-Karten ohne echten Kauf-Aufruf.
+-- Shop / Gamepass-Fenster: zeigt Premium-Angebote. DNA-kaufbare Boosts werden
+-- hier bewusst nicht mehr angeboten.
 --
 -- Spaeter (Phase 5/Monetarisierung) werden hier MarketplaceService.PromptPurchase
 -- + Gamepass-IDs angebunden.
@@ -10,14 +10,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Theme = require(script.Parent:WaitForChild("Theme"))
 local LabTheme = require(script.Parent:WaitForChild("LabTheme"))
 local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
-local NumberFormatter = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("NumberFormatter"))
-
-local Configs = ReplicatedStorage:WaitForChild("Configs")
-local BoostConfig = require(Configs:WaitForChild("BoostConfig"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestPromptPurchase = Remotes:WaitForChild("RequestPromptPurchase") :: RemoteEvent
-local RequestBuyBoost = Remotes:WaitForChild("RequestBuyBoost") :: RemoteEvent
 
 local GamepassFrame = {}
 
@@ -41,8 +36,6 @@ local ENTRIES: { Entry } = {
 	{ id = "AutoClicker", displayName = "AUTO CLICKER", subText = "Clicks automatically", robux = 99,  color = Theme.Colors.Pink },
 	{ id = "GlitchPet",   displayName = "GLITCH PET",   subText = "Guaranteed Mythic", robux = 279, color = Theme.Colors.Purple },
 }
-
-local BOOST_ORDER = { "Dna2x", "Luck2x", "Power2x" }
 
 local function makeCard(parent: ScrollingFrame, entry: Entry, onPurchase: (Entry) -> ()): Frame
 	local card = Instance.new("Frame")
@@ -113,81 +106,6 @@ local function makeCard(parent: ScrollingFrame, entry: Entry, onPurchase: (Entry
 	return card
 end
 
-local function makeBoostCard(parent: ScrollingFrame, boostId: string): Frame?
-	local def = BoostConfig.getById(boostId)
-	if not def then
-		return nil
-	end
-
-	local card = Instance.new("Frame")
-	card.Name = "Boost_" .. boostId
-	card.Size = UDim2.new(1, 0, 0, 86)
-	Theme.applyPanelStyle(card, LabTheme.Colors.Card)
-	LabTheme.styleCard(card, def.color)
-	card.ZIndex = 7
-	card.Parent = parent
-
-	local icon = Instance.new("TextLabel")
-	icon.Name = "BoostIcon"
-	icon.Size = UDim2.new(0, 42, 0, 42)
-	icon.Position = UDim2.new(0, 14, 0.5, -21)
-	Theme.applyPanelStyle(icon, LabTheme.Colors.Panel2)
-	LabTheme.styleCard(icon, def.color)
-	icon.Font = Enum.Font.GothamBlack
-	icon.Text = string.sub(string.upper(def.affects), 1, 3)
-	icon.TextColor3 = def.color:Lerp(LabTheme.Colors.Text, 0.2)
-	icon.TextSize = 15
-	icon.TextStrokeTransparency = 1
-	icon.ZIndex = 8
-	icon.Parent = card
-
-	local name = Instance.new("TextLabel")
-	name.Size = UDim2.new(1, -190, 0, 30)
-	name.Position = UDim2.new(0, 72, 0, 9)
-	Theme.applyLabelStyle(name)
-	LabTheme.styleLabel(name, LabTheme.Colors.Text, 20, true)
-	name.TextXAlignment = Enum.TextXAlignment.Left
-	name.Text = string.upper(def.displayName)
-	name.TextSize = 20
-	name.TextScaled = false
-	name.ZIndex = 8
-	name.Parent = card
-
-	local sub = Instance.new("TextLabel")
-	sub.Size = UDim2.new(1, -190, 0, 24)
-	sub.Position = UDim2.new(0, 72, 0, 45)
-	Theme.applyLabelStyle(sub)
-	LabTheme.styleLabel(sub, LabTheme.Colors.SubText, 14, false)
-	sub.TextXAlignment = Enum.TextXAlignment.Left
-	sub.Text = string.format("%d min %s boost", math.floor(def.durationSec / 60), def.affects)
-	sub.TextSize = 14
-	sub.TextScaled = false
-	sub.TextColor3 = Color3.fromRGB(197, 224, 230)
-	sub.ZIndex = 8
-	sub.Parent = card
-
-	local btn = Instance.new("TextButton")
-	btn.Name = "BuyButton"
-	btn.AnchorPoint = Vector2.new(1, 0.5)
-	btn.Size = UDim2.new(0, 160, 0, 54)
-	btn.Position = UDim2.new(1, -12, 0.5, 0)
-	Theme.applyButtonStyle(btn, LabTheme.Colors.Green)
-	LabTheme.styleButton(btn, LabTheme.Colors.Green, true)
-	LabTheme.bindButtonFeedback(btn, LabTheme.Colors.Green)
-	btn.Text = NumberFormatter.format(def.priceDna) .. " DNA"
-	btn.TextSize = 17
-	btn.TextScaled = false
-	btn.ZIndex = 9
-	btn.Parent = card
-
-	btn.MouseButton1Click:Connect(function()
-		UIAnimator.buttonPunch(btn)
-		RequestBuyBoost:FireServer(boostId)
-	end)
-
-	return card
-end
-
 function GamepassFrame.create(parent: ScreenGui): Refs
 	local backdrop = Instance.new("Frame")
 	backdrop.Name = "GamepassBackdrop"
@@ -215,7 +133,7 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
 	LabTheme.styleLabel(header, LabTheme.Colors.Text, 28, true)
-	header.Text = "BOOST SHOP"
+	header.Text = "SHOP"
 	header.TextSize = 28
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -241,7 +159,7 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 	note.Position = UDim2.new(0, 16, 0, 52)
 	Theme.applyLabelStyle(note)
 	LabTheme.styleLabel(note, LabTheme.Colors.SubText, 14, false)
-	note.Text = "Buy boosts with DNA or open premium offers."
+	note.Text = "Premium lab offers only."
 	note.TextSize = 14
 	note.TextScaled = false
 	note.ZIndex = 7
@@ -277,14 +195,6 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 	padding.Parent = scroll
 
 	local order = 1
-	for _, boostId in ipairs(BOOST_ORDER) do
-		local card = makeBoostCard(scroll, boostId)
-		if card then
-			card.LayoutOrder = order
-			order += 1
-		end
-	end
-
 	for _, entry in ipairs(ENTRIES) do
 		local card = makeCard(scroll, entry, function(e)
 			RequestPromptPurchase:FireServer(e.id)
