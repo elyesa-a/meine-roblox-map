@@ -39,6 +39,7 @@ local BorderService = require(Services:WaitForChild("BorderService"))
 local EggCatchService = require(Services:WaitForChild("EggCatchService"))
 local TeleportService = require(Services:WaitForChild("TeleportService"))
 local TutorialService = require(Services:WaitForChild("TutorialService"))
+local LeaderboardService = require(Services:WaitForChild("LeaderboardService"))
 
 local Configs = ReplicatedStorage:WaitForChild("Configs")
 local PetConfig = require(Configs:WaitForChild("PetConfig"))
@@ -125,6 +126,9 @@ TutorialService.start({
 	DataService = DataService,
 	StatService = StatService,
 	AntiExploitService = AntiExploitService,
+})
+LeaderboardService.start({
+	DataService = DataService,
 })
 TrainingZoneService.start({
 	DataService = DataService,

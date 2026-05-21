@@ -183,6 +183,37 @@ local function label(adornee, text, color, maxDistance, sizeOffset, studsOffset)
 	return tl
 end
 
+local function makeSurfaceGui(part: BasePart, name: string, canvas: Vector2): SurfaceGui
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = name
+	gui.Adornee = part
+	gui.Face = Enum.NormalId.Right
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+	gui.CanvasSize = canvas
+	gui.LightInfluence = 0
+	gui.AlwaysOnTop = false
+	gui.Parent = part
+	return gui
+end
+
+local function surfaceText(parent: Instance, name: string, text: string, pos: UDim2, size: UDim2, color: Color3, textSize: number, bold: boolean?): TextLabel
+	local tl = Instance.new("TextLabel")
+	tl.Name = name
+	tl.BackgroundTransparency = 1
+	tl.Position = pos
+	tl.Size = size
+	tl.Text = text
+	tl.Font = if bold == false then Enum.Font.GothamMedium else Enum.Font.GothamBold
+	tl.TextColor3 = color
+	tl.TextSize = textSize
+	tl.TextScaled = false
+	tl.TextXAlignment = Enum.TextXAlignment.Left
+	tl.TextYAlignment = Enum.TextYAlignment.Center
+	tl.TextStrokeTransparency = 1
+	tl.Parent = parent
+	return tl
+end
+
 local function tint(a: Color3, b: Color3, t: number): Color3
 	return a:Lerp(b, math.clamp(t, 0, 1))
 end
@@ -2142,7 +2173,7 @@ local function addBackWallLabFeature(parent, cx)
 		neonStrip(parent, Vector3.new(0.55, 0.45, 32), panel.Position + Vector3.new(-0.55, 7.3, 0), LAB_CYAN, 0.15)
 	end
 	local banner = makePart(parent, "SpawnWallBanner", Vector3.new(1, 6, 86), Vector3.new(wallX - 0.4, FLOOR_Y + 27.5, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.SmoothPlastic, false)
-	label(banner, "VIRUS SIMULATOR LAB", Color3.fromRGB(170, 255, 225), 80, UDim2.fromOffset(380, 64), Vector3.new(0, 0, 0))
+	banner.Transparency = 0.2
 end
 
 local function addCeilingConduits(parent, cx)
@@ -3141,6 +3172,114 @@ local function buildBiohazardDrum(parent, name, pos, accent)
 	end
 end
 
+local function buildLeaderboardBoard(parent: Instance, boardKey: string, title: string, pos: Vector3, accent: Color3)
+	local model = Instance.new("Model")
+	model.Name = "Top" .. boardKey .. "Board"
+	model.Parent = parent
+
+	local frame = makePart(model, "BoardFrame", Vector3.new(0.8, 13, 17.5), pos, LAB_DARK, Enum.Material.Metal, false)
+	frame:SetAttribute("BoardKey", boardKey)
+	makePart(model, "BoardGlowRailTop", Vector3.new(0.95, 0.28, 15.6), pos + Vector3.new(0.06, 6.05, 0), accent, Enum.Material.SmoothPlastic, false).Transparency = 0.2
+	makePart(model, "BoardGlowRailBottom", Vector3.new(0.95, 0.2, 15.6), pos + Vector3.new(0.06, -6.05, 0), accent:Lerp(LAB_GREEN, 0.35), Enum.Material.SmoothPlastic, false).Transparency = 0.4
+	makePart(model, "BoardLeftTrim", Vector3.new(0.95, 12.5, 0.34), pos + Vector3.new(0.06, 0, -8.6), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(model, "BoardRightTrim", Vector3.new(0.95, 12.5, 0.34), pos + Vector3.new(0.06, 0, 8.6), LAB_TRIM, Enum.Material.Metal, false)
+
+	local gui = makeSurfaceGui(frame, "BoardGui", Vector2.new(520, 420))
+	local bg = Instance.new("Frame")
+	bg.Name = "Background"
+	bg.Size = UDim2.fromScale(1, 1)
+	bg.BackgroundColor3 = Color3.fromRGB(8, 13, 20)
+	bg.BackgroundTransparency = 0.08
+	bg.BorderSizePixel = 0
+	bg.Parent = gui
+
+	local header = Instance.new("Frame")
+	header.Name = "Header"
+	header.Position = UDim2.new(0, 14, 0, 12)
+	header.Size = UDim2.new(1, -28, 0, 48)
+	header.BackgroundColor3 = Color3.fromRGB(15, 25, 32)
+	header.BorderSizePixel = 0
+	header.Parent = bg
+	local headerStroke = Instance.new("UIStroke")
+	headerStroke.Color = accent
+	headerStroke.Thickness = 2
+	headerStroke.Transparency = 0.25
+	headerStroke.Parent = header
+	surfaceText(header, "BoardTitle", title, UDim2.new(0, 12, 0, 0), UDim2.new(1, -24, 1, 0), Color3.fromRGB(238, 248, 246), 28, true)
+
+	for i = 1, 5 do
+		local row = Instance.new("Frame")
+		row.Name = "Row" .. tostring(i)
+		row.Position = UDim2.new(0, 14, 0, 76 + (i - 1) * 52)
+		row.Size = UDim2.new(1, -28, 0, 44)
+		row.BackgroundColor3 = if i == 1 then accent:Lerp(Color3.fromRGB(14, 20, 28), 0.7) elseif i <= 3 then Color3.fromRGB(20, 30, 40) else Color3.fromRGB(12, 18, 26)
+		row.BackgroundTransparency = if i == 1 then 0.02 elseif i <= 3 then 0.08 else 0.16
+		row.BorderSizePixel = 0
+		row.Parent = bg
+		local rowStroke = Instance.new("UIStroke")
+		rowStroke.Color = if i == 1 then accent elseif i <= 3 then accent:Lerp(Color3.fromRGB(90, 96, 104), 0.4) else Color3.fromRGB(56, 70, 80)
+		rowStroke.Thickness = if i == 1 then 2 else 1
+		rowStroke.Transparency = if i == 1 then 0.08 else 0.45
+		rowStroke.Parent = row
+
+		local avatar = Instance.new("ImageLabel")
+		avatar.Name = "Avatar" .. tostring(i)
+		avatar.Position = UDim2.new(0, 52, 0, 8)
+		avatar.Size = UDim2.new(0, 28, 0, 28)
+		avatar.BackgroundColor3 = Color3.fromRGB(18, 24, 32)
+		avatar.BorderSizePixel = 0
+		avatar.ImageTransparency = 1
+		avatar.Parent = row
+		surfaceText(row, "Rank" .. tostring(i), "#" .. tostring(i), UDim2.new(0, 8, 0, 0), UDim2.new(0, 40, 1, 0), if i == 1 then Color3.fromRGB(255, 228, 112) else accent, 18, true)
+		surfaceText(row, "Name" .. tostring(i), "No record yet", UDim2.new(0, 90, 0, 0), UDim2.new(0.56, -90, 1, 0), Color3.fromRGB(236, 242, 248), 17, true)
+		local value = surfaceText(row, "Value" .. tostring(i), "-", UDim2.new(0.58, 0, 0, 0), UDim2.new(0.42, -10, 1, 0), Color3.fromRGB(180, 255, 196), 15, true)
+		value.TextXAlignment = Enum.TextXAlignment.Right
+	end
+
+	local footer = surfaceText(bg, "UpdatedLabel", "Updates every 60 seconds", UDim2.new(0, 14, 1, -36), UDim2.new(1, -28, 0, 24), Color3.fromRGB(162, 184, 190), 14, false)
+	footer.TextXAlignment = Enum.TextXAlignment.Center
+end
+
+local function buildLeaderboardZone(parent: Instance, cx: number)
+	local zone = makeFolder("LeaderboardZone", parent)
+	clearChildren(zone)
+	local wallX = cx - 146
+	local baseZ = 20
+	local accentPower = Color3.fromRGB(72, 235, 132)
+	local accentCyan = Color3.fromRGB(88, 220, 235)
+	local accentGold = Color3.fromRGB(225, 190, 82)
+	local accentRed = Color3.fromRGB(184, 72, 72)
+
+	makePart(zone, "LeaderboardWallBacking", Vector3.new(1.4, 22, 90), Vector3.new(wallX - 0.4, FLOOR_Y + 11, baseZ), Color3.fromRGB(12, 16, 22), Enum.Material.Metal, false)
+	makePart(zone, "LeaderboardWallTopFrame", Vector3.new(2, 1.2, 94), Vector3.new(wallX + 0.1, FLOOR_Y + 21.4, baseZ), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(zone, "LeaderboardWallBottomFrame", Vector3.new(2, 0.8, 94), Vector3.new(wallX + 0.1, FLOOR_Y + 1.2, baseZ), LAB_TRIM, Enum.Material.Metal, false)
+
+	local boardY = FLOOR_Y + 10.5
+	buildLeaderboardBoard(zone, "Power", "TOP POWER", Vector3.new(wallX + 1, boardY, baseZ - 33), accentPower)
+	buildLeaderboardBoard(zone, "Mutations", "TOP MUTATIONS", Vector3.new(wallX + 1, boardY, baseZ - 11), accentCyan)
+	buildLeaderboardBoard(zone, "Dna", "TOP DNA", Vector3.new(wallX + 1, boardY, baseZ + 11), accentGold)
+	buildLeaderboardBoard(zone, "BossKills", "TOP BOSS KILLS", Vector3.new(wallX + 1, boardY, baseZ + 33), accentRed)
+
+	local podiumFolder = makeFolder("TopPlayerPodiums", zone)
+	local podiums = {
+		{ rank = 2, z = baseZ - 14, size = Vector3.new(10, 1.3, 10), accent = accentCyan },
+		{ rank = 1, z = baseZ, size = Vector3.new(13, 2, 13), accent = accentPower },
+		{ rank = 3, z = baseZ + 14, size = Vector3.new(10, 1.1, 10), accent = accentGold },
+	}
+	for _, p in ipairs(podiums) do
+		local pod = makePart(podiumFolder, "Top" .. tostring(p.rank) .. "Podium", p.size, Vector3.new(cx - 132, FLOOR_Y + p.size.Y / 2, p.z), Color3.fromRGB(25, 30, 36), Enum.Material.Metal, true)
+		pod:SetAttribute("PodiumRank", p.rank)
+		neonStrip(podiumFolder, Vector3.new(p.size.X + 2, 0.08, 0.5), pod.Position + Vector3.new(0, p.size.Y / 2 + 0.12, -p.size.Z / 2 - 0.2), p.accent, 0.42)
+		neonStrip(podiumFolder, Vector3.new(p.size.X + 2, 0.08, 0.5), pod.Position + Vector3.new(0, p.size.Y / 2 + 0.12, p.size.Z / 2 + 0.2), p.accent, 0.42)
+	end
+
+	local floorMark = makePart(zone, "RankingZoneFloorMark", Vector3.new(38, 0.08, 48), Vector3.new(cx - 132, FLOOR_Y + 1.2, baseZ), Color3.fromRGB(28, 36, 42), Enum.Material.SmoothPlastic, false)
+	floorMark.Transparency = 0.48
+
+	makeFolder("AvatarDummies", zone)
+	makeFolder("Decor", zone)
+end
+
 local function buildTutorialSign(parent, name, pos, text, accent)
 	local model = Instance.new("Model")
 	model.Name = name
@@ -3553,6 +3692,7 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	-- Kabelkanaele, Wartungsdeckel, Bodenbeschriftungen, Biohazard-Marken,
 	-- kontrollierte Slime-Lecks, dezente cyan/gruene Wegfuehrung.
 	buildSpawnFloorDetail(orgFolders.floorDetail, cx)
+	buildLeaderboardZone(orgFolders.hub, cx)
 
 	-- Decken-Stufen-Bulkhead am Übergang Spawn -> Area 1 (X = 0). Die
 	-- Spawn-Shell endet mit Decke auf Y = L.WallHeight (Slab 34..36), die
@@ -3598,10 +3738,7 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	makePart(model, "CellBaseResearch", Vector3.new(11, 1, 11), Vector3.new(gx, FLOOR_Y + 0.5, -60), LAB_TRIM, Enum.Material.Metal, true)
 	local cellSign = makePart(model, "CellSignResearch", Vector3.new(16, 4, 0.7), Vector3.new(gx, FLOOR_Y + 15.5, -60), LAB_DARK, Enum.Material.SmoothPlastic, false)
 	label(cellSign, "RESEARCH", Color3.fromRGB(160, 245, 255), 45, UDim2.fromOffset(180, 44), Vector3.new(0, 0, 0))
-	buildContainmentTube(model, "ContainmentTubeA", Vector3.new(cx - 108, FLOOR_Y, -54), LAB_CYAN, "SAMPLE A")
-	buildContainmentTube(model, "ContainmentTubeB", Vector3.new(cx - 108, FLOOR_Y, 20), LAB_GREEN, "MUTATION")
 	buildConsole(model, "MutationConsole", Vector3.new(cx + 34, FLOOR_Y, -48), LAB_CYAN, "CORE")
-	buildConsole(model, "StorageConsole", Vector3.new(cx - 112, FLOOR_Y, 92), LAB_GREEN, "SCAN")
 	buildTestTubeRack(model, "SampleTubeRack", Vector3.new(cx + 42, FLOOR_Y, 96), LAB_GREEN)
 	buildCrateStack(model, "LabStorageCratesA", Vector3.new(cx + 88, FLOOR_Y, -76), LAB_CYAN)
 
@@ -3647,9 +3784,6 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	prompt.Parent = egg
 	label(egg, "VIRUS EGG\nClick to open", Color3.fromRGB(105, 255, 145), 40, UDim2.fromOffset(190, 60), Vector3.new(0, 7, 0))
 	VirusLabBuilder.PetEgg = egg
-
-	local headerSign = makePart(model, "SpawnLabHeader", Vector3.new(0.7, 5, 38), Vector3.new(cx - 148, FLOOR_Y + L.WallHeight - 7, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.SmoothPlastic, false)
-	label(headerSign, "MUTATION LAB", Color3.fromRGB(150, 255, 220), 75, UDim2.fromOffset(300, 54), Vector3.new(0, 0, 0))
 
 	-- ===== Hochwertiger Hub-Bereich rund um die Statue ===================
 	-- Saubere Struktur in eigenen Map-Ordnern. Laufweg (z um 0) bleibt frei:

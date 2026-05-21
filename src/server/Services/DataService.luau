@@ -94,6 +94,7 @@ export type Profile = {
 local DataService = {}
 
 local profiles: { [Player]: Profile } = {}
+local beforeProfileRemovedCallbacks: { (Player, Profile?) -> () } = {}
 
 local function getDefaultProfile(): Profile
 	return {
@@ -233,9 +234,19 @@ function DataService.setField(player: Player, key: string, value: any)
 	end
 end
 
+function DataService.onBeforeProfileRemoved(callback: (Player, Profile?) -> ())
+	table.insert(beforeProfileRemovedCallbacks, callback)
+end
+
 function DataService.start()
 	Players.PlayerAdded:Connect(loadProfile)
 	Players.PlayerRemoving:Connect(function(player)
+		for _, callback in ipairs(beforeProfileRemovedCallbacks) do
+			local ok, err = pcall(callback, player, profiles[player])
+			if not ok then
+				warn("[DataService] Before-remove callback failed: " .. tostring(err))
+			end
+		end
 		saveProfile(player)
 		profiles[player] = nil
 	end)
