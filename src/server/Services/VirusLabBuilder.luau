@@ -4052,8 +4052,10 @@ function VirusLabBuilder.build()
 			local stationX = hallX
 			local stationZ = L.EggZ
 			if area.index >= 2 then
-				stationX = hallX + L.GateOffsetX + (L.EnemySpacing * 3)
-				stationZ = BACTERIA_RIGHT_LIMIT_Z + 16
+				local entranceX = hallX + L.GateOffsetX
+				local rightSideWidth = CORRIDOR_MAX_Z - BACTERIA_RIGHT_LIMIT_Z
+				stationX = entranceX - (L.EnemySpacing + 12)
+				stationZ = BACTERIA_RIGHT_LIMIT_Z + math.min(30, rightSideWidth * 0.35)
 			end
 			buildEggStation(eggFolder, area.index, si, eggDef, Vector3.new(stationX, FLOOR_Y + 0.6, stationZ))
 		end
