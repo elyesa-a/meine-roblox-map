@@ -22,6 +22,7 @@ local RequestAutoFight = Remotes:WaitForChild("RequestAutoFight") :: RemoteEvent
 local AutoFightState = Remotes:WaitForChild("AutoFightState") :: RemoteEvent
 local AutoTrainingState = Remotes:WaitForChild("AutoTrainingState") :: RemoteEvent
 local EnemyUpdate = Remotes:WaitForChild("EnemyUpdate") :: RemoteEvent
+local CombatVisual = Remotes:WaitForChild("CombatVisual") :: RemoteEvent
 local ShowPopup = Remotes:WaitForChild("ShowPopup") :: RemoteEvent
 
 type EnemyState = {
@@ -64,6 +65,19 @@ local AUTO_FIGHT_RETRY_DELAY = 0.75
 local AUTO_FIGHT_MOVE_TIMEOUT = 14
 local AUTO_FIGHT_REPATH_INTERVAL = 0.8
 local getEnemyAccessPower: (EnemyState) -> number
+
+local function fireCombatVisual(action: string, player: Player?, state: EnemyState?, extra: { [string]: any }?)
+	if not player or not player.Parent or not state or not state.model.Parent then
+		return
+	end
+	local payload = extra or {}
+	payload.Action = action
+	payload.Player = player
+	payload.EnemyModel = state.model
+	payload.EnemyRoot = state.root
+	payload.EnemyId = state.def.Id
+	CombatVisual:FireAllClients(payload)
+end
 
 local function getMaxRequiredPowerBeforeX(folderName: string, targetX: number): number
 	local folder = Workspace:FindFirstChild(folderName)
@@ -358,6 +372,7 @@ end
 
 local function endBattle(state: EnemyState, message: string?)
 	local owner = state.battleOwner
+	fireCombatVisual("End", owner, state)
 	if owner and battlesByPlayer[owner] == state then
 		battlesByPlayer[owner] = nil
 		owner:SetAttribute("InCombat", false)
@@ -546,6 +561,7 @@ function EnemyService.attack(player: Player, state: EnemyState?)
 	state.health = math.max(0, state.health - damage)
 	spawnDamageNumber(state, damage)
 	playAttackBurst(state)
+	fireCombatVisual("Hit", player, state, { Damage = damage })
 	updateEnemy(state)
 	if state.health <= 0 then
 		defeatEnemy(player, state)
@@ -667,6 +683,7 @@ local function startBattle(player: Player, state: EnemyState, silent: boolean?):
 	if not silent then
 		ShowPopup:FireClient(player, "Battle started!")
 	end
+	fireCombatVisual("Start", player, state)
 	startEnemyChaseLoop(state, player, state.battleToken)
 	startEnemyAttackLoop(state, player, state.battleToken)
 	startPlayerAutoAttackLoop(state, player, state.battleToken)

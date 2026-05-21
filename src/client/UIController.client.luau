@@ -39,10 +39,12 @@ local PopupHandler = require(UI:WaitForChild("PopupHandler"))
 local ClickHandler = require(UI:WaitForChild("ClickHandler"))
 local SoundController = require(UI:WaitForChild("SoundController"))
 local TrainingPadVisuals = require(UI:WaitForChild("TrainingPadVisuals"))
+local CombatVisualController = require(UI:WaitForChild("CombatVisualController"))
 local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
 
 SoundController.start()
 TrainingPadVisuals.start()
+CombatVisualController.start()
 
 -- ScreenGui anlegen.
 local screen = Instance.new("ScreenGui")
