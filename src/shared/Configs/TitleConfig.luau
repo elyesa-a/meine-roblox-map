@@ -52,11 +52,11 @@ TitleConfig.Titles = {
 	{ id = "ImmortalDNA", displayName = "Immortal DNA", rarity = "Mythic", category = "Rebirth", unlockText = "Reach 100 Rebirths", color = TitleConfig.RarityColors.Mythic, bonus = { Dna = 0.05, Power = 0.03 }, condition = { kind = "Rebirth", value = 100 } },
 
 	{ id = "Shockborn", displayName = "Shockborn", rarity = "Rare", category = "Aura", unlockText = "Own Electric Aura", color = TitleConfig.RarityColors.Rare, bonus = { Power = 0.03 }, condition = { kind = "Aura", key = "Electric" } },
-	{ id = "FrostCore", displayName = "Frost Core", rarity = "Rare", category = "Aura", unlockText = "Own Blizzard Aura", color = TitleConfig.RarityColors.Rare, bonus = { Power = 0.03 }, condition = { kind = "Aura", key = "Blizzard" } },
+	{ id = "FrostCore", displayName = "Frost Core", rarity = "Rare", category = "Aura", unlockText = "Own Frost Aura", color = TitleConfig.RarityColors.Rare, bonus = { Power = 0.03 }, condition = { kind = "Aura", key = "Frost" } },
 	{ id = "ToxicSoul", displayName = "Toxic Soul", rarity = "Epic", category = "Aura", unlockText = "Own Poison Aura", color = TitleConfig.RarityColors.Epic, bonus = { Dna = 0.03 }, condition = { kind = "Aura", key = "Poison" } },
 	{ id = "MagmaBlood", displayName = "Magma Blood", rarity = "Epic", category = "Aura", unlockText = "Own Magma Aura", color = TitleConfig.RarityColors.Epic, bonus = { Power = 0.04 }, condition = { kind = "Aura", key = "Magma" } },
-	{ id = "GlitchedOne", displayName = "Glitched One", rarity = "Legendary", category = "Aura", unlockText = "Own Glitch Aura", color = TitleConfig.RarityColors.Legendary, bonus = { Luck = 0.04 }, condition = { kind = "Aura", key = "Glitch" } },
-	{ id = "RainbowEntity", displayName = "Rainbow Entity", rarity = "Mythic", category = "Aura", unlockText = "Own Rainbow Aura", color = TitleConfig.RarityColors.Mythic, bonus = { Luck = 0.05 }, condition = { kind = "Aura", key = "Rainbow" } },
+	{ id = "GlitchedOne", displayName = "Glitched One", rarity = "Legendary", category = "Aura", unlockText = "Own Glitch DNA Aura", color = TitleConfig.RarityColors.Legendary, bonus = { Luck = 0.04 }, condition = { kind = "Aura", key = "GlitchDna" } },
+	{ id = "RainbowEntity", displayName = "Rainbow Entity", rarity = "Mythic", category = "Aura", unlockText = "Own God Mutation Aura", color = TitleConfig.RarityColors.Mythic, bonus = { Luck = 0.05 }, condition = { kind = "Aura", key = "GodMutation" } },
 
 	-- Boss-Titel auf die neuen Area-Bosse (A<area>E10) abgebildet.
 	{ id = "BacteriaBreaker", displayName = "Bacteria Breaker", rarity = "Rare", category = "Boss", unlockText = "Defeat Bacteria Overlord", color = TitleConfig.RarityColors.Rare, bonus = { Dna = 0.02 }, condition = { kind = "Boss", key = "A1E10" } },

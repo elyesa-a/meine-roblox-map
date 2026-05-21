@@ -140,6 +140,36 @@ local function resetTemplate(displayName: string): Folder
 	return folder
 end
 
+local function colorSequenceFor(def): ColorSequence
+	if def.colorSequence then
+		return def.colorSequence
+	end
+	return ColorSequence.new(def.color, def.color:Lerp(Color3.fromRGB(245, 255, 245), 0.35))
+end
+
+local function buildGenericAuraTemplate(def)
+	local folder = resetTemplate(def.displayName)
+	local auraColor = colorSequenceFor(def)
+	local root = makeAttachmentTemplate(folder, def.id .. "Root", "HumanoidRootPart")
+	local rate = math.clamp(12 + def.requiredTier * 2, 14, 32)
+	local sizeStart = math.clamp(0.45 + def.requiredTier * 0.05, 0.5, 1.1)
+	local spark = makeEmitter(root, def.id .. "Particles", SPARKLE_TEXTURE, auraColor, rate, NumberRange.new(0.65, 1.35), NumberRange.new(1.2, 3.2), seq(sizeStart, 0.08), seq(0.14, 1), 0.65)
+	spark.Acceleration = Vector3.new(0, 0.6 + def.requiredTier * 0.12, 0)
+
+	if string.find(def.id, "Toxic") or string.find(def.id, "Venom") or string.find(def.id, "Plague") or string.find(def.id, "Corrupted") or string.find(def.id, "Dark") then
+		local torso = makeAttachmentTemplate(folder, def.id .. "Mist", "UpperTorso")
+		local mist = makeEmitter(torso, def.id .. "BioMist", SMOKE_TEXTURE, auraColor, math.clamp(5 + def.requiredTier, 6, 16), NumberRange.new(1.0, 1.8), NumberRange.new(0.5, 1.6), seq(1.1, 0.32), seq(0.55, 1), 0.22)
+		mist.Acceleration = Vector3.new(0, 1.1, 0)
+	end
+
+	if def.requiredTier >= 4 then
+		makeShardTemplate(folder, def.id .. "ShardA", def.color, Vector3.new(-2.0, 1.1, 0.25), Vector3.new(0.45, 0.45, 0.1))
+		makeShardTemplate(folder, def.id .. "ShardB", def.color:Lerp(Color3.fromRGB(255, 255, 255), 0.2), Vector3.new(1.9, 0.15, -0.35), Vector3.new(0.34, 0.66, 0.1))
+	end
+
+	makeLightTemplate(folder, def.color, math.clamp(0.35 + def.requiredTier * 0.05, 0.4, 0.9), math.clamp(8 + def.requiredTier * 0.45, 9, 13))
+end
+
 local function buildAuraEffectTemplates()
 	local electric = resetTemplate("Electric Aura")
 	do
@@ -228,6 +258,13 @@ local function buildAuraEffectTemplates()
 		makeEmitter(head, "RainbowHaloSpark", SPARKLE_TEXTURE, rainbowSeq, 12, NumberRange.new(0.75, 1.25), NumberRange.new(0.8, 1.8), seq(0.45, 0.05), seq(0.08, 1), 0.85)
 		makeLightTemplate(rainbow, Color3.fromRGB(255, 245, 170), 0.85, 12)
 	end
+
+	for _, def in ipairs(AuraConfig.Auras) do
+		local root = auraEffectsFolder or ReplicatedStorage:FindFirstChild(AURA_EFFECTS_FOLDER_NAME)
+		if not root or not root:FindFirstChild(def.displayName) then
+			buildGenericAuraTemplate(def)
+		end
+	end
 end
 
 local function markAuraInstance(instance: Instance)
@@ -286,6 +323,51 @@ local function getAuraTemplate(def): Folder?
 		return template
 	end
 	return nil
+end
+
+local function parseBossArea(bossId: string): number?
+	local areaText = string.match(bossId, "^A(%d+)E10$")
+	return areaText and tonumber(areaText) or nil
+end
+
+local function getHighestBossDefeated(profile): number
+	local highest = if type(profile.HighestBossDefeated) == "number" then profile.HighestBossDefeated else 0
+	if type(profile.BossDefeats) == "table" then
+		for bossId, count in pairs(profile.BossDefeats) do
+			if type(bossId) == "string" and type(count) == "number" and count > 0 then
+				local areaNumber = parseBossArea(bossId)
+				if areaNumber then
+					highest = math.max(highest, areaNumber)
+				end
+			end
+		end
+	end
+	return math.clamp(highest, 0, AuraConfig.MaxTier - 1)
+end
+
+local function getUnlockedAuraTier(profile): number
+	local highest = getHighestBossDefeated(profile)
+	if profile.HighestBossDefeated ~= highest then
+		profile.HighestBossDefeated = highest
+	end
+	return AuraConfig.getUnlockedTier(highest)
+end
+
+local function ownsAura(profile, def): boolean
+	if not profile.Auras then
+		return false
+	end
+	if profile.Auras[def.id] == true then
+		return true
+	end
+	if def.legacyIds then
+		for _, legacyId in ipairs(def.legacyIds) do
+			if profile.Auras[legacyId] == true then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 local function applyVFX(player: Player, auraId: string?)
@@ -403,12 +485,22 @@ function AuraService.buyAura(player: Player, auraId: string)
 	if profile.Auras[auraId] then
 		return -- schon gekauft
 	end
+	local unlockedTier = getUnlockedAuraTier(profile)
+	if def.requiredTier > unlockedTier then
+		ShowPopup:FireClient(player, AuraConfig.getLockedText(def))
+		return
+	end
+	if ownsAura(profile, def) then
+		profile.Auras[def.id] = true
+		StatService.broadcastProfile(player)
+		return
+	end
 	if profile.DnaCoins < def.priceDna then
 		ShowPopup:FireClient(player, "Not enough DNA!")
 		return
 	end
 	profile.DnaCoins -= def.priceDna
-	profile.Auras[auraId] = true
+	profile.Auras[def.id] = true
 	ShowPopup:FireClient(player, string.format("%s bought!", def.displayName))
 	if TitleService then
 		TitleService.evaluatePlayer(player)
@@ -431,16 +523,17 @@ function AuraService.equipAura(player: Player, auraId: string?)
 	if type(auraId) ~= "string" then
 		return
 	end
-	if not profile.Auras[auraId] then
-		ShowPopup:FireClient(player, "You do not own this aura!")
-		return
-	end
 	local def = AuraConfig.getById(auraId)
 	if not def then
 		return
 	end
-	profile.EquippedAura = auraId
-	applyVFX(player, auraId)
+	if not ownsAura(profile, def) then
+		ShowPopup:FireClient(player, "You do not own this aura!")
+		return
+	end
+	profile.Auras[def.id] = true
+	profile.EquippedAura = def.id
+	applyVFX(player, def.id)
 	if DailyQuestService then
 		DailyQuestService.record(player, "EquipAura", 1)
 	end

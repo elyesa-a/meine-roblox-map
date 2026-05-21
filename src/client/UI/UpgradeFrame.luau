@@ -38,6 +38,7 @@ local function makeCard(parent: ScrollingFrame, def): CardRefs
 	card.Size = UDim2.new(1, 0, 0, 118)
 	Theme.applyPanelStyle(card, LabTheme.Colors.Card)
 	LabTheme.styleCard(card, def.color)
+	LabTheme.bindHoverPopout(card, 1.018)
 	card.ZIndex = 7
 	card.Parent = parent
 
