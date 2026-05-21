@@ -2536,152 +2536,121 @@ end
 -- auf dunklem Stufensockel mit Metallrahmen. Bewusst clean + leicht
 -- bedrohlich (Resident-Evil-Biohazard-Look), kein Disco-Neon. Dient als
 -- klarer Mittelpunkt/Orientierung im Spawn, blockiert keinen Laufweg.
-local function buildVirusStatue(parent, center: Vector3, accent: Color3)
+-- Reihe von drei kleinen Specimen-Vitrinen. Ersetzt den alten klobigen
+-- Stufensockel + die 4 Monitore + die grosse Glas-Kuppel mit einer cleanen,
+-- bedrohlichen Ausstellung in Rot + Dunkelblau. Signatur bleibt
+-- (parent, center, accent) damit der bestehende Aufrufer unveraendert
+-- funktioniert; der accent-Parameter wird bewusst ignoriert.
+local function buildVirusStatue(parent, center: Vector3, _accent: Color3?)
 	local model = Instance.new("Model")
-	model.Name = "VirusStatue"
+	model.Name = "SpecimenRow"
 	model.Parent = parent
 
 	local cx, cz = center.X, center.Z
+	local SPACING = 18
 
-	-- Sauber eingebetteter Stufensockel: jede Stufe liegt mit klarer
-	-- Auflage auf der vorigen, die unterste ist im Boden VERSENKT
-	-- (Schnittkoerper, keine deckungsgleiche Flaeche -> kein Flackern,
-	-- nichts schwebt, nichts clippt unsauber).
-	local tiers = {
-		{ r = 30, h = 1.6, color = LAB_DARK }, -- breite Basis (im Boden verankert)
-		{ r = 23, h = 1.8, color = LAB_TRIM },
-		{ r = 17, h = 1.6, color = LAB_DARK },
+	-- Rote und dunkelblaue Specimen-Farben (kraftvoll, leicht toxisch,
+	-- nicht kitschig). Bewusst dunkel gewaehlt, damit der Neon-Kern strahlt.
+	local SPEC_RED = Color3.fromRGB(178, 42, 56)
+	local SPEC_BLUE = Color3.fromRGB(48, 70, 142)
+	local SPEC_HYBRID = SPEC_RED:Lerp(SPEC_BLUE, 0.55)
+	local DARK_BASE = Color3.fromRGB(16, 18, 22)
+	local DARK_METAL = Color3.fromRGB(30, 34, 42)
+
+	local specimens = {
+		{ name = "SPECIMEN A-04", sub = "CYANIC STRAIN",  main = SPEC_BLUE,   accent = SPEC_RED },
+		{ name = "SPECIMEN B-09", sub = "HEMATIC STRAIN", main = SPEC_RED,    accent = SPEC_BLUE },
+		{ name = "SPECIMEN C-17", sub = "HYBRID STRAIN",  main = SPEC_HYBRID, accent = SPEC_BLUE },
 	}
-	local y = FLOOR_Y - 0.6 -- Unterkante der Basis tief im Boden
-	local pedTop = y
-	for i, t in ipairs(tiers) do
-		local tier = makePart(model, "StatuePedestal" .. i, Vector3.new(t.h, t.r, t.r), Vector3.new(cx, y + t.h / 2, cz), t.color, Enum.Material.Metal, true)
-		tier.Shape = Enum.PartType.Cylinder
-		tier.Orientation = Vector3.new(0, 0, 90)
-		pedTop = y + t.h
-		y = pedTop -- naechste Stufe sitzt buendig oben drauf
-	end
-	-- Schmaler Warn-Rand bündig auf der Basis-Oberkante (eine Ebene, kein
-	-- versenkter Disc mehr -> kein Z-Fighting).
-	local rim = makePart(model, "StatueHazardRim", Vector3.new(0.18, 31, 31), Vector3.new(cx, FLOOR_Y - 0.6 + 1.6 + 0.09, cz), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false)
-	rim.Shape = Enum.PartType.Cylinder
-	rim.Orientation = Vector3.new(0, 0, 90)
-	rim.Transparency = 0.4
-	makePart(model, "StatuePedestalInlay", Vector3.new(0.16, 14, 14), Vector3.new(cx, pedTop + 0.09, cz), tint(LAB_PANEL, accent, 0.25), Enum.Material.SmoothPlastic, false).Shape = Enum.PartType.Cylinder
 
-	-- Vier gruene Status-Lichter rund um den Sockel.
-	for i = 0, 3 do
-		local a = i * math.pi / 2 + math.pi / 4
-		local lx = cx + math.cos(a) * 13
-		local lz = cz + math.sin(a) * 13
-		makePart(model, "StatusLightGreen", Vector3.new(0.9, 0.9, 0.9), Vector3.new(lx, pedTop + 0.5, lz), LAB_GREEN, Enum.Material.Neon, false).Shape = Enum.PartType.Ball
-	end
+	for i, spec in ipairs(specimens) do
+		local sx = cx + (i - 2) * SPACING
 
-	-- 4 kleine Forschungs-Terminals/Monitore rund um den Sockel (Vorgabe:
-	-- "3-4 kleine Terminals/Monitore um die Statue"). Schirme nach aussen.
-	for i = 0, 3 do
-		local a = i * math.pi / 2 + math.pi / 4
-		local tx = cx + math.cos(a) * 22
-		local tz = cz + math.sin(a) * 22
-		local cYb = FLOOR_Y + 2.4
-		local body = makePart(model, "StatueTerminal", Vector3.new(4.4, 5.4, 2.4), Vector3.new(tx, cYb, tz), Color3.fromRGB(44, 50, 52), Enum.Material.Metal, true)
-		body.CFrame = CFrame.new(Vector3.new(tx, cYb, tz), Vector3.new(cx, cYb, cz))
-		local screen = makePart(model, "StatueTerminalScreen", Vector3.new(3.4, 2.6, 0.2), body.Position, tint(accent, Color3.fromRGB(70, 92, 86), 0.4), Enum.Material.Neon, false)
-		screen.CFrame = body.CFrame * CFrame.new(0, 0.7, -1.25)
-		screen.Transparency = 0.12
-		label(screen, (({ "DNA SCAN", "VITALS", "GENOME", "CONTAINMENT" })[i + 1]), Color3.fromRGB(225, 245, 235), 26, UDim2.fromOffset(96, 30), Vector3.new(0, 0, 0))
-	end
+		-- Kleiner dunkler Sockel (eine einzige flache Cylinder-Disc,
+		-- ~1.5 Studs hoch, 8 Studs Durchmesser). Kein weisser Block,
+		-- kein klobiger Stufensockel, kein Warn-Rand. Bottom leicht im
+		-- Boden versenkt -> kein Z-Fighting.
+		local pedestal = makePart(model, "SpecimenPedestal_" .. i, Vector3.new(1.6, 8, 8), Vector3.new(sx, FLOOR_Y + 0.7, cz), DARK_BASE, Enum.Material.Metal, true)
+		pedestal.Shape = Enum.PartType.Cylinder
+		pedestal.Orientation = Vector3.new(0, 0, 90)
+		-- Dezenter farbiger Akzent-Ring oben am Sockel (kein Yellow-Warn).
+		local accentRing = makePart(model, "SpecimenPedestalRim_" .. i, Vector3.new(0.14, 8.2, 8.2), Vector3.new(sx, FLOOR_Y + 1.55, cz), spec.main, Enum.Material.Neon, false)
+		accentRing.Shape = Enum.PartType.Cylinder
+		accentRing.Orientation = Vector3.new(0, 0, 90)
+		accentRing.Transparency = 0.4
 
-	-- Glas-Containment-Kuppel + Rahmen.
-	local domeY = pedTop + 12
-	local glassBaseRing = makePart(model, "DomeBaseRing", Vector3.new(1.4, 24, 24), Vector3.new(cx, pedTop + 0.7, cz), LAB_DARK, Enum.Material.Metal, true)
-	glassBaseRing.Shape = Enum.PartType.Cylinder
-	glassBaseRing.Orientation = Vector3.new(0, 0, 90)
-	local dome = makePart(model, "ContainmentDome", Vector3.new(22, 26, 22), Vector3.new(cx, domeY, cz), tint(LAB_CYAN, Color3.fromRGB(210, 224, 220), 0.5), Enum.Material.Glass, false)
-	dome.Shape = Enum.PartType.Ball
-	dome.Transparency = 0.74
-	for i = 0, 3 do
-		local a = i * math.pi / 2
-		local sx = cx + math.cos(a) * 11
-		local sz = cz + math.sin(a) * 11
-		makePart(model, "DomeStrut", Vector3.new(0.7, 25, 0.7), Vector3.new(sx, pedTop + 12, sz), LAB_TRIM, Enum.Material.Metal, true)
-	end
-	local topRing = makePart(model, "DomeTopRing", Vector3.new(1.4, 7, 7), Vector3.new(cx, pedTop + 24.5, cz), LAB_DARK, Enum.Material.Metal, true)
-	topRing.Shape = Enum.PartType.Cylinder
-	topRing.Orientation = Vector3.new(0, 0, 90)
-	makePart(model, "DomeStatusLamp", Vector3.new(1, 1, 1), Vector3.new(cx, pedTop + 25.6, cz), LAB_GREEN, Enum.Material.Neon, false).Shape = Enum.PartType.Ball
+		-- Schlanke Glas-Vitrine (vertikaler Cylinder ~10 Studs hoch,
+		-- 6 Studs Durchmesser). Tinted in der Specimen-Farbe.
+		local glass = makePart(model, "SpecimenVitrine_" .. i, Vector3.new(10, 6, 6), Vector3.new(sx, FLOOR_Y + 6.7, cz), tint(spec.main, Color3.fromRGB(150, 158, 170), 0.55), Enum.Material.Glass, false)
+		glass.Shape = Enum.PartType.Cylinder
+		glass.Orientation = Vector3.new(0, 0, 90)
+		glass.Transparency = 0.58
 
-	-- Die Virus-Probe: Kapsid + Spike-Proteine + leuchtender Kern.
-	local virusY = domeY
-	local shell = makePart(model, "VirusCapsid", Vector3.new(8.4, 8.4, 8.4), Vector3.new(cx, virusY, cz), tint(accent, LAB_OLIVE, 0.35), Enum.Material.Glass, false)
-	shell.Shape = Enum.PartType.Ball
-	shell.Transparency = 0.34
-	local coreBall = makePart(model, "VirusInnerCore", Vector3.new(4.6, 4.6, 4.6), Vector3.new(cx, virusY, cz), tint(accent, Color3.fromRGB(225, 235, 220), 0.25), Enum.Material.Neon, false)
-	coreBall.Shape = Enum.PartType.Ball
-	coreBall.Transparency = 0.15
-	local vlight = Instance.new("PointLight")
-	vlight.Brightness = 0.7
-	vlight.Range = 18
-	vlight.Color = tint(accent, Color3.fromRGB(210, 230, 210), 0.5)
-	vlight.Parent = coreBall
+		-- Bottom- und Top-Cap (Metall).
+		local botCap = makePart(model, "SpecimenVitrineBot_" .. i, Vector3.new(0.6, 6.6, 6.6), Vector3.new(sx, FLOOR_Y + 1.7, cz), DARK_METAL, Enum.Material.Metal, true)
+		botCap.Shape = Enum.PartType.Cylinder
+		botCap.Orientation = Vector3.new(0, 0, 90)
+		local topCap = makePart(model, "SpecimenVitrineTop_" .. i, Vector3.new(0.6, 6.6, 6.6), Vector3.new(sx, FLOOR_Y + 11.7, cz), DARK_METAL, Enum.Material.Metal, true)
+		topCap.Shape = Enum.PartType.Cylinder
+		topCap.Orientation = Vector3.new(0, 0, 90)
+		-- Top-Lampe der Vitrine (schmaler Neon-Punkt in der Specimen-Farbe).
+		local topLamp = makePart(model, "SpecimenVitrineLamp_" .. i, Vector3.new(0.9, 0.9, 0.9), Vector3.new(sx, FLOOR_Y + 12.2, cz), spec.main, Enum.Material.Neon, false)
+		topLamp.Shape = Enum.PartType.Ball
+		topLamp.Transparency = 0.18
 
-	-- Spike-Proteine (ikosaedrisch verteilt, Stiel + Knopf).
-	local dirs = {
-		Vector3.new(0, 1, 0), Vector3.new(0, -1, 0),
-		Vector3.new(1, 0.5, 0), Vector3.new(-1, 0.5, 0),
-		Vector3.new(0, 0.5, 1), Vector3.new(0, 0.5, -1),
-		Vector3.new(1, -0.4, 1), Vector3.new(-1, -0.4, 1),
-		Vector3.new(1, -0.4, -1), Vector3.new(-1, -0.4, -1),
-		Vector3.new(0.8, 0.9, 0.8), Vector3.new(-0.8, 0.9, -0.8),
-		Vector3.new(0.8, 0.9, -0.8), Vector3.new(-0.8, 0.9, 0.8),
-		Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0),
-		Vector3.new(0, 0, 1), Vector3.new(0, 0, -1),
-	}
-	for _, d in ipairs(dirs) do
-		local u = d.Unit
-		local stalkPos = Vector3.new(cx, virusY, cz) + u * 5.4
-		local stalk = makePart(model, "VirusSpike", Vector3.new(0.6, 3.2, 0.6), stalkPos, tint(accent, LAB_TRIM, 0.3), Enum.Material.SmoothPlastic, false)
-		-- Up-Vektor wechseln, falls Richtung ~ senkrecht (sonst NaN-CFrame).
-		local up = if math.abs(u.Y) > 0.99 then Vector3.new(0, 0, 1) else Vector3.new(0, 1, 0)
-		stalk.CFrame = CFrame.lookAt(stalkPos, stalkPos + u, up) * CFrame.Angles(math.rad(90), 0, 0)
-		local knob = makePart(model, "VirusSpikeTip", Vector3.new(1.5, 1.5, 1.5), Vector3.new(cx, virusY, cz) + u * 7.2, tint(accent, Color3.fromRGB(220, 228, 218), 0.4), Enum.Material.SmoothPlastic, false)
-		knob.Shape = Enum.PartType.Ball
-	end
-
-	-- Dezente DNA-Doppelhelix, die durch die Probe steigt (Labor-Detail).
-	for i = 0, 16 do
-		local t = i / 16 * math.pi * 3
-		local hy = virusY - 7 + i * (14 / 16)
-		for _, sgn in ipairs({ 1, -1 }) do
-			local node = makePart(model, "StatueHelixNode", Vector3.new(0.7, 0.7, 0.7), Vector3.new(cx + sgn * math.cos(t) * 2.4, hy, cz + sgn * math.sin(t) * 2.4), tint(LAB_CYAN, accent, (i % 2)), Enum.Material.Neon, false)
-			node.Shape = Enum.PartType.Ball
-			node.Transparency = 0.2
+		-- Vier dünne dunkle Streben an den Ecken der Vitrine.
+		for j = 0, 3 do
+			local a = j * math.pi / 2 + math.pi / 4
+			local stx = sx + math.cos(a) * 3.4
+			local stz = cz + math.sin(a) * 3.4
+			makePart(model, "SpecimenStrut_" .. i .. "_" .. j, Vector3.new(0.4, 10, 0.4), Vector3.new(stx, FLOOR_Y + 6.7, stz), DARK_METAL, Enum.Material.Metal, true)
 		end
-		if i % 2 == 0 then
-			local rung = makePart(model, "StatueHelixRung", Vector3.new(0.28, 0.28, 4.8), Vector3.new(cx, hy, cz), tint(accent, LAB_OLIVE, 0.4), Enum.Material.Neon, false)
-			rung.CFrame = CFrame.new(cx, hy, cz) * CFrame.Angles(0, t, 0)
-			rung.Transparency = 0.3
+
+		-- Das eigentliche Specimen: Capsid-Hülle + Neon-Kern + Spikes.
+		local specY = FLOOR_Y + 6.7
+		local capsid = makePart(model, "SpecimenCapsid_" .. i, Vector3.new(3.6, 3.6, 3.6), Vector3.new(sx, specY, cz), tint(spec.main, DARK_BASE, 0.3), Enum.Material.Glass, false)
+		capsid.Shape = Enum.PartType.Ball
+		capsid.Transparency = 0.30
+		local innerCore = makePart(model, "SpecimenCore_" .. i, Vector3.new(2, 2, 2), Vector3.new(sx, specY, cz), spec.main, Enum.Material.Neon, false)
+		innerCore.Shape = Enum.PartType.Ball
+		innerCore.Transparency = 0.12
+		local coreLight = Instance.new("PointLight")
+		coreLight.Brightness = 0.65
+		coreLight.Range = 11
+		coreLight.Color = spec.main
+		coreLight.Parent = innerCore
+
+		-- 10 Spike-Proteine: Stiel + Knopf, ikosaedrisch verteilt.
+		local spikeDirs = {
+			Vector3.new(0, 1, 0), Vector3.new(0, -1, 0),
+			Vector3.new(1, 0.4, 0), Vector3.new(-1, 0.4, 0),
+			Vector3.new(0, 0.4, 1), Vector3.new(0, 0.4, -1),
+			Vector3.new(1, -0.4, 1), Vector3.new(-1, -0.4, 1),
+			Vector3.new(1, -0.4, -1), Vector3.new(-1, -0.4, -1),
+		}
+		for k, d in ipairs(spikeDirs) do
+			local u = d.Unit
+			local stalkPos = Vector3.new(sx, specY, cz) + u * 2.4
+			local stalk = makePart(model, "SpecimenSpike_" .. i .. "_" .. k, Vector3.new(0.34, 1.4, 0.34), stalkPos, tint(spec.main, DARK_METAL, 0.4), Enum.Material.SmoothPlastic, false)
+			local up = if math.abs(u.Y) > 0.99 then Vector3.new(0, 0, 1) else Vector3.new(0, 1, 0)
+			stalk.CFrame = CFrame.lookAt(stalkPos, stalkPos + u, up) * CFrame.Angles(math.rad(90), 0, 0)
+			local knob = makePart(model, "SpecimenSpikeTip_" .. i .. "_" .. k, Vector3.new(0.6, 0.6, 0.6), Vector3.new(sx, specY, cz) + u * 3.2, spec.accent, Enum.Material.Neon, false)
+			knob.Shape = Enum.PartType.Ball
+			knob.Transparency = 0.18
 		end
+
+		-- Schmale Plakette an der Vorderseite (Richtung Spieler, +Z).
+		local plaqueZ = cz + 5.4
+		local plaqueStand = makePart(model, "SpecimenPlaqueStand_" .. i, Vector3.new(0.5, 2.0, 0.5), Vector3.new(sx, FLOOR_Y + 1.3, plaqueZ), DARK_METAL, Enum.Material.Metal, true)
+		local plaque = makePart(model, "SpecimenPlaque_" .. i, Vector3.new(7, 2.0, 0.3), Vector3.new(sx, FLOOR_Y + 2.6, plaqueZ + 0.1), Color3.fromRGB(12, 14, 18), Enum.Material.Metal, false)
+		label(plaque, spec.name .. "\n" .. spec.sub, spec.main:Lerp(Color3.fromRGB(238, 246, 240), 0.5), 30, UDim2.fromOffset(150, 40), Vector3.new(0, 0, 0))
+
+		-- Ein zarter Bodenschatten-Glow direkt unter dem Sockel.
+		local underGlow = makePart(model, "SpecimenUnderGlow_" .. i, Vector3.new(0.08, 9.5, 9.5), Vector3.new(sx, FLOOR_Y + 0.06, cz), spec.main, Enum.Material.Neon, false)
+		underGlow.Shape = Enum.PartType.Cylinder
+		underGlow.Orientation = Vector3.new(0, 0, 90)
+		underGlow.Transparency = 0.78
 	end
-
-	-- Sehr dezente "lebende Probe"-Partikel (kein Spam).
-	local spore = Instance.new("ParticleEmitter")
-	spore.Name = "SpecimenSpores"
-	spore.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-	spore.Color = ColorSequence.new(tint(accent, LAB_OLIVE, 0.3), accent)
-	spore.LightEmission = 0.1
-	spore.Rate = 1.5
-	spore.Lifetime = NumberRange.new(1.4, 2.2)
-	spore.Speed = NumberRange.new(0.4, 1)
-	spore.SpreadAngle = Vector2.new(40, 40)
-	spore.Size = NumberSequence.new(0.3, 0.04)
-	spore.Parent = coreBall
-
-	-- Biohazard-Plakette auf Standfuss (Richtung Laufweg/Spieler, +Z).
-	local plaqueZ = cz + 23
-	makePart(model, "PlaqueStand", Vector3.new(1.4, 5.6, 1.4), Vector3.new(cx, FLOOR_Y + 2.4, plaqueZ), LAB_DARK, Enum.Material.Metal, true)
-	local plaque = makePart(model, "StatuePlaque", Vector3.new(14, 4.6, 0.5), Vector3.new(cx, FLOOR_Y + 6.6, plaqueZ), Color3.fromRGB(34, 38, 38), Enum.Material.Metal, false)
-	label(plaque, "SPECIMEN VIRUS-01\n⚠ BIOHAZARD — CONTAINED", tint(accent, Color3.fromRGB(220, 230, 210), 0.45), 60, UDim2.fromOffset(240, 60), Vector3.new(0, 0, 0))
 
 	return model
 end
