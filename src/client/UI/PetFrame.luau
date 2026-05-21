@@ -55,7 +55,7 @@ type Refs = {
 }
 
 local PET_CARD_SIZE = Vector2.new(136, 104)
-local EGG_CARD_SIZE = Vector2.new(158, 72)
+local EGG_CARD_SIZE = Vector2.new(332, 96)
 local LAB_BASE = Color3.fromRGB(10, 14, 22)
 local LAB_PANEL = Color3.fromRGB(18, 24, 35)
 local LAB_PANEL_2 = Color3.fromRGB(25, 32, 46)
@@ -114,19 +114,25 @@ end
 
 local function eggRequirementText(egg): string
 	local parts = {}
+	if egg.requiredBossDefeated and egg.requiredBossDefeated > 0 then
+		table.insert(parts, "Beat Area " .. tostring(egg.requiredBossDefeated) .. " Boss")
+	end
 	if egg.requiredPower and egg.requiredPower > 0 then
 		table.insert(parts, NumberFormatter.format(egg.requiredPower) .. " PWR")
 	end
 	if egg.requiredRebirth and egg.requiredRebirth > 0 then
 		table.insert(parts, "Rebirth " .. tostring(egg.requiredRebirth))
 	end
-	return if #parts > 0 then table.concat(parts, " + ") else "Unlocked"
+	return if #parts > 0 then table.concat(parts, " + ") else ""
 end
 
 local function canAccessEgg(state, egg): boolean
 	local power = state.Power or 0
 	local rebirths = state.Rebirths or 0
-	return power >= (egg.requiredPower or 0) and rebirths >= (egg.requiredRebirth or 0)
+	local highestBossDefeated = state.HighestBossDefeated or 0
+	return power >= (egg.requiredPower or 0)
+		and rebirths >= (egg.requiredRebirth or 0)
+		and highestBossDefeated >= (egg.requiredBossDefeated or 0)
 end
 
 local function rarityChanceText(): string
@@ -205,17 +211,19 @@ local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): Tex
 	card.Parent = parent
 	restyleStroke(card, if selected then LAB_STROKE else (if unlocked then LAB_STROKE_DARK else Color3.fromRGB(60, 70, 85)), if selected then 2 else 1.25, if selected then 0.12 else 0.45)
 
-	makeSmallLabel(card, egg.tier .. " Egg", UDim2.new(0, 6, 0, 5), UDim2.new(1, -12, 0, 18), 12, titleColor)
-	local area = makeSmallLabel(card, egg.areaDisplayName, UDim2.new(0, 6, 0, 23), UDim2.new(1, -12, 0, 16), 11)
+	local title = makeSmallLabel(card, egg.displayName, UDim2.new(0, 8, 0, 6), UDim2.new(1, -16, 0, 32), 14, titleColor)
+	title.TextWrapped = true
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	local area = makeSmallLabel(card, egg.areaDisplayName, UDim2.new(0, 8, 0, 41), UDim2.new(1, -16, 0, 16), 11)
 	area.TextColor3 = if unlocked then TEXT_SECONDARY else TEXT_MUTED
 	area.TextXAlignment = Enum.TextXAlignment.Left
-	local cost = makeSmallLabel(card, NumberFormatter.format(egg.cost) .. " DNA", UDim2.new(0, 6, 0, 41), UDim2.new(1, -12, 0, 14), 11, REWARD_GOLD)
+	local cost = makeSmallLabel(card, NumberFormatter.format(egg.cost) .. " DNA", UDim2.new(0, 8, 0, 60), UDim2.new(1, -16, 0, 14), 11, REWARD_GOLD)
 	cost.TextXAlignment = Enum.TextXAlignment.Left
 	local status = makeSmallLabel(
 		card,
 		if unlocked then (if selected then "SELECTED" else "OPEN") else "LOCKED",
-		UDim2.new(0, 6, 0, 56),
-		UDim2.new(1, -12, 0, 13),
+		UDim2.new(0, 8, 0, 76),
+		UDim2.new(1, -16, 0, 14),
 		10,
 		if unlocked then DNA_GREEN else DANGER_RED
 	)
@@ -692,9 +700,11 @@ function PetFrame.update(refs: Refs, state)
 	if selectedEgg then
 		local unlocked = canAccessEgg(state, selectedEgg)
 		local enoughDna = (state.DnaCoins or 0) >= selectedEgg.cost
+		local requirement = eggRequirementText(selectedEgg)
 		refs.eggNameLabel.Text = selectedEgg.displayName
 		refs.eggNameLabel.TextColor3 = selectedEgg.color
-		refs.eggReqLabel.Text = "Requirement: " .. eggRequirementText(selectedEgg)
+		refs.eggReqLabel.Visible = requirement ~= ""
+		refs.eggReqLabel.Text = if requirement ~= "" then "Requirement: " .. requirement else ""
 		refs.eggCostLabel.Text = "Cost: " .. NumberFormatter.format(selectedEgg.cost) .. " DNA"
 		refs.hatchButton.Text = if unlocked then (if enoughDna then "HATCH" else "NEED DNA") else "LOCKED"
 		refs.hatchButton.BackgroundColor3 = if unlocked and enoughDna then DNA_GREEN else DANGER_RED
@@ -705,8 +715,8 @@ function PetFrame.update(refs: Refs, state)
 			child:Destroy()
 		end
 	end
-	for _, egg in ipairs(getSortedEggs()) do
-		buildEggCard(refs.eggScroll, refs, egg, state)
+	if selectedEgg then
+		buildEggCard(refs.eggScroll, refs, selectedEgg, state)
 	end
 
 	local petCount = 0
