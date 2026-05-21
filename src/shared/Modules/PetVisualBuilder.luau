@@ -94,6 +94,8 @@ local function makePalette(rarity: string, tier: string?)
 end
 
 -- Standard-Augenpaar nach vorne (-Z = nach vorn im PrimaryPart-Frame).
+-- Jetzt mit Highlight-Sparkle und kleinem Smile-Mund -> deutlich
+-- charmantere Gesichter, ohne dass jeder Archetyp eigene Geometrie braucht.
 local function addEyes(parent: Instance, head: Vector3, radius: number, eyeColor: Color3?)
 	local eyeC = eyeColor or Color3.fromRGB(248, 252, 252)
 	local pupilC = Color3.fromRGB(10, 13, 18)
@@ -101,36 +103,46 @@ local function addEyes(parent: Instance, head: Vector3, radius: number, eyeColor
 	local upY = radius * 0.25
 	local front = -radius * 0.84
 	local frontPupil = -radius * 0.95
+	local frontHilite = -radius * 1.02
 	local sizeEye = Vector3.new(radius * 0.36, radius * 0.36, radius * 0.18)
 	local sizePup = Vector3.new(radius * 0.16, radius * 0.16, radius * 0.10)
-	makePart(parent, "EyeL", {
-		Shape = Enum.PartType.Ball,
-		Size = sizeEye,
-		Color = eyeC,
-		Material = Enum.Material.SmoothPlastic,
-		CFrame = CFrame.new(head + Vector3.new(-sideX, upY, front)),
-	})
-	makePart(parent, "EyeR", {
-		Shape = Enum.PartType.Ball,
-		Size = sizeEye,
-		Color = eyeC,
-		Material = Enum.Material.SmoothPlastic,
-		CFrame = CFrame.new(head + Vector3.new(sideX, upY, front)),
-	})
-	makePart(parent, "PupL", {
-		Shape = Enum.PartType.Ball,
-		Size = sizePup,
-		Color = pupilC,
-		Material = Enum.Material.SmoothPlastic,
-		CFrame = CFrame.new(head + Vector3.new(-sideX, upY, frontPupil)),
-	})
-	makePart(parent, "PupR", {
-		Shape = Enum.PartType.Ball,
-		Size = sizePup,
-		Color = pupilC,
-		Material = Enum.Material.SmoothPlastic,
-		CFrame = CFrame.new(head + Vector3.new(sideX, upY, frontPupil)),
-	})
+	local sizeHi = Vector3.new(radius * 0.08, radius * 0.08, radius * 0.06)
+	for _, side in ipairs({ -1, 1 }) do
+		makePart(parent, "Eye_" .. side, {
+			Shape = Enum.PartType.Ball,
+			Size = sizeEye,
+			Color = eyeC,
+			Material = Enum.Material.SmoothPlastic,
+			CFrame = CFrame.new(head + Vector3.new(side * sideX, upY, front)),
+		})
+		makePart(parent, "Pup_" .. side, {
+			Shape = Enum.PartType.Ball,
+			Size = sizePup,
+			Color = pupilC,
+			Material = Enum.Material.SmoothPlastic,
+			CFrame = CFrame.new(head + Vector3.new(side * sideX, upY, frontPupil)),
+		})
+		-- Mini-Highlight-Funken im Auge -> "lebt".
+		makePart(parent, "EyeHilite_" .. side, {
+			Shape = Enum.PartType.Ball,
+			Size = sizeHi,
+			Color = Color3.fromRGB(255, 255, 255),
+			Material = Enum.Material.Neon,
+			CFrame = CFrame.new(head + Vector3.new(side * sideX + radius * 0.06, upY + radius * 0.06, frontHilite)),
+		})
+	end
+	-- Sanfter Smile: drei kleine flache Balls leicht versetzt = Bogen.
+	local mouthY = head.Y - radius * 0.30
+	for i = -1, 1 do
+		local sag = radius * (0.04 - math.abs(i) * 0.03)
+		makePart(parent, "Mouth_" .. (i + 2), {
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(radius * 0.12, radius * 0.10, radius * 0.06),
+			Color = Color3.fromRGB(54, 36, 38),
+			Material = Enum.Material.SmoothPlastic,
+			CFrame = CFrame.new(head + Vector3.new(i * radius * 0.18, mouthY - sag, -radius * 0.95)),
+		})
+	end
 end
 
 -- =====================================================================
@@ -512,9 +524,32 @@ end
 
 -- =====================================================================
 -- RARITY-LAYERS: stapeln cumulative Glanz-Elemente auf den Archetyp.
+-- Die drei Haupt-Raritaeten Common/Rare/Epic sind bewusst stark differen-
+-- ziert: Common = sauberer Soft-Glow, Rare = Funken + Orbiter + Antennen,
+-- Epic = Crown-Ring + Doppel-Aura + starkes Licht.
 -- =====================================================================
 local function applyRarityLayers(model: Model, core: Part, rarity: string, palette, scale: number)
 	local rank = RarityRank[rarity] or 1
+
+	-- COMMON-Layer (rank 1): weicher Glow-Halo + leise PointLight, damit
+	-- selbst Basic-Pets nicht "nackt" wirken. Bewusst minimal, damit der
+	-- Sprung zu Rare/Epic spuerbar bleibt.
+	if rank >= 1 then
+		makePart(model, "SoftHalo", {
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(1.45 * scale, 0.45 * scale, 1.45 * scale),
+			Color = palette.glow,
+			Material = Enum.Material.Neon,
+			Transparency = 0.82,
+			CFrame = CFrame.new(0, -0.85 * scale, 0),
+		})
+		local softLight = Instance.new("PointLight")
+		softLight.Name = "RarityLight"
+		softLight.Color = palette.glow
+		softLight.Brightness = 0.22
+		softLight.Range = 6
+		softLight.Parent = core
+	end
 
 	-- Uncommon+: zwei Antennen mit Glow-Spitzen (klare Silhouette-Aenderung).
 	if rank >= 2 then
@@ -536,7 +571,8 @@ local function applyRarityLayers(model: Model, core: Part, rarity: string, palet
 		end
 	end
 
-	-- Rare+: zwei Orbiter um den Koerper.
+	-- RARE+ (rank 3): Orbiter + Akzent-Stripe + dezente Funken-Spur. Das
+	-- macht den Sprung "boah, deutlich cooler" beim Reveal sichtbar.
 	if rank >= 3 then
 		for i = 1, 2 do
 			local a = (i - 1) * math.pi + math.pi / 4
@@ -549,9 +585,43 @@ local function applyRarityLayers(model: Model, core: Part, rarity: string, palet
 				CFrame = CFrame.new(math.cos(a) * 1.45 * scale, 0.35 * scale, math.sin(a) * 1.45 * scale),
 			})
 		end
+		-- Stirn-Akzent-Streifen (kleines DNA-Mark).
+		makePart(model, "RareCrest", {
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(0.55 * scale, 0.18 * scale, 0.18 * scale),
+			Color = palette.accent,
+			Material = Enum.Material.Neon,
+			Transparency = 0.05,
+			CFrame = CFrame.new(0, 0.55 * scale, -0.92 * scale),
+		})
+		-- Funken-Trail.
+		local trail = Instance.new("ParticleEmitter")
+		trail.Name = "RarePetTrail"
+		trail.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		trail.Color = ColorSequence.new(palette.accent, palette.soft)
+		trail.LightEmission = 0.55
+		trail.LightInfluence = 0
+		trail.Rate = 4
+		trail.Lifetime = NumberRange.new(0.5, 0.9)
+		trail.Speed = NumberRange.new(0.2, 0.6)
+		trail.SpreadAngle = Vector2.new(45, 45)
+		trail.Size = NumberSequence.new(0.22, 0.02)
+		trail.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.35),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		trail.Parent = core
+		-- Licht etwas hochziehen.
+		local light = core:FindFirstChild("RarityLight")
+		if light and light:IsA("PointLight") then
+			light.Brightness = 0.55
+			light.Range = 10
+			light.Color = palette.accent
+		end
 	end
 
-	-- Epic+: Trim-Platten + weiches Point-Light.
+	-- EPIC+ (rank 4): Crown-Ring + Trim-Platten + zweites Light + zwei
+	-- Partikel-Schichten. Das ist DER Hingucker-Layer.
 	if rank >= 4 then
 		for i = 1, 3 do
 			local a = (i - 1) * math.pi * 2 / 3 + math.rad(30)
@@ -564,12 +634,63 @@ local function applyRarityLayers(model: Model, core: Part, rarity: string, palet
 					* CFrame.Angles(0, -a + math.rad(90), 0),
 			})
 		end
-		local light = Instance.new("PointLight")
-		light.Name = "RarityLight"
-		light.Color = palette.main
-		light.Brightness = 0.55
-		light.Range = 9
-		light.Parent = core
+		-- Crown-Ring: 8 schwebende Glow-Kugeln formen einen Halo ueber dem
+		-- Kopf -> sofort als "Epic" lesbar, auch ohne Partikel-Last.
+		for i = 1, 8 do
+			local a = (i - 1) * math.pi * 2 / 8
+			makePart(model, "CrownRingOrb" .. i, {
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(0.18 * scale, 0.18 * scale, 0.18 * scale),
+				Color = palette.glow,
+				Material = Enum.Material.Neon,
+				Transparency = 0.12,
+				CFrame = CFrame.new(math.cos(a) * 0.95 * scale, 1.45 * scale, math.sin(a) * 0.95 * scale),
+			})
+		end
+		makePart(model, "CrownRing", {
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.06 * scale, 1.95 * scale, 1.95 * scale),
+			Color = palette.accent,
+			Material = Enum.Material.Neon,
+			Transparency = 0.45,
+			CFrame = CFrame.new(0, 1.45 * scale, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		})
+		-- Hauptlicht hochziehen + zweites Akzent-Light.
+		local light = core:FindFirstChild("RarityLight")
+		if light and light:IsA("PointLight") then
+			light.Brightness = 1.1
+			light.Range = 14
+			light.Color = palette.accent
+		end
+		local crownLight = Instance.new("PointLight")
+		crownLight.Name = "CrownLight"
+		crownLight.Color = palette.glow
+		crownLight.Brightness = 0.7
+		crownLight.Range = 11
+		crownLight.Parent = core
+		-- Aussere Aura (langsam, breit) zusaetzlich zum Rare-Trail.
+		local aura = Instance.new("ParticleEmitter")
+		aura.Name = "EpicPetAura"
+		aura.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		aura.Color = ColorSequence.new(palette.glow, palette.accent)
+		aura.LightEmission = 0.7
+		aura.LightInfluence = 0
+		aura.Rate = 9
+		aura.Lifetime = NumberRange.new(0.9, 1.4)
+		aura.Speed = NumberRange.new(0.4, 1.0)
+		aura.SpreadAngle = Vector2.new(80, 80)
+		aura.Size = NumberSequence.new(0.32, 0.02)
+		aura.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		aura.Parent = core
+		-- Innere Rare-Trail-Spur etwas intensivieren.
+		local trail = core:FindFirstChild("RarePetTrail")
+		if trail and trail:IsA("ParticleEmitter") then
+			trail.Rate = 7
+			trail.Color = ColorSequence.new(palette.accent, palette.glow)
+		end
 	end
 
 	-- Legendary+: Halo + Funken-Aura + staerkeres Licht.
@@ -636,8 +757,11 @@ local function applyRarityLayers(model: Model, core: Part, rarity: string, palet
 	end
 end
 
--- Rarity-basiertes Groessen-Scaling (Mythic ist klar groesser als Common).
-local SCALE_BY_RANK = { 1.00, 1.06, 1.12, 1.18, 1.26, 1.36 }
+-- Rarity-basiertes Groessen-Scaling. Gespreizt: zwischen Common (1.00),
+-- Rare (1.18) und Epic (1.28) liegt jetzt ein klar lesbarer Sprung, damit
+-- man die Seltenheit nicht nur am Effekt-Layer, sondern an der Praesenz
+-- des Pets sofort erkennt.
+local SCALE_BY_RANK = { 1.00, 1.08, 1.18, 1.28, 1.40, 1.55 }
 
 -- Liefert auch Metadaten zurueck, die der Caller (PetService) fuer
 -- Bewegungs-Tuning / Label-Farbe nutzen kann -> alle Visual-Konstanten
