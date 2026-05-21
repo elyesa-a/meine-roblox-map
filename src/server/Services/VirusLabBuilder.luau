@@ -1559,6 +1559,183 @@ local function buildAreaCenterpiece(parent, area, hallX, theme, accent)
 	end
 end
 
+-- ---- Outbreak polish layer ------------------------------------------------
+-- Additive, low-touch environmental storytelling for every area tunnel:
+-- sample carts, breach log panels, quarantine stripes and status beacons.
+-- Everything is visual-only and kept at the corridor edges so the enemy path
+-- and training/egg interactions stay readable.
+local function buildIncidentPanel(parent, name, pos: Vector3, accent: Color3, title: string, status: string, faceSign: number)
+	local model = Instance.new("Model")
+	model.Name = name
+	model.Parent = parent
+
+	local board = makePart(model, "IncidentPanelBody", Vector3.new(18, 7.2, 0.5), pos, Color3.fromRGB(32, 36, 38), Enum.Material.Metal, false)
+	local frame = makePart(model, "IncidentPanelFrame", Vector3.new(19.2, 8.4, 0.32), pos + Vector3.new(0, 0, -0.12 * faceSign), LAB_DARK, Enum.Material.SmoothPlastic, false)
+	label(board, title .. "\n" .. status, accent:Lerp(Color3.fromRGB(235, 240, 232), 0.4), 42, UDim2.fromOffset(210, 64), Vector3.new(0, 0, 0))
+
+	for i = 0, 3 do
+		local lightColor = if i < 2 then accent else LAB_WARNING_RED
+		local dot = makePart(model, "IncidentStatusLight", Vector3.new(1, 1, 0.28), pos + Vector3.new(-7.2 + i * 2.1, -3.1, -0.42 * faceSign), lightColor, Enum.Material.SmoothPlastic, false)
+		dot.Shape = Enum.PartType.Ball
+		dot.Transparency = if i < 2 then 0.05 else 0.18
+	end
+
+	for i = 0, 4 do
+		local barHeight = 0.6 + (i % 3) * 0.55
+		makePart(
+			model,
+			"IncidentReadoutBar",
+			Vector3.new(1.1, barHeight, 0.24),
+			pos + Vector3.new(3.3 + i * 1.4, -2.7 + barHeight / 2, -0.44 * faceSign),
+			accent:Lerp(LAB_DARK, 0.25),
+			Enum.Material.SmoothPlastic,
+			false
+		).Transparency = 0.08
+	end
+
+	local trim = makePart(model, "IncidentAccentLine", Vector3.new(16, 0.25, 0.22), pos + Vector3.new(0, 2.95, -0.45 * faceSign), accent, Enum.Material.SmoothPlastic, false)
+	trim.Transparency = 0.28
+	return frame
+end
+
+local function buildSampleCart(parent, name, origin: Vector3, accent: Color3, face: number)
+	local model = Instance.new("Model")
+	model.Name = name
+	model.Parent = parent
+
+	local base = makePart(model, "SampleCartBase", Vector3.new(12, 0.9, 5.8), origin + Vector3.new(0, 1.0, 0), Color3.fromRGB(48, 54, 56), Enum.Material.Metal, false)
+	base.Transparency = 0.02
+	makePart(model, "SampleCartShelf", Vector3.new(11.2, 0.5, 5.2), origin + Vector3.new(0, 3.4, 0), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(model, "SampleCartHandle", Vector3.new(0.55, 4.4, 4.8), origin + Vector3.new(-6.1, 3.1, 0), LAB_DARK, Enum.Material.Metal, false)
+
+	for i = 0, 3 do
+		local px = -3.9 + i * 2.6
+		local vial = makePart(model, "InfectedVial", Vector3.new(1.05, 2.9, 1.05), origin + Vector3.new(px, 5.1, -0.8), Color3.fromRGB(178, 226, 218), Enum.Material.Glass, false)
+		vial.Shape = Enum.PartType.Cylinder
+		vial.Transparency = 0.48
+		local sample = makePart(model, "VialSampleGlow", Vector3.new(0.72, 1.25, 0.72), origin + Vector3.new(px, 4.5, -0.8), accent:Lerp(LAB_OLIVE, 0.28), Enum.Material.SmoothPlastic, false)
+		sample.Shape = Enum.PartType.Ball
+		sample.Transparency = 0.16
+		makePart(model, "VialCap", Vector3.new(1.2, 0.28, 1.2), origin + Vector3.new(px, 6.65, -0.8), LAB_DARK, Enum.Material.Metal, false)
+	end
+
+	local clipboard = makePart(model, "SampleClipboard", Vector3.new(4.2, 0.18, 2.8), origin + Vector3.new(3.2, 3.85, 1.15 * face), LAB_WARNING_YELLOW:Lerp(LAB_WHITE, 0.35), Enum.Material.SmoothPlastic, false)
+	clipboard.Transparency = 0.08
+	local tag = makePart(model, "SampleTag", Vector3.new(5, 1.8, 0.35), origin + Vector3.new(0, 6.2, 2.8 * face), LAB_DARK, Enum.Material.Metal, false)
+	label(tag, "LIVE\nSAMPLES", accent:Lerp(Color3.fromRGB(235, 240, 232), 0.35), 28, UDim2.fromOffset(100, 42), Vector3.new(0, 0, 0))
+end
+
+local function buildQuarantineStripe(parent, name, center: Vector3, accent: Color3, length: number)
+	local model = Instance.new("Model")
+	model.Name = name
+	model.Parent = parent
+
+	local base = makePart(model, "QuarantineStripeBase", Vector3.new(length, 0.07, 4.2), center, Color3.fromRGB(40, 42, 34), Enum.Material.SmoothPlastic, false)
+	base.Transparency = 0.18
+	for i = 0, 5 do
+		local offset = -length / 2 + 3 + i * (length - 6) / 5
+		local bar = makePart(model, "QuarantineStripeSlash", Vector3.new(5.8, 0.08, 1), center + Vector3.new(offset, 0.05, 0), if i % 2 == 0 then LAB_WARNING_YELLOW else LAB_DARK, Enum.Material.SmoothPlastic, false)
+		bar.Orientation = Vector3.new(0, 24, 0)
+		bar.Transparency = if i % 2 == 0 then 0.2 else 0.05
+	end
+	local glow = neonStrip(model, Vector3.new(length - 2, 0.05, 0.25), center + Vector3.new(0, 0.11, 1.85), accent, 0.72)
+	glow.Name = "QuarantineStripeAccent"
+end
+
+local function buildWarningBeacon(parent, name, pos: Vector3, accent: Color3, critical: boolean)
+	local model = Instance.new("Model")
+	model.Name = name
+	model.Parent = parent
+
+	makePart(model, "BeaconBracket", Vector3.new(7, 0.55, 1.2), pos + Vector3.new(0, 0.45, 0), LAB_DARK, Enum.Material.Metal, false)
+	for _, dx in ipairs({ -2.4, 2.4 }) do
+		local lamp = makePart(model, "BeaconLamp", Vector3.new(1.25, 1.25, 1.25), pos + Vector3.new(dx, -0.25, 0), if critical then LAB_WARNING_RED else accent, Enum.Material.Neon, false)
+		lamp.Shape = Enum.PartType.Ball
+		lamp.Transparency = 0.18
+		local light = Instance.new("PointLight")
+		light.Brightness = if critical then 0.32 else 0.22
+		light.Range = if critical then 13 else 10
+		light.Color = if critical then LAB_WARNING_RED else accent:Lerp(Color3.fromRGB(230, 238, 230), 0.35)
+		light.Parent = lamp
+	end
+end
+
+local function buildCableDrop(parent, name, x: number, z: number, accent: Color3)
+	local model = Instance.new("Model")
+	model.Name = name
+	model.Parent = parent
+
+	local topY = FLOOR_Y + L.WallHeight + BACTERIA_CEILING_LIFT - 5
+	local bottomY = FLOOR_Y + 18
+	makePart(model, "CableDropBackbone", Vector3.new(0.65, topY - bottomY, 0.65), Vector3.new(x, (topY + bottomY) / 2, z), Color3.fromRGB(34, 38, 40), Enum.Material.Metal, false)
+	for i = 0, 2 do
+		local side = if i % 2 == 0 then -1 else 1
+		local cable = makePart(model, "LooseCableRun", Vector3.new(0.34, 8.5, 0.34), Vector3.new(x + side * (1.2 + i * 0.25), topY - 4.5 - i * 1.2, z), if i == 1 then accent:Lerp(LAB_DARK, 0.35) else Color3.fromRGB(24, 28, 30), Enum.Material.Metal, false)
+		cable.Orientation = Vector3.new(0, 0, side * (8 + i * 4))
+		cable.Transparency = if i == 1 then 0.12 else 0
+	end
+	makePart(model, "CableClampTop", Vector3.new(4.6, 0.55, 0.9), Vector3.new(x, topY, z), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(model, "CableClampBottom", Vector3.new(3.6, 0.45, 0.9), Vector3.new(x, bottomY, z), LAB_TRIM, Enum.Material.Metal, false)
+end
+
+local function addOutbreakStoryDetails(parent, area, hallX, theme, accent)
+	local deco = makeFolder("OutbreakStoryDetails", parent)
+	local critical = area.index >= 5
+	local alert = if critical then LAB_WARNING_RED else if area.index >= 3 then LAB_WARNING_YELLOW else accent
+	local statusByIndex = {
+		[1] = "AIR FILTERS OK",
+		[2] = "DECON ACTIVE",
+		[3] = "DNA DRIFT RISING",
+		[4] = "WASTE LINE SEALED",
+		[5] = "VIRAL LOAD HIGH",
+		[6] = "REACTOR FLUX",
+		[7] = "SPORES DETECTED",
+		[8] = "BLACK SITE LOCK",
+		[9] = "OMEGA SAMPLE STABLE",
+		[10] = "FINAL SEAL ARMED",
+	}
+	local status = statusByIndex[area.index] or "CONTAINMENT OK"
+
+	buildIncidentPanel(
+		deco,
+		"IncidentPanelLeft",
+		Vector3.new(hallX - 124, FLOOR_Y + 21, BACTERIA_LEFT_LIMIT_Z + 1.9),
+		alert,
+		"INCIDENT LOG A-" .. tostring(area.index),
+		status,
+		1
+	)
+	buildIncidentPanel(
+		deco,
+		"IncidentPanelRight",
+		Vector3.new(hallX + 134, FLOOR_Y + 21, BACTERIA_RIGHT_LIMIT_Z - 1.9),
+		accent,
+		"SAMPLE STATUS",
+		string.upper(theme.id),
+		-1
+	)
+
+	buildSampleCart(deco, "SampleCartLeft", Vector3.new(hallX - 146, FLOOR_Y, BACTERIA_LEFT_LIMIT_Z + 8), accent, 1)
+	if area.index >= 4 then
+		buildSampleCart(deco, "SampleCartRight", Vector3.new(hallX + 150, FLOOR_Y, BACTERIA_RIGHT_LIMIT_Z - 8), alert, -1)
+	end
+
+	buildQuarantineStripe(deco, "QuarantineStripeGateLeft", Vector3.new(hallX + L.GateOffsetX + 54, LAYER_CONTAM + 0.12, -28), alert, 28)
+	buildQuarantineStripe(deco, "QuarantineStripeGateRight", Vector3.new(hallX + L.GateOffsetX + 54, LAYER_CONTAM + 0.12, 28), alert, 28)
+	if area.index >= 6 then
+		buildQuarantineStripe(deco, "QuarantineStripeDeepLeft", Vector3.new(hallX + 116, LAYER_CONTAM + 0.12, -28), LAB_WARNING_RED, 30)
+		buildQuarantineStripe(deco, "QuarantineStripeDeepRight", Vector3.new(hallX + 116, LAYER_CONTAM + 0.12, 28), LAB_WARNING_RED, 30)
+	end
+
+	buildWarningBeacon(deco, "GateWarningBeacon", Vector3.new(hallX + L.GateOffsetX + 54, FLOOR_Y + L.WallHeight + BACTERIA_CEILING_LIFT - 2.3, 0), alert, critical)
+	buildWarningBeacon(deco, "HallWarningBeacon", Vector3.new(hallX + 112, FLOOR_Y + L.WallHeight + BACTERIA_CEILING_LIFT - 2.3, 0), accent, area.index >= 8)
+
+	buildCableDrop(deco, "CableDropLeft", hallX - 58, BACTERIA_LEFT_LIMIT_Z + 2.8, accent)
+	if area.index >= 3 then
+		buildCableDrop(deco, "CableDropRight", hallX + 72, BACTERIA_RIGHT_LIMIT_Z - 2.8, alert)
+	end
+end
+
 local function addBacteriaLabDetails(parent, area, hallX, primary)
 	local deco = makeFolder("TunnelLabDetails", parent)
 	local theme = themeFor(area.index)
@@ -1677,6 +1854,8 @@ local function addBacteriaLabDetails(parent, area, hallX, primary)
 			streak.Transparency = 0.6
 		end
 	end
+
+	addOutbreakStoryDetails(deco, area, hallX, theme, accent)
 end
 
 -- ---- Trainingsbereich (mit Rebirth-Gate) ---------------------------------
