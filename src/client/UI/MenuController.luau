@@ -49,4 +49,22 @@ function MenuController.openMenu(self: Controller, menuName: string)
 	refs.show(refs)
 end
 
+function MenuController.toggleMenu(self: Controller, menuName: string)
+	local refs = self.menus[menuName]
+	if not refs then
+		return
+	end
+
+	if refs.backdrop.Visible then
+		refs.backdrop.Visible = false
+		local baseSize = self.baseSizes[refs.root]
+		if baseSize then
+			refs.root.Size = baseSize
+		end
+		return
+	end
+
+	self:openMenu(menuName)
+end
+
 return MenuController

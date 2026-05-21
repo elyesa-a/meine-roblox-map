@@ -8,6 +8,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Theme = require(script.Parent:WaitForChild("Theme"))
+local LabTheme = require(script.Parent:WaitForChild("LabTheme"))
 local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
 local NumberFormatter = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("NumberFormatter"))
 
@@ -31,6 +32,7 @@ type Entry = {
 type Refs = {
 	backdrop: Frame,
 	root: Frame,
+	closeButton: TextButton,
 }
 
 local ENTRIES: { Entry } = {
@@ -46,14 +48,30 @@ local function makeCard(parent: ScrollingFrame, entry: Entry, onPurchase: (Entry
 	local card = Instance.new("Frame")
 	card.Name = "Gamepass_" .. entry.id
 	card.Size = UDim2.new(1, 0, 0, 100)
-	Theme.applyPanelStyle(card, entry.color)
+	Theme.applyPanelStyle(card, LabTheme.Colors.Card)
+	LabTheme.styleCard(card, entry.color)
 	card.ZIndex = 7
 	card.Parent = parent
 
+	local icon = Instance.new("TextLabel")
+	icon.Name = "ProductIcon"
+	icon.Size = UDim2.new(0, 46, 0, 46)
+	icon.Position = UDim2.new(0, 14, 0.5, -23)
+	Theme.applyPanelStyle(icon, LabTheme.Colors.Panel2)
+	LabTheme.styleCard(icon, entry.color)
+	icon.Font = Enum.Font.GothamBlack
+	icon.Text = "R$"
+	icon.TextColor3 = entry.color:Lerp(LabTheme.Colors.Text, 0.25)
+	icon.TextSize = 18
+	icon.TextStrokeTransparency = 1
+	icon.ZIndex = 8
+	icon.Parent = card
+
 	local name = Instance.new("TextLabel")
 	name.Size = UDim2.new(1, -200, 0, 36)
-	name.Position = UDim2.new(0, 16, 0, 10)
+	name.Position = UDim2.new(0, 74, 0, 10)
 	Theme.applyLabelStyle(name)
+	LabTheme.styleLabel(name, LabTheme.Colors.Text, 22, true)
 	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.Text = entry.displayName
 	name.TextSize = 22
@@ -63,8 +81,9 @@ local function makeCard(parent: ScrollingFrame, entry: Entry, onPurchase: (Entry
 
 	local sub = Instance.new("TextLabel")
 	sub.Size = UDim2.new(1, -200, 0, 28)
-	sub.Position = UDim2.new(0, 16, 0, 50)
+	sub.Position = UDim2.new(0, 74, 0, 50)
 	Theme.applyLabelStyle(sub)
+	LabTheme.styleLabel(sub, LabTheme.Colors.SubText, 16, false)
 	sub.TextXAlignment = Enum.TextXAlignment.Left
 	sub.Text = entry.subText
 	sub.TextSize = 16
@@ -77,7 +96,9 @@ local function makeCard(parent: ScrollingFrame, entry: Entry, onPurchase: (Entry
 	btn.AnchorPoint = Vector2.new(1, 0.5)
 	btn.Size = UDim2.new(0, 170, 0, 68)
 	btn.Position = UDim2.new(1, -12, 0.5, 0)
-	Theme.applyButtonStyle(btn, Theme.Colors.Green)
+	Theme.applyButtonStyle(btn, LabTheme.Colors.Gold)
+	LabTheme.styleButton(btn, LabTheme.Colors.Gold, true)
+	LabTheme.bindButtonFeedback(btn, LabTheme.Colors.Gold)
 	btn.Text = string.format("ONLY %d R$", entry.robux)
 	btn.TextSize = 18
 	btn.TextScaled = false
@@ -101,14 +122,30 @@ local function makeBoostCard(parent: ScrollingFrame, boostId: string): Frame?
 	local card = Instance.new("Frame")
 	card.Name = "Boost_" .. boostId
 	card.Size = UDim2.new(1, 0, 0, 86)
-	Theme.applyPanelStyle(card, def.color)
+	Theme.applyPanelStyle(card, LabTheme.Colors.Card)
+	LabTheme.styleCard(card, def.color)
 	card.ZIndex = 7
 	card.Parent = parent
 
+	local icon = Instance.new("TextLabel")
+	icon.Name = "BoostIcon"
+	icon.Size = UDim2.new(0, 42, 0, 42)
+	icon.Position = UDim2.new(0, 14, 0.5, -21)
+	Theme.applyPanelStyle(icon, LabTheme.Colors.Panel2)
+	LabTheme.styleCard(icon, def.color)
+	icon.Font = Enum.Font.GothamBlack
+	icon.Text = string.sub(string.upper(def.affects), 1, 3)
+	icon.TextColor3 = def.color:Lerp(LabTheme.Colors.Text, 0.2)
+	icon.TextSize = 15
+	icon.TextStrokeTransparency = 1
+	icon.ZIndex = 8
+	icon.Parent = card
+
 	local name = Instance.new("TextLabel")
 	name.Size = UDim2.new(1, -190, 0, 30)
-	name.Position = UDim2.new(0, 16, 0, 9)
+	name.Position = UDim2.new(0, 72, 0, 9)
 	Theme.applyLabelStyle(name)
+	LabTheme.styleLabel(name, LabTheme.Colors.Text, 20, true)
 	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.Text = string.upper(def.displayName)
 	name.TextSize = 20
@@ -118,8 +155,9 @@ local function makeBoostCard(parent: ScrollingFrame, boostId: string): Frame?
 
 	local sub = Instance.new("TextLabel")
 	sub.Size = UDim2.new(1, -190, 0, 24)
-	sub.Position = UDim2.new(0, 16, 0, 45)
+	sub.Position = UDim2.new(0, 72, 0, 45)
 	Theme.applyLabelStyle(sub)
+	LabTheme.styleLabel(sub, LabTheme.Colors.SubText, 14, false)
 	sub.TextXAlignment = Enum.TextXAlignment.Left
 	sub.Text = string.format("%d min %s boost", math.floor(def.durationSec / 60), def.affects)
 	sub.TextSize = 14
@@ -133,7 +171,9 @@ local function makeBoostCard(parent: ScrollingFrame, boostId: string): Frame?
 	btn.AnchorPoint = Vector2.new(1, 0.5)
 	btn.Size = UDim2.new(0, 160, 0, 54)
 	btn.Position = UDim2.new(1, -12, 0.5, 0)
-	Theme.applyButtonStyle(btn, Theme.Colors.Green)
+	Theme.applyButtonStyle(btn, LabTheme.Colors.Green)
+	LabTheme.styleButton(btn, LabTheme.Colors.Green, true)
+	LabTheme.bindButtonFeedback(btn, LabTheme.Colors.Green)
 	btn.Text = NumberFormatter.format(def.priceDna) .. " DNA"
 	btn.TextSize = 17
 	btn.TextScaled = false
@@ -158,13 +198,15 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 	backdrop.Visible = false
 	backdrop.ZIndex = 5
 	backdrop.Parent = parent
+	LabTheme.styleBackdrop(backdrop)
 
 	local root = Instance.new("Frame")
 	root.Name = "GamepassFrame"
 	root.AnchorPoint = Vector2.new(0.5, 0.5)
 	root.Position = UDim2.fromScale(0.5, 0.5)
 	root.Size = UDim2.new(0, 640, 0, 520)
-	Theme.applyPanelStyle(root, Theme.Colors.Pink)
+	Theme.applyPanelStyle(root, LabTheme.Colors.Base)
+	LabTheme.styleModal(root, LabTheme.Colors.Cyan)
 	root.ZIndex = 6
 	root.Parent = backdrop
 
@@ -172,7 +214,8 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 	header.Size = UDim2.new(1, -16, 0, 40)
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
-	header.Text = "SHOP"
+	LabTheme.styleLabel(header, LabTheme.Colors.Text, 28, true)
+	header.Text = "BOOST SHOP"
 	header.TextSize = 28
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -183,7 +226,8 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 	closeButton.Position = UDim2.new(1, -8, 0, 8)
 	closeButton.Size = UDim2.new(0, 36, 0, 36)
 	closeButton.Text = "X"
-	Theme.applyButtonStyle(closeButton, Theme.Colors.Red)
+	Theme.applyButtonStyle(closeButton, LabTheme.Colors.Red)
+	LabTheme.styleClose(closeButton)
 	closeButton.TextSize = 22
 	closeButton.TextScaled = false
 	closeButton.ZIndex = 8
@@ -196,6 +240,7 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 	note.Size = UDim2.new(1, -32, 0, 28)
 	note.Position = UDim2.new(0, 16, 0, 52)
 	Theme.applyLabelStyle(note)
+	LabTheme.styleLabel(note, LabTheme.Colors.SubText, 14, false)
 	note.Text = "Buy boosts with DNA or open premium offers."
 	note.TextSize = 14
 	note.TextScaled = false
@@ -206,13 +251,14 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 	scroll.Name = "GamepassList"
 	scroll.Size = UDim2.new(1, -32, 1, -100)
 	scroll.Position = UDim2.new(0, 16, 0, 88)
-	scroll.BackgroundColor3 = Theme.Colors.PanelDark
+	scroll.BackgroundColor3 = LabTheme.Colors.Panel
 	scroll.BorderSizePixel = 0
 	scroll.ScrollBarThickness = 8
 	scroll.CanvasSize = UDim2.fromOffset(0, 0)
 	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroll.ZIndex = 7
 	scroll.Parent = root
+	LabTheme.styleScroll(scroll)
 	local sc = Instance.new("UICorner")
 	sc.CornerRadius = Theme.CornerRadius
 	sc.Parent = scroll
@@ -247,7 +293,7 @@ function GamepassFrame.create(parent: ScreenGui): Refs
 		order += 1
 	end
 
-	return { backdrop = backdrop, root = root }
+	return { backdrop = backdrop, root = root, closeButton = closeButton }
 end
 
 function GamepassFrame.show(refs: Refs)

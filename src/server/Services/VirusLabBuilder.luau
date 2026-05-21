@@ -2875,6 +2875,13 @@ local function buildStationKiosk(parent, name, pos, accent, title, hint, menuTar
 	npcPromptPart:SetAttribute("MenuTarget", menuTarget)
 	makePrompt(npcPromptPart, menuTarget, actionText, npcName)
 
+	local trigger = makePart(model, "StationProximityTrigger", Vector3.new(12, 8, 12), pos + Vector3.new(0, FLOOR_Y + 4, 5.0 * face), Color3.new(1, 1, 1), Enum.Material.SmoothPlastic, false)
+	trigger.Transparency = 1
+	trigger.CanCollide = false
+	trigger.CanTouch = false
+	trigger.CanQuery = false
+	trigger:SetAttribute("MenuTarget", menuTarget)
+
 	-- Sample-Tank seitlich (urspruengliches Element, sauberer gerahmt).
 	local sampleA = makePart(model, "SampleCapsuleA", Vector3.new(1.4, 3.2, 1.4), pos + Vector3.new(-4.7, 2.4, 2.6 * face), Color3.fromRGB(180, 220, 210), Enum.Material.Glass, false)
 	sampleA.Shape = Enum.PartType.Cylinder

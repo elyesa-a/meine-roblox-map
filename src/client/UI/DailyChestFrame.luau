@@ -5,6 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Theme = require(script.Parent:WaitForChild("Theme"))
+local LabTheme = require(script.Parent:WaitForChild("LabTheme"))
 local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
 local NumberFormatter = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("NumberFormatter"))
 
@@ -44,13 +45,15 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	backdrop.Visible = false
 	backdrop.ZIndex = 5
 	backdrop.Parent = parent
+	LabTheme.styleBackdrop(backdrop)
 
 	local root = Instance.new("Frame")
 	root.Name = "DailyChestFrame"
 	root.AnchorPoint = Vector2.new(0.5, 0.5)
 	root.Position = UDim2.fromScale(0.5, 0.5)
 	root.Size = UDim2.new(0, 640, 0, 460)
-	Theme.applyPanelStyle(root, Theme.Colors.Yellow)
+	Theme.applyPanelStyle(root, LabTheme.Colors.Base)
+	LabTheme.styleModal(root, LabTheme.Colors.Amber)
 	root.ZIndex = 6
 	root.Parent = backdrop
 
@@ -58,7 +61,8 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	header.Size = UDim2.new(1, -16, 0, 40)
 	header.Position = UDim2.new(0, 8, 0, 8)
 	Theme.applyLabelStyle(header)
-	header.Text = "DAILY REWARD"
+	LabTheme.styleLabel(header, LabTheme.Colors.Text, 26, true)
+	header.Text = "DAILY LAB REWARD"
 	header.TextSize = 26
 	header.TextScaled = false
 	header.ZIndex = 7
@@ -68,8 +72,8 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	closeButton.AnchorPoint = Vector2.new(1, 0)
 	closeButton.Position = UDim2.new(1, -8, 0, 8)
 	closeButton.Size = UDim2.new(0, 36, 0, 36)
-	closeButton.Text = "X"
-	Theme.applyButtonStyle(closeButton, Theme.Colors.Red)
+	Theme.applyButtonStyle(closeButton, LabTheme.Colors.Red)
+	LabTheme.styleClose(closeButton)
 	closeButton.TextSize = 22
 	closeButton.TextScaled = false
 	closeButton.ZIndex = 8
@@ -82,7 +86,8 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	streakLabel.Size = UDim2.new(1, -32, 0, 28)
 	streakLabel.Position = UDim2.new(0, 16, 0, 52)
 	Theme.applyLabelStyle(streakLabel)
-	streakLabel.Text = "Current Streak: 0 Days"
+	LabTheme.styleLabel(streakLabel, LabTheme.Colors.SubText, 17, false)
+	streakLabel.Text = "Mutation Streak: 0 Days"
 	streakLabel.TextSize = 18
 	streakLabel.TextScaled = false
 	streakLabel.ZIndex = 7
@@ -106,14 +111,17 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	for _, rew in ipairs(DailyChestConfig.Rewards) do
 		local dayCard = Instance.new("Frame")
 		dayCard.Size = UDim2.new(0, 78, 1, 0)
-		Theme.applyPanelStyle(dayCard, Theme.Colors.PanelDark)
+		Theme.applyPanelStyle(dayCard, LabTheme.Colors.Card)
+		LabTheme.styleCard(dayCard, LabTheme.Colors.StrokeDark)
 		dayCard.ZIndex = 7
 		dayCard.Parent = daysHolder
 
 		local dayLabel = Instance.new("TextLabel")
+		dayLabel.Name = "DayLabel"
 		dayLabel.Size = UDim2.new(1, 0, 0, 28)
 		dayLabel.Position = UDim2.new(0, 0, 0, 6)
 		Theme.applyLabelStyle(dayLabel)
+		LabTheme.styleLabel(dayLabel, LabTheme.Colors.Text, 14, true)
 		dayLabel.Text = "Day " .. rew.streakDay
 		dayLabel.TextSize = 14
 		dayLabel.TextScaled = false
@@ -124,6 +132,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 		dnaLabel.Size = UDim2.new(1, 0, 0, 22)
 		dnaLabel.Position = UDim2.new(0, 0, 0, 40)
 		Theme.applyLabelStyle(dnaLabel)
+		LabTheme.styleLabel(dnaLabel, LabTheme.Colors.Green, 12, true)
 		dnaLabel.Text = string.format("+%s DNA", NumberFormatter.format(rew.dna))
 		dnaLabel.TextSize = 12
 		dnaLabel.TextScaled = false
@@ -134,6 +143,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 		powerLabel.Size = UDim2.new(1, 0, 0, 22)
 		powerLabel.Position = UDim2.new(0, 0, 0, 62)
 		Theme.applyLabelStyle(powerLabel)
+		LabTheme.styleLabel(powerLabel, LabTheme.Colors.Cyan, 12, true)
 		powerLabel.Text = string.format("+%s Power", NumberFormatter.format(rew.power))
 		powerLabel.TextSize = 12
 		powerLabel.TextScaled = false
@@ -145,9 +155,9 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 			bonusLabel.Size = UDim2.new(1, 0, 0, 18)
 			bonusLabel.Position = UDim2.new(0, 0, 0, 90)
 			Theme.applyLabelStyle(bonusLabel)
+			LabTheme.styleLabel(bonusLabel, LabTheme.Colors.Gold, 12, true)
 			bonusLabel.Text = rew.bonusText
 			bonusLabel.TextSize = 12
-			bonusLabel.TextColor3 = Theme.Colors.Yellow
 			bonusLabel.TextScaled = false
 			bonusLabel.ZIndex = 8
 			bonusLabel.Parent = dayCard
@@ -160,6 +170,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	rewardLabel.Size = UDim2.new(1, -32, 0, 32)
 	rewardLabel.Position = UDim2.new(0, 16, 0, 244)
 	Theme.applyLabelStyle(rewardLabel)
+	LabTheme.styleLabel(rewardLabel, LabTheme.Colors.Text, 18, true)
 	rewardLabel.Text = "Next Reward: ?"
 	rewardLabel.TextSize = 18
 	rewardLabel.TextScaled = false
@@ -170,6 +181,7 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	cooldownLabel.Size = UDim2.new(1, -32, 0, 28)
 	cooldownLabel.Position = UDim2.new(0, 16, 0, 284)
 	Theme.applyLabelStyle(cooldownLabel)
+	LabTheme.styleLabel(cooldownLabel, LabTheme.Colors.SubText, 16, false)
 	cooldownLabel.Text = "Ready!"
 	cooldownLabel.TextSize = 16
 	cooldownLabel.TextScaled = false
@@ -181,8 +193,10 @@ function DailyChestFrame.create(parent: ScreenGui): Refs
 	claimButton.AnchorPoint = Vector2.new(0.5, 1)
 	claimButton.Size = UDim2.new(1, -32, 0, 64)
 	claimButton.Position = UDim2.new(0.5, 0, 1, -16)
-	Theme.applyButtonStyle(claimButton, Theme.Colors.Green)
-	claimButton.Text = "CLAIM"
+	Theme.applyButtonStyle(claimButton, LabTheme.Colors.Green)
+	LabTheme.styleButton(claimButton, LabTheme.Colors.Green, true)
+	LabTheme.bindButtonFeedback(claimButton, LabTheme.Colors.Green)
+	claimButton.Text = "CLAIM REWARD"
 	claimButton.TextSize = 22
 	claimButton.TextScaled = false
 	claimButton.ZIndex = 7
@@ -236,7 +250,7 @@ function DailyChestFrame.tick(refs: Refs, state)
 	end
 	if nextStreak < 1 then nextStreak = 1 end
 
-	refs.streakLabel.Text = string.format("Current Streak: %d Days", chest.Streak or 0)
+	refs.streakLabel.Text = string.format("Mutation Streak: %d Days", chest.Streak or 0)
 
 	local rew = DailyChestConfig.getReward(nextStreak)
 	refs.rewardLabel.Text = string.format(
@@ -247,24 +261,34 @@ function DailyChestFrame.tick(refs: Refs, state)
 		rew.bonusText and (" + " .. rew.bonusText) or ""
 	)
 
-	-- Cards highlighten: Tage <= aktueller Streak gruenlich.
+	-- Cards highlighten: claimed/current/future with lab-terminal colors.
 	for day, card in pairs(refs.dayCards) do
-		local highlight = (day <= ((chest.Streak or 0))) or (day == ((nextStreak - 1) % #DailyChestConfig.Rewards) + 1)
-		card.BackgroundColor3 = if day == ((nextStreak - 1) % #DailyChestConfig.Rewards) + 1
-			then Theme.Colors.Green
-			elseif highlight then Theme.Colors.PanelMedium
-			else Theme.Colors.PanelDark
+		local claimed = day <= (chest.Streak or 0)
+		local current = day == ((nextStreak - 1) % #DailyChestConfig.Rewards) + 1
+		card.BackgroundColor3 = if current
+			then Color3.fromRGB(24, 46, 42)
+			elseif claimed then Color3.fromRGB(20, 34, 36)
+			else LabTheme.Colors.CardMuted
+		local stroke = card:FindFirstChildOfClass("UIStroke")
+		if stroke then
+			stroke.Color = if current then LabTheme.Colors.Green elseif claimed then LabTheme.Colors.Cyan else Color3.fromRGB(60, 70, 85)
+			stroke.Transparency = if current then 0.08 elseif claimed then 0.3 else 0.58
+		end
+		local label = card:FindFirstChild("DayLabel")
+		if label and label:IsA("TextLabel") then
+			label.TextColor3 = if current then LabTheme.Colors.Toxic elseif claimed then LabTheme.Colors.Cyan else LabTheme.Colors.Text
+		end
 	end
 
 	if elapsed >= cooldown then
 		refs.cooldownLabel.Text = "Ready!"
-		refs.claimButton.Text = "CLAIM"
-		refs.claimButton.BackgroundColor3 = Theme.Colors.Green
+		refs.claimButton.Text = "CLAIM REWARD"
+		LabTheme.styleButton(refs.claimButton, LabTheme.Colors.Green, true)
 		refs.claimButton.Active = true
 	else
 		refs.cooldownLabel.Text = "Next Reward in " .. formatCooldown(cooldown - elapsed)
-		refs.claimButton.Text = "WAIT"
-		refs.claimButton.BackgroundColor3 = Theme.Colors.PanelMedium
+		refs.claimButton.Text = "NEXT REWARD IN " .. formatCooldown(cooldown - elapsed)
+		LabTheme.styleButton(refs.claimButton, LabTheme.Colors.Muted, false)
 		refs.claimButton.Active = false
 	end
 end

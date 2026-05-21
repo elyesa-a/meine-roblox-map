@@ -49,6 +49,7 @@ local BoostService
 local DailyQuestService
 local TitleService
 local TeleportService
+local TutorialService
 
 local statesByModel: { [Model]: EnemyState } = {}
 local statesByRoot: { [BasePart]: EnemyState } = {}
@@ -63,6 +64,35 @@ local AUTO_FIGHT_RETRY_DELAY = 0.75
 local AUTO_FIGHT_MOVE_TIMEOUT = 14
 local AUTO_FIGHT_REPATH_INTERVAL = 0.8
 local getEnemyAccessPower: (EnemyState) -> number
+
+local function getMaxRequiredPowerBeforeX(folderName: string, targetX: number): number
+	local folder = Workspace:FindFirstChild(folderName)
+	if not folder then
+		return 0
+	end
+	local required = 0
+	for _, desc in ipairs(folder:GetDescendants()) do
+		if not desc:IsA("BasePart") then
+			continue
+		end
+		local requiredPower = desc:GetAttribute("RequiredPower")
+		if type(requiredPower) ~= "number" then
+			continue
+		end
+		if desc.Position.X <= targetX + 0.25 then
+			required = math.max(required, requiredPower)
+		end
+	end
+	return required
+end
+
+local function getPathRequiredPower(state: EnemyState): number
+	local targetX = state.root.Position.X
+	return math.max(
+		getMaxRequiredPowerBeforeX("AreaGates", targetX),
+		getMaxRequiredPowerBeforeX("EnemyBorders", targetX)
+	)
+end
 
 local function getCharacterRoot(player: Player): BasePart?
 	local char = player.Character
@@ -468,6 +498,14 @@ local function defeatEnemy(player: Player, state: EnemyState)
 	if state.def.IsBoss and TeleportService then
 		TeleportService.recordBossDefeat(player, state.def.AreaIndex)
 	end
+	if TutorialService then
+		TutorialService.record(player, if state.def.IsBoss then "BossDefeated" else "EnemyDefeated", {
+			EnemyId = state.def.Id,
+			AreaName = state.def.AreaName,
+			AreaIndex = state.def.AreaIndex,
+			DisplayName = state.def.DisplayName,
+		})
+	end
 	playDefeatEffect(state)
 	setModelVisible(state, false)
 	respawnEnemy(state)
@@ -636,11 +674,18 @@ local function startBattle(player: Player, state: EnemyState, silent: boolean?):
 end
 
 function getEnemyAccessPower(state: EnemyState): number
+	local directRequiredPower
 	if state.def.EnemyIndex == 1 then
 		local area = AreaConfig.getById(state.def.AreaName)
-		return if area then area.requiredPower or 0 else 0
+		directRequiredPower = if area then area.requiredPower or 0 else 0
+	else
+		directRequiredPower = state.def.RequiredGatePower or 0
 	end
-	return state.def.RequiredGatePower or 0
+
+	-- Auto Fight must respect the actual tunnel progression, not just the
+	-- enemy's own number. If a locked border stands before the target, the
+	-- enemy is not reachable yet.
+	return math.max(directRequiredPower, getPathRequiredPower(state))
 end
 
 local function findBestEnemyForPlayer(player: Player): EnemyState?
@@ -895,6 +940,7 @@ function EnemyService.start(deps)
 	DailyQuestService = deps.DailyQuestService
 	TitleService = deps.TitleService
 	TeleportService = deps.TeleportService
+	TutorialService = deps.TutorialService
 
 	registerFolder(Workspace:FindFirstChild("EnemyAreas"))
 	registerFolder(Workspace:FindFirstChild("BossFields"))

@@ -38,6 +38,7 @@ local TrainingZoneService = require(Services:WaitForChild("TrainingZoneService")
 local BorderService = require(Services:WaitForChild("BorderService"))
 local EggCatchService = require(Services:WaitForChild("EggCatchService"))
 local TeleportService = require(Services:WaitForChild("TeleportService"))
+local TutorialService = require(Services:WaitForChild("TutorialService"))
 
 local Configs = ReplicatedStorage:WaitForChild("Configs")
 local PetConfig = require(Configs:WaitForChild("PetConfig"))
@@ -80,6 +81,7 @@ PetService.start({
 	AntiExploitService = AntiExploitService,
 	UpgradeService = UpgradeService,
 	BoostService = BoostService,
+	TutorialService = TutorialService,
 })
 TitleService.start({
 	DataService = DataService,
@@ -113,8 +115,13 @@ ZoneLockService.start({ DataService = DataService })
 -- PWR-Borders + Labor-Luken (Virus-Labor). Reines Map-Gating, additiv.
 BorderService.start({ DataService = DataService })
 -- Egg-Catch-Stationen an das bestehende Pet-Egg-System koppeln.
-EggCatchService.start({ DataService = DataService, PetService = PetService })
+EggCatchService.start({ DataService = DataService, PetService = PetService, TutorialService = TutorialService })
 TeleportService.start({
+	DataService = DataService,
+	StatService = StatService,
+	AntiExploitService = AntiExploitService,
+})
+TutorialService.start({
 	DataService = DataService,
 	StatService = StatService,
 	AntiExploitService = AntiExploitService,
@@ -126,6 +133,7 @@ TrainingZoneService.start({
 	UpgradeService = UpgradeService,
 	DailyQuestService = DailyQuestService,
 	TitleService = TitleService,
+	TutorialService = TutorialService,
 })
 DailyChestService.start({
 	DataService = DataService,
@@ -159,6 +167,7 @@ EnemyService.start({
 	DailyQuestService = DailyQuestService,
 	TitleService = TitleService,
 	TeleportService = TeleportService,
+	TutorialService = TutorialService,
 })
 -- Gegner-Bewegung (additiv, beruehrt EnemyService/Respawn nicht).
 EnemyMovementController.start()
@@ -186,11 +195,13 @@ local function handlePetEggInteraction(player: Player)
 	if now - lastPreview <= PET_EGG_PREVIEW_WINDOW then
 		petEggPreviewAt[player] = 0
 		PetService.openEgg(player, nil)
+		TutorialService.record(player, "EggHatched", { Source = "WorldEgg" })
 		return
 	end
 	petEggPreviewAt[player] = now
 	OpenPetEggShop:FireClient(player, PetConfig.DefaultEggId)
 	ShowPopup:FireClient(player, "Preview opened. Press E again to hatch.")
+	TutorialService.record(player, "EggPreviewOpened", { Source = "WorldEgg" })
 end
 
 if WorldBuilder.PetEgg then

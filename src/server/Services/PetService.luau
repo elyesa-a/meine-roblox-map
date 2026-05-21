@@ -35,6 +35,7 @@ local StatService
 local AntiExploitService
 local UpgradeService
 local BoostService
+local TutorialService
 
 local rng = Random.new()
 local lastEggOpenAt: { [Player]: number } = {}
@@ -416,6 +417,13 @@ function PetService.grantEggReward(player: Player, eggId: string, sourceName: st
 		petDef.displayName,
 		petDef.rarity
 	))
+	if TutorialService then
+		TutorialService.record(player, "PetRewardAdded", {
+			EggId = egg.id,
+			PetId = petDef.id,
+			Source = sourceName or "Egg Caught",
+		})
+	end
 	StatService.broadcastProfile(player)
 	StatService.playSound(player, "Reward")
 	return true
@@ -494,6 +502,13 @@ function PetService.hatchEgg(player: Player, eggId: string)
 		petDef.rarity,
 		multiplier
 	))
+	if TutorialService then
+		TutorialService.record(player, "EggHatched", {
+			EggId = egg.id,
+			PetId = petDef.id,
+			Source = "Pet Egg",
+		})
+	end
 	StatService.broadcastProfile(player)
 	StatService.playSound(player, "Reward")
 end
@@ -618,6 +633,7 @@ function PetService.start(deps)
 	AntiExploitService = deps.AntiExploitService
 	UpgradeService = deps.UpgradeService
 	BoostService = deps.BoostService
+	TutorialService = deps.TutorialService
 
 	AntiExploitService.safeBind(RequestEquipPet, 8, handleEquipRequest)
 	AntiExploitService.safeBind(RequestUnequipPet, 8, handleUnequipRequest)

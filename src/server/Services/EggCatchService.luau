@@ -20,6 +20,7 @@ local EggCatchService = {}
 
 local DataService
 local PetService
+local TutorialService
 
 type GameState = {
 	player: Player,
@@ -183,6 +184,13 @@ local function collectEgg(state: GameState, part: BasePart)
 	if ok then
 		state.caught += 1
 		ShowPopup:FireClient(state.player, "Egg Caught!")
+		if TutorialService then
+			TutorialService.record(state.player, "EggCaught", {
+				EggId = state.eggId,
+				AreaIndex = state.areaIndex,
+				Tier = state.tier,
+			})
+		end
 		sendUpdate(state, "Running", nil)
 	else
 		ShowPopup:FireClient(state.player, "Inventory Full")
@@ -320,6 +328,7 @@ end
 function EggCatchService.start(deps)
 	DataService = deps.DataService
 	PetService = deps.PetService
+	TutorialService = deps.TutorialService
 
 	local folder = Workspace:FindFirstChild("EggStations")
 	if not folder then

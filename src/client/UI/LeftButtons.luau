@@ -26,12 +26,15 @@ local ENTRIES: { Entry } = {
 	{ id = "Title",    icon = "VIP", label = "Titles",   color = Theme.Colors.Yellow },
 }
 
+local BUTTON_HEIGHT = 42
+local BUTTON_GAP = 8
+
 function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 	local holder = Instance.new("Frame")
 	holder.Name = "LeftButtons"
 	holder.AnchorPoint = Vector2.new(0, 0.5)
 	holder.Position = UDim2.new(0, 16, 0.5, 0)
-	holder.Size = UDim2.new(0, 126, 0, #ENTRIES * 44 + 18)
+	holder.Size = UDim2.new(0, 126, 0, #ENTRIES * BUTTON_HEIGHT + (#ENTRIES - 1) * BUTTON_GAP + 22)
 	holder.BackgroundColor3 = Color3.fromRGB(9, 13, 20)
 	holder.BackgroundTransparency = 0.18
 	holder.Parent = parent
@@ -48,7 +51,7 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Vertical
-	layout.Padding = UDim.new(0, 5)
+	layout.Padding = UDim.new(0, BUTTON_GAP)
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	layout.VerticalAlignment = Enum.VerticalAlignment.Center
 	layout.Parent = holder
@@ -84,7 +87,7 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 	for _, entry in ipairs(ENTRIES) do
 		local button = Instance.new("TextButton")
 		button.Name = entry.id .. "Button"
-		button.Size = UDim2.new(0, 108, 0, 38)
+		button.Size = UDim2.new(0, 108, 0, BUTTON_HEIGHT)
 		button.Text = ""
 		Theme.applyButtonStyle(button, Color3.fromRGB(24, 31, 43))
 		local buttonStroke = button:FindFirstChildOfClass("UIStroke")
@@ -111,7 +114,7 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 		iconFrame.Name = "IconSlot"
 		iconFrame.AnchorPoint = Vector2.new(0, 0.5)
 		iconFrame.Position = UDim2.new(0, 8, 0.5, 0)
-		iconFrame.Size = UDim2.new(0, 26, 0, 26)
+		iconFrame.Size = UDim2.new(0, 28, 0, 28)
 		iconFrame.BackgroundColor3 = entry.color
 		iconFrame.BackgroundTransparency = 0.12
 		iconFrame.BorderSizePixel = 0
@@ -136,8 +139,8 @@ function LeftButtons.create(parent: ScreenGui, onClick: (string) -> ())
 		local textLabel = Instance.new("TextLabel")
 		textLabel.Name = "ButtonLabel"
 		textLabel.AnchorPoint = Vector2.new(0, 0.5)
-		textLabel.Position = UDim2.new(0, 42, 0.5, 0)
-		textLabel.Size = UDim2.new(1, -46, 1, -8)
+		textLabel.Position = UDim2.new(0, 44, 0.5, 0)
+		textLabel.Size = UDim2.new(1, -48, 1, -8)
 		textLabel.BackgroundTransparency = 1
 		textLabel.Font = Theme.Font
 		textLabel.Text = entry.label

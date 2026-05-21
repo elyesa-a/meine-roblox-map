@@ -678,6 +678,10 @@ function PetFrame.showEggShop(refs: Refs)
 	PetFrame.show(refs, true)
 end
 
+function PetFrame.isEggOnlyMode(refs: Refs): boolean
+	return refs.eggOnlyMode == true
+end
+
 function PetFrame.update(refs: Refs, state)
 	refs.lastState = state
 	local pets = if type(state.Pets) == "table" then state.Pets else {}

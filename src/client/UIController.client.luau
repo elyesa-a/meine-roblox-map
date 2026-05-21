@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -32,10 +33,12 @@ local DailyQuestFrame = require(UI:WaitForChild("DailyQuestFrame"))
 local GamepassFrame = require(UI:WaitForChild("GamepassFrame"))
 local TitleFrame = require(UI:WaitForChild("TitleFrame"))
 local TeleportFrame = require(UI:WaitForChild("TeleportFrame"))
+local TutorialFrame = require(UI:WaitForChild("TutorialFrame"))
 local MenuController = require(UI:WaitForChild("MenuController"))
 local PopupHandler = require(UI:WaitForChild("PopupHandler"))
 local ClickHandler = require(UI:WaitForChild("ClickHandler"))
 local SoundController = require(UI:WaitForChild("SoundController"))
+local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
 
 SoundController.start()
 
@@ -63,6 +66,7 @@ local dailyQuestRefs = DailyQuestFrame.create(screen)
 local gamepassRefs = GamepassFrame.create(screen)
 local titleRefs = TitleFrame.create(screen)
 local teleportRefs = TeleportFrame.create(screen)
+local tutorialRefs = TutorialFrame.create(screen)
 
 local menuController = MenuController.new({
 	Auras = { backdrop = auraRefs.backdrop, root = auraRefs.root, show = AuraFrame.show },
@@ -78,12 +82,86 @@ local menuController = MenuController.new({
 	Spin = { backdrop = spinRefs.backdrop, root = spinRefs.root, show = SpinFrame.show },
 })
 
+local STATION_OPEN_RADIUS = 7
+local STATION_CLOSE_RADIUS = 10
+local STATION_REOPEN_COOLDOWN = 5
+local stationTriggers: { BasePart } = {}
+local autoOpenedMenu: string? = nil
+local suppressedStationMenus: { [string]: boolean } = {}
+local stationReopenAt: { [string]: number } = {}
+
+local function refreshStationTriggers(): { BasePart }
+	local valid: { BasePart } = {}
+	for _, trigger in ipairs(stationTriggers) do
+		if trigger.Parent and trigger:IsA("BasePart") and type(trigger:GetAttribute("MenuTarget")) == "string" then
+			table.insert(valid, trigger)
+		end
+	end
+	if #valid > 0 then
+		stationTriggers = valid
+		return stationTriggers
+	end
+
+	for _, inst in ipairs(Workspace:GetDescendants()) do
+		if inst:IsA("BasePart")
+			and (inst.Name == "StationProximityTrigger" or inst.Name == "ShopProximityTrigger")
+			and type(inst:GetAttribute("MenuTarget")) == "string"
+		then
+			table.insert(valid, inst)
+		end
+	end
+	stationTriggers = valid
+	return stationTriggers
+end
+
+local function getRootPart(): BasePart?
+	local character = player.Character
+	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+local function isAnyMenuOpenExcept(exceptMenuName: string): boolean
+	for name, refs in pairs(menuController.menus) do
+		if name ~= exceptMenuName and refs.backdrop.Visible then
+			return true
+		end
+	end
+	return false
+end
+
+local function openStationMenuManually(menuName: string)
+	autoOpenedMenu = nil
+	suppressedStationMenus[menuName] = false
+	menuController:openMenu(menuName)
+end
+
+local function toggleSidebarMenu(menuName: string)
+	autoOpenedMenu = nil
+	menuController:toggleMenu(menuName)
+end
+
+local function closeAutoOpenedMenu()
+	local menuName = autoOpenedMenu
+	if not menuName then
+		return
+	end
+	local refs = menuController.menus[menuName]
+	autoOpenedMenu = nil
+	if not refs or not refs.backdrop.Visible then
+		return
+	end
+	UIAnimator.framePopOut(refs.backdrop, refs.root)
+end
+
 ProximityPromptService.PromptTriggered:Connect(function(prompt)
 	local target = prompt:GetAttribute("MenuTarget")
 	if type(target) ~= "string" then
 		return
 	end
-	menuController:openMenu(target)
+	if target == "Shop" or target == "Skills" or target == "Auras" or target == "Daily" then
+		openStationMenuManually(target)
+	else
+		menuController:openMenu(target)
+	end
 end)
 
 -- TopBar mit Spin-Button-Klick.
@@ -99,26 +177,36 @@ CurrentAreaLabel.start(areaRefs)
 -- Linke Button-Leiste mit Klick-Handlern.
 LeftButtons.create(screen, function(id)
 	if id == "Rebirth" then
-		menuController:openMenu("Rebirth")
+		toggleSidebarMenu("Rebirth")
 	elseif id == "Settings" then
-		menuController:openMenu("Settings")
+		toggleSidebarMenu("Settings")
 	elseif id == "Pets" then
-		menuController:closeAllMenus("Pets")
-		PetFrame.showInventory(petRefs)
+		autoOpenedMenu = nil
+		if petRefs.backdrop.Visible and not PetFrame.isEggOnlyMode(petRefs) then
+			UIAnimator.framePopOut(petRefs.backdrop, petRefs.root)
+		else
+			menuController:closeAllMenus("Pets")
+			PetFrame.showInventory(petRefs)
+			TutorialFrame.record(tutorialRefs, "PetInventoryOpened")
+		end
 	elseif id == "Teleport" then
-		menuController:openMenu("Teleport")
+		toggleSidebarMenu("Teleport")
 	elseif id == "Upgrades" then
-		menuController:openMenu("Skills")
+		toggleSidebarMenu("Skills")
 	elseif id == "Auras" then
-		menuController:openMenu("Auras")
+		toggleSidebarMenu("Auras")
 	elseif id == "Daily" then
-		menuController:openMenu("Daily")
+		toggleSidebarMenu("Daily")
 	elseif id == "Quests" then
-		menuController:openMenu("DailyQuests")
+		toggleSidebarMenu("DailyQuests")
 	elseif id == "Shop" then
-		menuController:openMenu("Shop")
+		if gamepassRefs.backdrop.Visible then
+			toggleSidebarMenu("Shop")
+		else
+			openStationMenuManually("Shop")
+		end
 	elseif id == "Title" then
-		menuController:openMenu("Titles")
+		toggleSidebarMenu("Titles")
 	end
 end)
 
@@ -155,6 +243,7 @@ local state: { [string]: any } = {
 	Titles = { Rookie = true },
 	EquippedTitle = "Rookie",
 	HighestBossDefeated = 0,
+	HasCompletedTutorial = nil,
 	ServerTime = 0,
 	_clientReceivedAt = os.clock(),
 }
@@ -172,6 +261,7 @@ local function applyState()
 	TeleportFrame.update(teleportRefs, state)
 	DailyQuestFrame.update(dailyQuestRefs, state)
 	AreaVisualController.update(state)
+	TutorialFrame.update(tutorialRefs, state)
 end
 
 UpdateClientData.OnClientEvent:Connect(function(payload)
@@ -193,8 +283,65 @@ applyState()
 -- Tick-Loop fuer Cooldown-/Timer-basierte UI (Spin, DailyChest, Boost-Timer).
 -- Heartbeat ist sparsam, wir drosseln auf 4 Hz.
 local accum = 0
+local shopAccum = 0
 RunService.Heartbeat:Connect(function(dt)
 	accum += dt
+	shopAccum += dt
+	if shopAccum >= 0.15 then
+		shopAccum = 0
+		local rootPart = getRootPart()
+		if rootPart then
+			local nearestTrigger: BasePart? = nil
+			local nearestTarget: string? = nil
+			local nearestDistance = math.huge
+			local activeMenuDistance = math.huge
+
+			for _, trigger in ipairs(refreshStationTriggers()) do
+				local target = trigger:GetAttribute("MenuTarget")
+				if type(target) == "string" and menuController.menus[target] then
+					local distance = (rootPart.Position - trigger.Position).Magnitude
+					if distance > STATION_CLOSE_RADIUS then
+						suppressedStationMenus[target] = false
+					end
+					if autoOpenedMenu == target then
+						activeMenuDistance = math.min(activeMenuDistance, distance)
+					end
+					if distance < nearestDistance then
+						nearestDistance = distance
+						nearestTrigger = trigger
+						nearestTarget = target
+					end
+				end
+			end
+
+			if autoOpenedMenu then
+				local refs = menuController.menus[autoOpenedMenu]
+				if not refs or not refs.backdrop.Visible then
+					if nearestTarget == autoOpenedMenu and nearestDistance <= STATION_CLOSE_RADIUS then
+						suppressedStationMenus[autoOpenedMenu] = true
+						stationReopenAt[autoOpenedMenu] = os.clock() + STATION_REOPEN_COOLDOWN
+					end
+					autoOpenedMenu = nil
+				elseif activeMenuDistance > STATION_CLOSE_RADIUS then
+					closeAutoOpenedMenu()
+				end
+			end
+
+			if nearestTrigger and nearestTarget and nearestDistance <= STATION_OPEN_RADIUS then
+				local refs = menuController.menus[nearestTarget]
+				if refs
+					and not refs.backdrop.Visible
+					and not autoOpenedMenu
+					and not suppressedStationMenus[nearestTarget]
+					and os.clock() >= (stationReopenAt[nearestTarget] or 0)
+					and not isAnyMenuOpenExcept(nearestTarget)
+				then
+					autoOpenedMenu = nearestTarget
+					menuController:openMenu(nearestTarget)
+				end
+			end
+		end
+	end
 	if accum < 0.25 then
 		return
 	end
