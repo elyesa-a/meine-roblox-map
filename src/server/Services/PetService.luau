@@ -24,7 +24,9 @@ local PetVisualBuilder = require(Modules:WaitForChild("PetVisualBuilder"))
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestEquipPet = Remotes:WaitForChild("RequestEquipPet") :: RemoteEvent
 local RequestUnequipPet = Remotes:WaitForChild("RequestUnequipPet") :: RemoteEvent
+local RequestDeletePet = Remotes:WaitForChild("RequestDeletePet") :: RemoteEvent
 local RequestHatchPetEgg = Remotes:WaitForChild("RequestHatchPetEgg") :: RemoteEvent
+local OpenPetEggShop = Remotes:WaitForChild("OpenPetEggShop") :: RemoteEvent
 local HatchPetResult = Remotes:WaitForChild("HatchPetResult") :: RemoteEvent
 local ShowPopup = Remotes:WaitForChild("ShowPopup") :: RemoteEvent
 
@@ -39,6 +41,16 @@ local TutorialService
 
 local rng = Random.new()
 local lastEggOpenAt: { [Player]: number } = {}
+local STATION_SESSION_DURATION = 90
+local STATION_MAX_DISTANCE = 26
+
+type EggStationSession = {
+	eggId: string,
+	station: Instance?,
+	openedAt: number,
+}
+
+local activeEggStationByPlayer: { [Player]: EggStationSession } = {}
 
 type VisualState = {
 	player: Player,
@@ -149,6 +161,24 @@ end
 local function getCharacterRoot(player: Player): BasePart?
 	local character = player.Character
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+local function getStationCenter(station: Instance?): Vector3?
+	if not station or not station.Parent then
+		return nil
+	end
+	if station:IsA("BasePart") then
+		return station.Position
+	end
+	if station:IsA("Model") then
+		local capsule = station:FindFirstChild("EggCapsule", true)
+		if capsule and capsule:IsA("BasePart") then
+			return capsule.Position
+		end
+		return station:GetPivot().Position
+	end
+	local part = station:FindFirstChildWhichIsA("BasePart", true)
+	return part and part.Position or nil
 end
 
 -- Triangulares Layout fuer bis zu 3 Pets: zwei nach links/rechts + einer
@@ -294,7 +324,31 @@ local function getLuckMultiplier(player: Player): number
 	return math.max(1, mult)
 end
 
+local function parseBossArea(bossId: string): number?
+	local areaText = string.match(bossId, "^A(%d+)E10$")
+	return areaText and tonumber(areaText) or nil
+end
+
+local function getHighestBossDefeated(profile): number
+	local highest = if type(profile.HighestBossDefeated) == "number" then profile.HighestBossDefeated else 0
+	if type(profile.BossDefeats) == "table" then
+		for bossId, count in pairs(profile.BossDefeats) do
+			if type(bossId) == "string" and type(count) == "number" and count > 0 then
+				local areaNumber = parseBossArea(bossId)
+				if areaNumber then
+					highest = math.max(highest, areaNumber)
+				end
+			end
+		end
+	end
+	return highest
+end
+
 local function hasEggAccess(profile, egg): (boolean, string?)
+	local requiredBossDefeated = egg.requiredBossDefeated or 0
+	if requiredBossDefeated > 0 and getHighestBossDefeated(profile) < requiredBossDefeated then
+		return false, string.format("Beat Area %d Boss first!", requiredBossDefeated)
+	end
 	if profile.Rebirths < egg.requiredRebirth then
 		return false, string.format("Requires Rebirth %d!", egg.requiredRebirth)
 	end
@@ -305,6 +359,26 @@ local function hasEggAccess(profile, egg): (boolean, string?)
 			NumberFormatter.format(egg.requiredPower),
 			egg.areaDisplayName
 		)
+	end
+	return true, nil
+end
+
+local function hasActiveEggStation(player: Player, egg): (boolean, string?)
+	local session = activeEggStationByPlayer[player]
+	if not session or session.eggId ~= egg.id then
+		return false, "Use this egg's station to hatch."
+	end
+	if os.clock() - session.openedAt > STATION_SESSION_DURATION then
+		activeEggStationByPlayer[player] = nil
+		return false, "Open the egg station again."
+	end
+	local root = getCharacterRoot(player)
+	local center = getStationCenter(session.station)
+	if not root or not center then
+		return false, "Stand near the egg station."
+	end
+	if (root.Position - center).Magnitude > STATION_MAX_DISTANCE then
+		return false, "Stand near the egg station."
 	end
 	return true, nil
 end
@@ -324,6 +398,34 @@ local function addPetToInventory(profile, petId: string, eggId: string?): string
 		hatchedAt = os.time(),
 	}
 	return instanceId
+end
+
+function PetService.openEggStation(player: Player, eggId: string, station: Instance?): boolean
+	local egg = PetConfig.getEggById(eggId)
+	if not egg then
+		ShowPopup:FireClient(player, "Unknown egg.")
+		return false
+	end
+
+	activeEggStationByPlayer[player] = {
+		eggId = egg.id,
+		station = station,
+		openedAt = os.clock(),
+	}
+
+	OpenPetEggShop:FireClient(player, {
+		eggId = egg.id,
+		areaIndex = egg.areaIndex,
+		eggName = egg.displayName,
+	})
+	if TutorialService then
+		TutorialService.record(player, "EggPreviewOpened", {
+			EggId = egg.id,
+			AreaIndex = egg.areaIndex,
+			Source = "Egg Station",
+		})
+	end
+	return true
 end
 
 function PetService.getMultiplier(player: Player): number
@@ -442,6 +544,12 @@ function PetService.hatchEgg(player: Player, eggId: string)
 		return
 	end
 
+	local hasStation, stationReason = hasActiveEggStation(player, egg)
+	if not hasStation then
+		ShowPopup:FireClient(player, stationReason or "Use this egg's station to hatch.")
+		return
+	end
+
 	local now = os.clock()
 	local lastOpen = lastEggOpenAt[player]
 	if lastOpen and now - lastOpen < PetConfig.EggCooldownSec then
@@ -476,6 +584,10 @@ function PetService.hatchEgg(player: Player, eggId: string)
 
 	profile.DnaCoins -= egg.cost
 	lastEggOpenAt[player] = now
+	local stationSession = activeEggStationByPlayer[player]
+	if stationSession and stationSession.eggId == egg.id then
+		stationSession.openedAt = now
+	end
 
 	local instanceId = addPetToInventory(profile, petDef.id, egg.id)
 	if not instanceId then
@@ -527,6 +639,17 @@ local function findEquippedIndex(profile, instanceId: string): number?
 	return nil
 end
 
+local function removeEquippedPet(profile, instanceId: string): boolean
+	local removed = false
+	for i = #profile.EquippedPets, 1, -1 do
+		if profile.EquippedPets[i] == instanceId then
+			table.remove(profile.EquippedPets, i)
+			removed = true
+		end
+	end
+	return removed
+end
+
 function PetService.equipPet(player: Player, instanceId: string)
 	local profile = DataService.getProfile(player)
 	if not profile then
@@ -560,6 +683,29 @@ function PetService.unequipPet(player: Player, instanceId: string)
 		refreshPetVisuals(player)
 		StatService.broadcastProfile(player)
 	end
+end
+
+function PetService.deletePet(player: Player, instanceId: string)
+	local profile = DataService.getProfile(player)
+	if not profile then
+		return
+	end
+	ensurePetTables(profile)
+	if type(instanceId) ~= "string" or instanceId == "" then
+		return
+	end
+	if not profile.Pets[instanceId] then
+		return
+	end
+
+	local wasEquipped = removeEquippedPet(profile, instanceId)
+	profile.Pets[instanceId] = nil
+
+	if wasEquipped then
+		refreshPetVisuals(player)
+	end
+	StatService.broadcastProfile(player)
+	ShowPopup:FireClient(player, "Pet deleted.")
 end
 
 function PetService.equipBest(player: Player)
@@ -627,6 +773,13 @@ local function handleUnequipRequest(player: Player, payload: any)
 	PetService.unequipPet(player, payload)
 end
 
+local function handleDeleteRequest(player: Player, payload: any)
+	if type(payload) ~= "string" then
+		return
+	end
+	PetService.deletePet(player, payload)
+end
+
 function PetService.start(deps)
 	DataService = deps.DataService
 	StatService = deps.StatService
@@ -637,6 +790,7 @@ function PetService.start(deps)
 
 	AntiExploitService.safeBind(RequestEquipPet, 8, handleEquipRequest)
 	AntiExploitService.safeBind(RequestUnequipPet, 8, handleUnequipRequest)
+	AntiExploitService.safeBind(RequestDeletePet, 4, handleDeleteRequest)
 	AntiExploitService.safeBind(RequestHatchPetEgg, 3, function(player, eggId)
 		if type(eggId) ~= "string" then
 			return
@@ -661,6 +815,7 @@ function PetService.start(deps)
 
 	Players.PlayerRemoving:Connect(function(player)
 		lastEggOpenAt[player] = nil
+		activeEggStationByPlayer[player] = nil
 		clearPetVisuals(player)
 		local connections = visualConnections[player]
 		if connections then

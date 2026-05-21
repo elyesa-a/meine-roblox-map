@@ -113,15 +113,15 @@ local STEPS: { StepDef } = {
 	},
 	{
 		speaker = "Lab AI",
-		title = "Egg Catch",
+		title = "Egg Station",
 		body = {
-			"Egg Catch contains captured lab organisms.",
-			"Catch eggs to unlock pets and strengthen your mutation speed.",
+			"Each lab area has one egg with different pet rarities inside.",
+			"Hatch pets to strengthen your mutation speed.",
 		},
-		objective = "Objective: Catch or hatch 1 egg",
-		markerText = "EGG CATCH",
+		objective = "Objective: Hatch 1 egg",
+		markerText = "EGG STATION",
 		markerKind = "EggCatch",
-		eventName = "EggCaught",
+		eventName = "EggHatched",
 	},
 	{
 		speaker = "Dr. Virox",

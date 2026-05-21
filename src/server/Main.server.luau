@@ -47,7 +47,6 @@ local PetConfig = require(Configs:WaitForChild("PetConfig"))
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestClick = Remotes:WaitForChild("RequestClick") :: RemoteEvent
 local RequestSettingsChange = Remotes:WaitForChild("RequestSettingsChange") :: RemoteEvent
-local OpenPetEggShop = Remotes:WaitForChild("OpenPetEggShop") :: RemoteEvent
 local ShowPopup = Remotes:WaitForChild("ShowPopup") :: RemoteEvent
 
 -- 1. Welt.
@@ -188,24 +187,16 @@ CollectibleService.start({
 	TitleService = TitleService,
 })
 
--- 6a. Pet-Egg two-step interaction:
---     first E/click previews the egg menu, second E/click hatches one egg.
-local PET_EGG_PREVIEW_WINDOW = 14
-local petEggPreviewAt: { [Player]: number } = {}
+-- 6a. Spawn Pet-Egg interaction:
+--     opens the Stage 1 egg shop. Hatching stays behind the Hatch button and
+--     PetService validates station proximity again on every hatch request.
 
 local function handlePetEggInteraction(player: Player)
-	local now = os.clock()
-	local lastPreview = petEggPreviewAt[player] or 0
-	if now - lastPreview <= PET_EGG_PREVIEW_WINDOW then
-		petEggPreviewAt[player] = 0
-		PetService.openEgg(player, nil)
-		TutorialService.record(player, "EggHatched", { Source = "WorldEgg" })
+	if not WorldBuilder.PetEgg then
 		return
 	end
-	petEggPreviewAt[player] = now
-	OpenPetEggShop:FireClient(player, PetConfig.DefaultEggId)
-	ShowPopup:FireClient(player, "Preview opened. Press E again to hatch.")
-	TutorialService.record(player, "EggPreviewOpened", { Source = "WorldEgg" })
+	PetService.openEggStation(player, PetConfig.DefaultEggId, WorldBuilder.PetEgg)
+	ShowPopup:FireClient(player, "Egg shop opened.")
 end
 
 if WorldBuilder.PetEgg then
@@ -237,7 +228,6 @@ end)
 
 Players.PlayerRemoving:Connect(function(player)
 	lastPowerClickAt[player] = nil
-	petEggPreviewAt[player] = nil
 end)
 
 -- 6c. Settings-Remote.

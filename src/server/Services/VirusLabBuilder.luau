@@ -3,7 +3,7 @@
 --
 -- Linearer Parcours entlang +X:
 --   Spawn Lab (hinten) -> Trainingsbereich 1 -> Labor-Luke 1 ->
---   Area 1 (10 Gegner + PWR-Borders + 3 Egg-Catch) -> Luke/Training 2 ->
+--   Area 1 (10 Gegner + PWR-Borders + 1 Pet-Egg-Station) -> Luke/Training 2 ->
 --   Area 2 -> ... -> Area 10 (Final Containment, Final Boss).
 --
 -- Erzeugt exakt die Strukturen, die bestehende Services erwarten:
@@ -16,7 +16,7 @@
 -- Neu (von BorderService / EggCatchService genutzt):
 --   * Workspace.EnemyBorders -> Parts mit Attribut RequiredPower
 --   * Workspace.AreaGates    -> Parts mit RequiredPower / RequiredRebirth
---   * Workspace.EggStations  -> ClickDetector "OpenEgg" + Egg-Attribute
+--   * Workspace.EggStations  -> ClickDetector/Prompt "OpenEgg" + Egg-Attribute
 --
 -- Das bestehende UI / die RemoteEvents werden NICHT angefasst.
 
@@ -29,6 +29,7 @@ local Modules = ReplicatedStorage:WaitForChild("Modules")
 local AreaConfig = require(Configs:WaitForChild("AreaConfig"))
 local EnemyConfig = require(Configs:WaitForChild("EnemyConfig"))
 local EggCatchConfig = require(Configs:WaitForChild("EggCatchConfig"))
+local PetConfig = require(Configs:WaitForChild("PetConfig"))
 local TrainingBedConfig = require(Configs:WaitForChild("TrainingBedConfig"))
 local NumberFormatter = require(Modules:WaitForChild("NumberFormatter"))
 
@@ -1953,91 +1954,183 @@ local function buildTrainingArea(parent, bedsFolder, _gatesFolder, area, x)
 	-- bleiben serverseitig ueber Hitbox-Attribute/Rebirth-Anforderung geregelt.
 end
 
--- ---- Egg-Catch-Station ----------------------------------------------------
+-- ---- Pet-Egg-Station ------------------------------------------------------
 
--- Egg-Catch-Station als Labor-Inkubator (Side-Bay). Seltenheit bestimmt die
--- Staerke des Containments: Common = einfache Probe, Rare = bessere Glas-
--- Kammer, Epic = schwere Containment-Kapsel. Vertrag UNVERAENDERT:
--- Model-Attribute (AreaIndex/EggTier/EggCost) + ClickDetector "OpenEgg".
+-- Pet-Egg-Station als Labor-Inkubator (Side-Bay). Jede Area bekommt genau
+-- eine Station fuer ihr Stage-Egg. Vertrag mit EggCatchService/PetService:
+-- Model-Attribute (AreaIndex/EggId/EggCost) + ClickDetector/Prompt "OpenEgg".
 local function buildEggStation(parent, areaIndex, stationIndex, eggDef, pos)
 	local model = Instance.new("Model")
-	model.Name = string.format("Egg_A%d_%s", areaIndex, eggDef.tier)
+	model.Name = string.format("Egg_A%d", areaIndex)
 	model.Parent = parent
 
-	local tier = eggDef.tier
+	local eggName = eggDef.displayName
 	local accent = eggDef.color
+	local isAreaShop = areaIndex >= 2
+
+	if isAreaShop then
+		local platformColor = tint(Color3.fromRGB(112, 32, 32), accent, 0.32)
+		local stepColor = tint(Color3.fromRGB(78, 22, 22), accent, 0.22)
+		local signColor = tint(Color3.fromRGB(40, 45, 46), accent, 0.12)
+
+		local thronePad = makePart(model, "PetEggThronePedestal", Vector3.new(32, 1.1, 22), pos + Vector3.new(0, 0.55, 0), platformColor, Enum.Material.Metal, true)
+		thronePad.Transparency = 0.03
+		makePart(model, "PetEggThroneFrontStep", Vector3.new(34, 0.35, 5.5), pos + Vector3.new(0, 0.18, -13.8), stepColor, Enum.Material.SmoothPlastic, true)
+
+		local backPanel = makePart(model, "PetShopBackPanel", Vector3.new(26, 8, 0.55), pos + Vector3.new(0, 6, 10.6), signColor, Enum.Material.Metal, false)
+		label(backPanel, string.format("PET SHOP\nAREA %d", areaIndex), accent:Lerp(Color3.fromRGB(245, 248, 240), 0.35), 95, UDim2.fromOffset(280, 72), Vector3.new(0, 1.2, 0))
+		neonStrip(model, Vector3.new(21, 0.18, 0.36), backPanel.Position + Vector3.new(0, -3.4, -0.38), accent, 0.28)
+
+		for _, sideX in ipairs({ -15.5, 15.5 }) do
+			local sidePanel = makePart(model, "PetShopSidePanel", Vector3.new(0.55, 5.5, 12), pos + Vector3.new(sideX, 3.1, 4), tint(accent, LAB_CYAN, 0.45), Enum.Material.Glass, false)
+			sidePanel.Transparency = 0.76
+		end
+
+		local hoverRing = makePart(model, "PetEggHoverRing", Vector3.new(18, 0.12, 18), pos + Vector3.new(0, 1.18, 0), accent, Enum.Material.Neon, false)
+		hoverRing.Shape = Enum.PartType.Cylinder
+		hoverRing.Orientation = Vector3.new(0, 0, 90)
+		hoverRing.Transparency = 0.55
+
+		local capsule = makePart(model, "EggCapsule", Vector3.new(8.8, 10.8, 8.8), pos + Vector3.new(0, 8.7, 0), accent, Enum.Material.SmoothPlastic, false)
+		capsule.CanQuery = true -- anklickbar (OpenEgg ClickDetector)
+		capsule.Shape = Enum.PartType.Ball
+		capsule.Transparency = 0.05
+		for i = 0, 7 do
+			local a = i * math.pi * 2 / 8
+			local spike = makePart(model, "VirusEggNodule", Vector3.new(1.2, 1.2, 1.2), capsule.Position + Vector3.new(math.cos(a) * 5.4, 0.5 + math.sin(i * 1.7) * 1.3, math.sin(a) * 5.4), accent:Lerp(Color3.fromRGB(28, 34, 38), 0.35), Enum.Material.SmoothPlastic, false)
+			spike.Shape = Enum.PartType.Ball
+			spike.CanCollide = false
+		end
+
+		local glow = Instance.new("PointLight")
+		glow.Name = "VirusEggGlow"
+		glow.Brightness = 0.85
+		glow.Range = 16
+		glow.Color = accent:Lerp(Color3.fromRGB(220, 255, 225), 0.35)
+		glow.Parent = capsule
+
+		model:SetAttribute("AreaIndex", areaIndex)
+		model:SetAttribute("EggId", eggDef.eggId)
+		model:SetAttribute("EggName", eggName)
+		model:SetAttribute("EggCost", eggDef.cost)
+		local cd = Instance.new("ClickDetector")
+		cd.Name = "OpenEgg"
+		cd.MaxActivationDistance = 18
+		cd.Parent = capsule
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "OpenEggPrompt"
+		prompt.ActionText = "Open Egg"
+		prompt.ObjectText = eggName
+		prompt.KeyboardKeyCode = Enum.KeyCode.E
+		prompt.HoldDuration = 0
+		prompt.MaxActivationDistance = 16
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = capsule
+
+		label(
+			capsule,
+			string.format("%s\nCost: %s DNA", eggName, NumberFormatter.format(eggDef.cost)),
+			accent:Lerp(Color3.fromRGB(245, 248, 240), 0.2),
+			95,
+			UDim2.fromOffset(320, 86),
+			Vector3.new(0, 7, 0)
+		)
+		return
+	end
 
 	-- Eigener Inkubator-Sockel + Rueckpaneel (markiert die Side-Bay).
-	local bayPad = makePart(model, "IncubatorBayPad", Vector3.new(15, 0.32, 15), pos + Vector3.new(0, -0.24, 0), Color3.fromRGB(128, 42, 42), Enum.Material.SmoothPlastic, true)
+	local padSize = if isAreaShop then Vector3.new(24, 0.42, 20) else Vector3.new(15, 0.32, 15)
+	local padEdgeSize = if isAreaShop then Vector3.new(24.8, 0.1, 20.8) else Vector3.new(15.4, 0.08, 15.4)
+	local bayPad = makePart(model, "IncubatorBayPad", padSize, pos + Vector3.new(0, -0.24, 0), Color3.fromRGB(128, 42, 42), Enum.Material.SmoothPlastic, true)
 	bayPad.Transparency = 0.05
-	makePart(model, "IncubatorBayEdge", Vector3.new(15.4, 0.08, 15.4), pos + Vector3.new(0, 0.02, 0), Color3.fromRGB(85, 28, 28), Enum.Material.SmoothPlastic, false).Transparency = 0.28
-	local backPanel = makePart(model, "IncubatorBackPanel", Vector3.new(13, 11, 0.5), pos + Vector3.new(0, 6, 7), Color3.fromRGB(40, 45, 46), Enum.Material.Metal, false)
-	label(backPanel, string.format("%s INCUBATOR", string.upper(tier)), accent:Lerp(Color3.fromRGB(225, 230, 222), 0.5), 30, UDim2.fromOffset(150, 36), Vector3.new(0, 3.6, 0))
+	makePart(model, "IncubatorBayEdge", padEdgeSize, pos + Vector3.new(0, 0.02, 0), Color3.fromRGB(85, 28, 28), Enum.Material.SmoothPlastic, false).Transparency = 0.28
+	local backPanelSize = if isAreaShop then Vector3.new(22, 13, 0.65) else Vector3.new(13, 11, 0.5)
+	local backPanelOffset = if isAreaShop then Vector3.new(0, 6.8, 8.8) else Vector3.new(0, 6, 7)
+	local backPanel = makePart(model, "IncubatorBackPanel", backPanelSize, pos + backPanelOffset, Color3.fromRGB(40, 45, 46), Enum.Material.Metal, false)
+	if isAreaShop then
+		label(backPanel, string.format("PET SHOP\nAREA %d", areaIndex), accent:Lerp(Color3.fromRGB(245, 248, 240), 0.35), 95, UDim2.fromOffset(280, 72), Vector3.new(0, 4.4, 0))
+		neonStrip(model, Vector3.new(18, 0.18, 0.4), backPanel.Position + Vector3.new(0, -4.8, -0.45), accent, 0.22)
+		for _, sideX in ipairs({ -12.2, 12.2 }) do
+			local sidePanel = makePart(model, "PetShopSideGlass", Vector3.new(0.55, 6.4, 13), pos + Vector3.new(sideX, 3.35, 1.8), tint(accent, LAB_CYAN, 0.45), Enum.Material.Glass, false)
+			sidePanel.Transparency = 0.74
+			neonStrip(model, Vector3.new(0.38, 0.16, 10.5), sidePanel.Position + Vector3.new(0, 3.4, 0), accent, 0.35)
+		end
+	else
+		label(backPanel, "PET INCUBATOR", accent:Lerp(Color3.fromRGB(225, 230, 222), 0.5), 30, UDim2.fromOffset(150, 36), Vector3.new(0, 3.6, 0))
+	end
 
-	local base = makePart(model, "EggBase", Vector3.new(12, 0.85, 12), pos + Vector3.new(0, -0.15, 0), Color3.fromRGB(112, 36, 36), Enum.Material.Metal, true)
+	local baseSize = if isAreaShop then Vector3.new(14.5, 1, 14.5) else Vector3.new(12, 0.85, 12)
+	local base = makePart(model, "EggBase", baseSize, pos + Vector3.new(0, -0.15, 0), Color3.fromRGB(112, 36, 36), Enum.Material.Metal, true)
 	base.Shape = Enum.PartType.Cylinder
 	base.Orientation = Vector3.new(0, 0, 90)
 
-	local ring = makePart(model, "EggRing", Vector3.new(12.6, 0.5, 12.6), pos + Vector3.new(0, 0.8, 0), accent:Lerp(LAB_TRIM, 0.45), Enum.Material.SmoothPlastic, false)
+	local ringSize = if isAreaShop then Vector3.new(15.4, 0.55, 15.4) else Vector3.new(12.6, 0.5, 12.6)
+	local ring = makePart(model, "EggRing", ringSize, pos + Vector3.new(0, 0.8, 0), accent:Lerp(LAB_TRIM, 0.45), Enum.Material.SmoothPlastic, false)
 	ring.Shape = Enum.PartType.Cylinder
 	ring.Orientation = Vector3.new(0, 0, 90)
 	ring.Transparency = 0.38
 
-	-- Glas-Inkubationskammer um die Probe (Staerke je nach Seltenheit).
-	local glassTransparency = if tier == "Common" then 0.74 elseif tier == "Rare" then 0.66 else 0.58
-	local chamber = makePart(model, "IncubationGlass", Vector3.new(7, 9, 7), pos + Vector3.new(0, 5, 0), tint(accent, LAB_WHITE, 0.55), Enum.Material.Glass, false)
+	-- Glas-Inkubationskammer um die Stage-Probe.
+	local glassTransparency = math.clamp(0.76 - areaIndex * 0.025, 0.5, 0.74)
+	local chamberSize = if isAreaShop then Vector3.new(8.8, 10.5, 8.8) else Vector3.new(7, 9, 7)
+	local chamber = makePart(model, "IncubationGlass", chamberSize, pos + Vector3.new(0, if isAreaShop then 5.5 else 5, 0), tint(accent, LAB_WHITE, 0.55), Enum.Material.Glass, false)
 	chamber.Shape = Enum.PartType.Cylinder
 	chamber.Orientation = Vector3.new(0, 0, 90)
 	chamber.Transparency = glassTransparency
-	makePart(model, "IncubationCapBottom", Vector3.new(8, 0.7, 8), pos + Vector3.new(0, 0.9, 0), LAB_TRIM, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
-	makePart(model, "IncubationCapTop", Vector3.new(8, 0.7, 8), pos + Vector3.new(0, 9.1, 0), LAB_DARK, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
+	local capSize = if isAreaShop then Vector3.new(9.8, 0.8, 9.8) else Vector3.new(8, 0.7, 8)
+	makePart(model, "IncubationCapBottom", capSize, pos + Vector3.new(0, 0.9, 0), LAB_TRIM, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
+	makePart(model, "IncubationCapTop", capSize, pos + Vector3.new(0, if isAreaShop then 10.2 else 9.1, 0), LAB_DARK, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
 
-	-- Rare/Epic: zusaetzliche Containment-Streben.
-	if tier ~= "Common" then
-		local posts = if tier == "Rare" then 2 else 4
-		for i = 0, posts - 1 do
-			local a = i * (2 * math.pi / posts) + math.pi / 4
-			makePart(model, "ContainmentStrut", Vector3.new(0.55, 9.5, 0.55), pos + Vector3.new(math.cos(a) * 4.4, 5, math.sin(a) * 4.4), LAB_DARK, Enum.Material.Metal, false)
-		end
+	-- Spaetere Areas bekommen sichtbar schwerere Containment-Streben.
+	local posts = if areaIndex <= 1 then 2 elseif areaIndex <= 5 then 4 else 6
+	for i = 0, posts - 1 do
+		local a = i * (2 * math.pi / posts) + math.pi / 4
+		local radius = if isAreaShop then 5.4 else 4.4
+		makePart(model, "ContainmentStrut", Vector3.new(0.55, if isAreaShop then 10.8 else 9.5, 0.55), pos + Vector3.new(math.cos(a) * radius, if isAreaShop then 5.55 else 5, math.sin(a) * radius), LAB_DARK, Enum.Material.Metal, false)
 	end
-	if tier == "Epic" then
-		makePart(model, "EpicContainmentCage", Vector3.new(9.4, 0.5, 9.4), pos + Vector3.new(0, 5, 0), accent:Lerp(LAB_DARK, 0.4), Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
-		makePart(model, "EpicStatusLight", Vector3.new(1, 1, 1), pos + Vector3.new(0, 10, 0), LAB_WARNING_RED, Enum.Material.Neon, false).Shape = Enum.PartType.Ball
-	else
-		makePart(model, "IncubatorStatusLight", Vector3.new(0.9, 0.9, 0.3), pos + Vector3.new(4.6, 2.4, 4.6), LAB_GREEN, Enum.Material.Neon, false).Shape = Enum.PartType.Ball
-	end
+	makePart(model, "IncubatorStatusLight", Vector3.new(0.9, 0.9, 0.3), pos + Vector3.new(if isAreaShop then 5.8 else 4.6, 2.4, if isAreaShop then 5.8 else 4.6), accent, Enum.Material.Neon, false).Shape = Enum.PartType.Ball
 
 	-- Kleines Kontroll-Terminal an der Seite.
-	local terminal = makePart(model, "IncubatorTerminal", Vector3.new(3, 3.4, 2), pos + Vector3.new(6.5, 1.7, 0), Color3.fromRGB(44, 50, 52), Enum.Material.Metal, false)
+	local terminal = makePart(model, "IncubatorTerminal", if isAreaShop then Vector3.new(3.8, 3.8, 2.4) else Vector3.new(3, 3.4, 2), pos + Vector3.new(if isAreaShop then 8.4 else 6.5, 1.7, -0.4), Color3.fromRGB(44, 50, 52), Enum.Material.Metal, false)
 	makePart(model, "IncubatorTerminalScreen", Vector3.new(0.3, 2, 1.5), terminal.Position + Vector3.new(-1.6, 0.6, 0), accent, Enum.Material.SmoothPlastic, false).Transparency = 0.2
 
 	-- Ei / Kapsel in der Mitte (Klick-Ziel; Vertrag unveraendert).
-	local capsule = makePart(model, "EggCapsule", Vector3.new(5, 6.5, 5), pos + Vector3.new(0, 4.5, 0), accent, Enum.Material.SmoothPlastic, false)
+	local capsule = makePart(model, "EggCapsule", if isAreaShop then Vector3.new(6.4, 8.2, 6.4) else Vector3.new(5, 6.5, 5), pos + Vector3.new(0, if isAreaShop then 5 else 4.5, 0), accent, Enum.Material.SmoothPlastic, false)
 	capsule.CanQuery = true -- anklickbar (OpenEgg ClickDetector)
 	capsule.Shape = Enum.PartType.Ball
 	capsule.Transparency = 0.1
 	local glow = Instance.new("PointLight")
-	glow.Brightness = 0.45
-	glow.Range = 9
+	glow.Brightness = if isAreaShop then 0.7 else 0.45
+	glow.Range = if isAreaShop then 14 else 9
 	glow.Color = accent:Lerp(Color3.fromRGB(210, 220, 216), 0.55)
 	glow.Parent = capsule
 
 	-- Egg-Daten + Klick-Hook (EggCatchService verbindet "OpenEgg").
 	model:SetAttribute("AreaIndex", areaIndex)
-	model:SetAttribute("EggTier", eggDef.tier)
+	model:SetAttribute("EggId", eggDef.eggId)
+	model:SetAttribute("EggName", eggName)
 	model:SetAttribute("EggCost", eggDef.cost)
 	local cd = Instance.new("ClickDetector")
 	cd.Name = "OpenEgg"
-	cd.MaxActivationDistance = 14
+	cd.MaxActivationDistance = if isAreaShop then 18 else 14
 	cd.Parent = capsule
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "OpenEggPrompt"
+	prompt.ActionText = "Open Egg"
+	prompt.ObjectText = eggName
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = if isAreaShop then 16 else 12
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = capsule
 
 	label(
 		capsule,
-		string.format("%s EGG\nCost: %s DNA", string.upper(eggDef.tier), NumberFormatter.format(eggDef.cost)),
+		string.format("%s\nCost: %s DNA", eggName, NumberFormatter.format(eggDef.cost)),
 		accent,
-		40,
-		UDim2.fromOffset(200, 70),
-		Vector3.new(0, 5.5, 0)
+		if isAreaShop then 95 else 40,
+		if isAreaShop then UDim2.fromOffset(340, 92) else UDim2.fromOffset(240, 76),
+		if isAreaShop then Vector3.new(0, 7, 0) else Vector3.new(0, 5.5, 0)
 	)
 end
 
@@ -3701,26 +3794,34 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	-- Das breite rote Podest inszeniert das Ei wie eine wichtige Labor-Probe
 	-- auf einem Thron, blockiert aber keinen Hauptweg.
 	local shopEggPos = Vector3.new(cx + 118, FLOOR_Y, 82)
+	local starterEgg = PetConfig.getEggById(PetConfig.DefaultEggId)
+	local starterEggName = if starterEgg then starterEgg.displayName else "Beginner Virus Egg"
+	local starterEggCost = if starterEgg then starterEgg.cost else PetConfig.EggCost
+	local starterEggColor = if starterEgg then starterEgg.color else Color3.fromRGB(52, 210, 92)
 	local thronePad = makePart(model, "PetEggThronePedestal", Vector3.new(32, 1.1, 22), shopEggPos + Vector3.new(0, 0.55, 0), Color3.fromRGB(112, 32, 32), Enum.Material.Metal, true)
 	thronePad.Transparency = 0.03
 	makePart(model, "PetEggThroneFrontStep", Vector3.new(34, 0.35, 5.5), shopEggPos + Vector3.new(0, 0.18, -13.8), Color3.fromRGB(78, 22, 22), Enum.Material.SmoothPlastic, true)
-	local hoverRing = makePart(model, "PetEggHoverRing", Vector3.new(18, 0.12, 18), shopEggPos + Vector3.new(0, 1.18, 0), Color3.fromRGB(54, 190, 86), Enum.Material.Neon, false)
+	local hoverRing = makePart(model, "PetEggHoverRing", Vector3.new(18, 0.12, 18), shopEggPos + Vector3.new(0, 1.18, 0), starterEggColor, Enum.Material.Neon, false)
 	hoverRing.Shape = Enum.PartType.Cylinder
 	hoverRing.Orientation = Vector3.new(0, 0, 90)
 	hoverRing.Transparency = 0.55
-	local egg = makePart(model, "PetEgg", Vector3.new(8.8, 10.8, 8.8), shopEggPos + Vector3.new(0, 8.7, 0), Color3.fromRGB(52, 210, 92), Enum.Material.SmoothPlastic, false)
+	local egg = makePart(model, "PetEgg", Vector3.new(8.8, 10.8, 8.8), shopEggPos + Vector3.new(0, 8.7, 0), starterEggColor, Enum.Material.SmoothPlastic, false)
 	egg.CanQuery = true -- anklickbar (OpenEgg ClickDetector; Main verdrahtet)
 	egg.Shape = Enum.PartType.Ball
 	egg.Transparency = 0.05
+	egg:SetAttribute("AreaIndex", 1)
+	egg:SetAttribute("EggId", PetConfig.DefaultEggId)
+	egg:SetAttribute("EggName", starterEggName)
+	egg:SetAttribute("EggCost", starterEggCost)
 	local virusGlow = Instance.new("PointLight")
 	virusGlow.Name = "VirusEggGlow"
 	virusGlow.Brightness = 0.9
 	virusGlow.Range = 16
-	virusGlow.Color = Color3.fromRGB(80, 255, 120)
+	virusGlow.Color = starterEggColor:Lerp(Color3.fromRGB(210, 255, 220), 0.35)
 	virusGlow.Parent = egg
 	for i = 0, 7 do
 		local a = i * math.pi * 2 / 8
-		local spike = makePart(model, "VirusEggNodule", Vector3.new(1.35, 1.35, 1.35), egg.Position + Vector3.new(math.cos(a) * 5.4, 0.5 + math.sin(i * 1.7) * 1.3, math.sin(a) * 5.4), Color3.fromRGB(44, 170, 76), Enum.Material.SmoothPlastic, false)
+		local spike = makePart(model, "VirusEggNodule", Vector3.new(1.35, 1.35, 1.35), egg.Position + Vector3.new(math.cos(a) * 5.4, 0.5 + math.sin(i * 1.7) * 1.3, math.sin(a) * 5.4), starterEggColor:Lerp(Color3.fromRGB(25, 90, 40), 0.35), Enum.Material.SmoothPlastic, false)
 		spike.Shape = Enum.PartType.Ball
 		spike.CanCollide = false
 	end
@@ -3731,13 +3832,13 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "OpenEggPrompt"
 	prompt.ActionText = "View Egg"
-	prompt.ObjectText = "Virus Egg"
+	prompt.ObjectText = starterEggName
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 14
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = egg
-	label(egg, "VIRUS EGG\nClick to open", Color3.fromRGB(105, 255, 145), 40, UDim2.fromOffset(190, 60), Vector3.new(0, 7, 0))
+	label(egg, string.format("%s\nCost: %s DNA", starterEggName, NumberFormatter.format(starterEggCost)), starterEggColor:Lerp(Color3.fromRGB(220, 255, 225), 0.25), 40, UDim2.fromOffset(240, 70), Vector3.new(0, 7, 0))
 	VirusLabBuilder.PetEgg = egg
 
 	-- ===== Hochwertiger Hub-Bereich rund um die Statue ===================
@@ -4011,11 +4112,18 @@ function VirusLabBuilder.build()
 			end
 		end
 
-		-- 3 Egg-Catch-Stationen seitlich (nicht im Weg).
+		-- Eine Stage-Egg-Station seitlich (nicht im Weg).
 		local eggDefs = EggCatchConfig.getForArea(area.index)
-		local eggXs = { hallX - 90, hallX, hallX + 90 }
 		for si, eggDef in ipairs(eggDefs) do
-			buildEggStation(eggFolder, area.index, si, eggDef, Vector3.new(eggXs[si], FLOOR_Y + 0.6, L.EggZ))
+			local stationX = hallX
+			local stationZ = L.EggZ
+			if area.index >= 2 then
+				local entranceX = hallX + L.GateOffsetX
+				local rightSideWidth = CORRIDOR_MAX_Z - BACTERIA_RIGHT_LIMIT_Z
+				stationX = entranceX - (L.EnemySpacing + 12)
+				stationZ = BACTERIA_RIGHT_LIMIT_Z + math.min(30, rightSideWidth * 0.35)
+			end
+			buildEggStation(eggFolder, area.index, si, eggDef, Vector3.new(stationX, FLOOR_Y + 0.6, stationZ))
 		end
 
 		-- ZoneTrigger fuer das HUD (CurrentAreaLabel liest DisplayName).

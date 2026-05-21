@@ -1,13 +1,14 @@
 --!strict
--- PetConfig: area-based hatch eggs, rarity chances, and Power multipliers.
+-- PetConfig: one stage egg per area, rarity chances, and Power multipliers.
 --
--- Existing saved pets use instance IDs in DataService. Pet IDs remain stable
--- and old pet definitions stay present so older profiles keep rendering.
+-- Saved pets reference pet IDs. New hatch pools use one pet per rarity per
+-- stage egg. The old generated pet IDs and older handcrafted IDs remain as
+-- legacy definitions so existing inventories still render and equip.
 
 local AreaConfig = require(script.Parent:WaitForChild("AreaConfig"))
 
 export type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Mythic"
-export type EggTier = "Common" | "Rare" | "Epic"
+export type EggTier = "Stage" | "Common" | "Rare" | "Epic"
 
 export type PetDef = {
 	id: string,
@@ -17,6 +18,7 @@ export type PetDef = {
 	multiplier: number,
 	areaIndex: number?,
 	eggTier: EggTier?,
+	legacy: boolean?,
 }
 
 export type EggDef = {
@@ -29,6 +31,7 @@ export type EggDef = {
 	cost: number,
 	requiredPower: number,
 	requiredRebirth: number,
+	requiredBossDefeated: number,
 	color: Color3,
 	pool: { [Rarity]: { string } },
 }
@@ -39,9 +42,10 @@ PetConfig.MaxInventorySize = 100
 PetConfig.MaxEquipped = 3
 PetConfig.EggCooldownSec = 2
 
--- Compatibility fallback for the old spawn egg click.
-PetConfig.DefaultEggId = "Area1CommonEgg"
-PetConfig.EggCost = 100
+-- Compatibility fallback for older call sites. This now points at the single
+-- Stage 1 egg instead of the old Common/Rare/Epic split.
+PetConfig.DefaultEggId = "Area1Egg"
+PetConfig.EggCost = 1000
 
 PetConfig.RarityOrder = {
 	Common = 1,
@@ -62,12 +66,13 @@ PetConfig.RarityColor = {
 } :: { [string]: Color3 }
 
 PetConfig.EggTierOrder = {
-	Common = PetConfig.RarityOrder.Common,
-	Rare = PetConfig.RarityOrder.Rare,
-	Epic = PetConfig.RarityOrder.Epic,
+	Stage = 1,
+	Common = 100,
+	Rare = 200,
+	Epic = 300,
 } :: { [string]: number }
 
--- Base V1 hatch chances. The server uses this table for weighted rolls.
+-- Server-side weighted rarity chances used by all stage eggs.
 PetConfig.RarityChances = {
 	{ rarity = "Common" :: Rarity, chance = 55 },
 	{ rarity = "Uncommon" :: Rarity, chance = 25 },
@@ -82,26 +87,42 @@ for _, entry in ipairs(PetConfig.RarityChances) do
 	PetConfig.RarityWeights[entry.rarity] = entry.chance
 end
 
-local tierData = {
-	Common = { cost = 100, bonus = 0, label = "Starter" },
-	Rare = { cost = 500, bonus = 0.08, label = "Mutated" },
-	Epic = { cost = 2500, bonus = 0.18, label = "Elite" },
-} :: { [EggTier]: { cost: number, bonus: number, label: string } }
-
-local tierOrder = { "Common" :: EggTier, "Rare" :: EggTier, "Epic" :: EggTier }
-
-local rarityBonus = {
-	Common = 0.08,
-	Uncommon = 0.14,
-	Rare = 0.24,
-	Epic = 0.38,
-	Legendary = 0.65,
-	Mythic = 1.0,
+-- Stage 1 baseline required by design.
+PetConfig.StageOnePowerMultipliers = {
+	Common = 1.5,
+	Uncommon = 1.75,
+	Rare = 2.0,
+	Epic = 2.5,
+	Legendary = 2.75,
+	Mythic = 3.0,
 } :: { [Rarity]: number }
 
--- Rarity-Suffixe: virus-/lab-thematisch und progressiv staerker.
--- Saved-Daten referenzieren PET-IDs, NICHT displayName -> Aenderungen hier
--- sind safe.
+PetConfig.StageEggCosts = {
+	[1] = 1000,
+	[2] = 5000,
+	[3] = 25000,
+	[4] = 125000,
+	[5] = 625000,
+	[6] = 3125000,
+	[7] = 15625000,
+	[8] = 78125000,
+	[9] = 390625000,
+	[10] = 1953125000,
+} :: { [number]: number }
+
+local stageEggNames = {
+	[1] = "Beginner Virus Egg",
+	[2] = "Infected Cell Egg",
+	[3] = "Mutation Strain Egg",
+	[4] = "Toxic Sample Egg",
+	[5] = "Virus Chamber Egg",
+	[6] = "Corrupted Specimen Egg",
+	[7] = "Biohazard Core Egg",
+	[8] = "Dark Mutation Egg",
+	[9] = "Omega Virus Egg",
+	[10] = "Final Containment Egg",
+}
+
 local rarityName = {
 	Common = "Microbe",
 	Uncommon = "Spore",
@@ -124,23 +145,31 @@ local areaPetRoots = {
 	[10] = "Containment",
 }
 
-local tierColor = {
-	Common = PetConfig.RarityColor.Common,
-	Rare = PetConfig.RarityColor.Rare,
-	Epic = PetConfig.RarityColor.Epic,
-} :: { [EggTier]: Color3 }
-
 local function round2(n: number): number
 	return math.floor(n * 100 + 0.5) / 100
 end
 
-local function petId(areaIndex: number, tier: EggTier, rarity: Rarity): string
-	return string.format("A%d%s%sPet", areaIndex, tier, rarity)
+local function stagePetId(areaIndex: number, rarity: Rarity): string
+	return string.format("A%d%sPet", areaIndex, rarity)
 end
 
-function PetConfig.getEggId(areaIndex: number, tier: string?): string
-	local safeTier = if tier == "Rare" or tier == "Epic" then tier else "Common"
-	return string.format("Area%d%sEgg", areaIndex, safeTier)
+function PetConfig.getEggId(areaIndex: number, _tier: string?): string
+	return string.format("Area%dEgg", areaIndex)
+end
+
+function PetConfig.getStagePowerMultiplier(areaIndex: number, rarity: Rarity): number
+	local baseline = PetConfig.StageOnePowerMultipliers[rarity] or 1
+	if areaIndex <= 1 then
+		return baseline
+	end
+
+	-- Later stages grow both by rarity value and by a moderate flat stage bonus.
+	-- This makes every new area egg feel better without exploding the additive
+	-- equipped-pet stack.
+	local stageOffset = math.max(0, areaIndex - 1)
+	local rarityScale = 1 + stageOffset * 0.28
+	local stageBonus = stageOffset * 0.35
+	return round2(1 + (baseline - 1) * rarityScale + stageBonus)
 end
 
 PetConfig.Pets = {} :: { PetDef }
@@ -157,43 +186,87 @@ end
 for _, area in ipairs(AreaConfig.Areas) do
 	local areaIndex = area.index
 	local areaRoot = areaPetRoots[areaIndex] or ("Area" .. tostring(areaIndex))
+	local pool = {} :: { [Rarity]: { string } }
+
+	for _, chanceDef in ipairs(PetConfig.RarityChances) do
+		local rarity = chanceDef.rarity
+		local id = stagePetId(areaIndex, rarity)
+		local powerMultiplier = PetConfig.getStagePowerMultiplier(areaIndex, rarity)
+		addPet({
+			id = id,
+			displayName = string.format("%s %s", areaRoot, rarityName[rarity]),
+			rarity = rarity,
+			powerMultiplier = powerMultiplier,
+			multiplier = powerMultiplier,
+			areaIndex = areaIndex,
+			eggTier = "Stage",
+		})
+		pool[rarity] = { id }
+	end
+
+	addEgg({
+		id = PetConfig.getEggId(areaIndex),
+		displayName = stageEggNames[areaIndex] or (area.displayName .. " Egg"),
+		areaIndex = areaIndex,
+		areaId = area.id,
+		areaDisplayName = area.displayName,
+		tier = "Stage",
+		cost = PetConfig.StageEggCosts[areaIndex] or math.floor(1000 * (5 ^ (areaIndex - 1))),
+		requiredPower = area.requiredPower,
+		requiredRebirth = area.trainingRebirth,
+		requiredBossDefeated = math.max(0, areaIndex - 1),
+		color = area.primaryColor,
+		pool = pool,
+	})
+end
+
+-- Legacy generated pet IDs from the old Common/Rare/Epic egg split. These are
+-- intentionally not part of any new hatch pool.
+local legacyTierData = {
+	Common = { bonus = 0, label = "Starter" },
+	Rare = { bonus = 0.08, label = "Mutated" },
+	Epic = { bonus = 0.18, label = "Elite" },
+} :: { [EggTier]: { bonus: number, label: string } }
+
+local legacyTierOrder = { "Common" :: EggTier, "Rare" :: EggTier, "Epic" :: EggTier }
+
+local legacyRarityBonus = {
+	Common = 0.08,
+	Uncommon = 0.14,
+	Rare = 0.24,
+	Epic = 0.38,
+	Legendary = 0.65,
+	Mythic = 1.0,
+} :: { [Rarity]: number }
+
+local function legacyPetId(areaIndex: number, tier: EggTier, rarity: Rarity): string
+	return string.format("A%d%s%sPet", areaIndex, tier, rarity)
+end
+
+for _, area in ipairs(AreaConfig.Areas) do
+	local areaIndex = area.index
+	local areaRoot = areaPetRoots[areaIndex] or ("Area" .. tostring(areaIndex))
 	local areaBonus = (areaIndex - 1) * 0.06
 
-	for _, tier in ipairs(tierOrder) do
-		local tierInfo = tierData[tier]
-		local pool = {} :: { [Rarity]: { string } }
-
+	for _, tier in ipairs(legacyTierOrder) do
+		local tierInfo = legacyTierData[tier]
+		if not tierInfo then
+			continue
+		end
 		for _, chanceDef in ipairs(PetConfig.RarityChances) do
 			local rarity = chanceDef.rarity
-			local id = petId(areaIndex, tier, rarity)
-			local powerMultiplier = round2(1 + rarityBonus[rarity] + areaBonus + tierInfo.bonus)
-			local displayName = string.format("%s %s %s", tierInfo.label, areaRoot, rarityName[rarity])
+			local powerMultiplier = round2(1 + legacyRarityBonus[rarity] + areaBonus + tierInfo.bonus)
 			addPet({
-				id = id,
-				displayName = displayName,
+				id = legacyPetId(areaIndex, tier, rarity),
+				displayName = string.format("%s %s %s", tierInfo.label, areaRoot, rarityName[rarity]),
 				rarity = rarity,
 				powerMultiplier = powerMultiplier,
 				multiplier = powerMultiplier,
 				areaIndex = areaIndex,
 				eggTier = tier,
+				legacy = true,
 			})
-			pool[rarity] = { id }
 		end
-
-		local factor = 4 ^ (areaIndex - 1)
-		addEgg({
-			id = PetConfig.getEggId(areaIndex, tier),
-			displayName = string.format("%s %s Egg", area.displayName, tierInfo.label),
-			areaIndex = areaIndex,
-			areaId = area.id,
-			areaDisplayName = area.displayName,
-			tier = tier,
-			cost = tierInfo.cost * factor,
-			requiredPower = area.requiredPower,
-			requiredRebirth = area.trainingRebirth,
-			color = tierColor[tier],
-			pool = pool,
-		})
 	end
 end
 
@@ -219,7 +292,15 @@ for _, def in ipairs(legacyPets) do
 		rarity = def.rarity,
 		powerMultiplier = def.powerMultiplier,
 		multiplier = def.powerMultiplier,
+		legacy = true,
 	})
+end
+
+PetConfig.LegacyEggIdMap = {} :: { [string]: string }
+for _, area in ipairs(AreaConfig.Areas) do
+	for _, tier in ipairs(legacyTierOrder) do
+		PetConfig.LegacyEggIdMap[string.format("Area%d%sEgg", area.index, tier)] = PetConfig.getEggId(area.index)
+	end
 end
 
 local petsById: { [string]: PetDef } = {}
@@ -238,11 +319,19 @@ function PetConfig.getById(id: string): PetDef?
 end
 
 function PetConfig.getEggById(id: string): EggDef?
-	return eggsById[id]
+	local egg = eggsById[id]
+	if egg then
+		return egg
+	end
+	local mappedId = PetConfig.LegacyEggIdMap[id]
+	if mappedId then
+		return eggsById[mappedId]
+	end
+	return nil
 end
 
 function PetConfig.getEggSortOrder(egg: EggDef): number
-	return egg.areaIndex * 100 + (PetConfig.EggTierOrder[egg.tier] or 50)
+	return egg.areaIndex * 100 + (PetConfig.EggTierOrder[egg.tier] or 1)
 end
 
 function PetConfig.getSortedEggs(): { EggDef }

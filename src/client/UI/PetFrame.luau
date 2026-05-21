@@ -16,6 +16,7 @@ local PetConfig = require(Configs:WaitForChild("PetConfig"))
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestEquipPet = Remotes:WaitForChild("RequestEquipPet") :: RemoteEvent
 local RequestUnequipPet = Remotes:WaitForChild("RequestUnequipPet") :: RemoteEvent
+local RequestDeletePet = Remotes:WaitForChild("RequestDeletePet") :: RemoteEvent
 local RequestHatchPetEgg = Remotes:WaitForChild("RequestHatchPetEgg") :: RemoteEvent
 local OpenPetEggShop = Remotes:WaitForChild("OpenPetEggShop") :: RemoteEvent
 local HatchPetResult = Remotes:WaitForChild("HatchPetResult") :: RemoteEvent
@@ -54,8 +55,8 @@ type Refs = {
 	eggOnlyMode: boolean,
 }
 
-local PET_CARD_SIZE = Vector2.new(136, 104)
-local EGG_CARD_SIZE = Vector2.new(158, 72)
+local PET_CARD_SIZE = Vector2.new(152, 124)
+local EGG_CARD_SIZE = Vector2.new(332, 96)
 local LAB_BASE = Color3.fromRGB(10, 14, 22)
 local LAB_PANEL = Color3.fromRGB(18, 24, 35)
 local LAB_PANEL_2 = Color3.fromRGB(25, 32, 46)
@@ -67,6 +68,8 @@ local TEXT_MUTED = Color3.fromRGB(110, 120, 135)
 local DNA_GREEN = Color3.fromRGB(0, 220, 120)
 local REWARD_GOLD = Color3.fromRGB(255, 220, 80)
 local DANGER_RED = Color3.fromRGB(255, 70, 75)
+local DELETE_CONFIRM_SECONDS = 4
+local pendingDeleteByInstance: { [string]: number } = {}
 
 local function restyleStroke(gui: GuiObject, color: Color3, thickness: number?, transparency: number?)
 	local stroke = gui:FindFirstChildOfClass("UIStroke")
@@ -114,19 +117,25 @@ end
 
 local function eggRequirementText(egg): string
 	local parts = {}
+	if egg.requiredBossDefeated and egg.requiredBossDefeated > 0 then
+		table.insert(parts, "Beat Area " .. tostring(egg.requiredBossDefeated) .. " Boss")
+	end
 	if egg.requiredPower and egg.requiredPower > 0 then
 		table.insert(parts, NumberFormatter.format(egg.requiredPower) .. " PWR")
 	end
 	if egg.requiredRebirth and egg.requiredRebirth > 0 then
 		table.insert(parts, "Rebirth " .. tostring(egg.requiredRebirth))
 	end
-	return if #parts > 0 then table.concat(parts, " + ") else "Unlocked"
+	return if #parts > 0 then table.concat(parts, " + ") else ""
 end
 
 local function canAccessEgg(state, egg): boolean
 	local power = state.Power or 0
 	local rebirths = state.Rebirths or 0
-	return power >= (egg.requiredPower or 0) and rebirths >= (egg.requiredRebirth or 0)
+	local highestBossDefeated = state.HighestBossDefeated or 0
+	return power >= (egg.requiredPower or 0)
+		and rebirths >= (egg.requiredRebirth or 0)
+		and highestBossDefeated >= (egg.requiredBossDefeated or 0)
 end
 
 local function rarityChanceText(): string
@@ -184,6 +193,18 @@ local function isEquipped(equippedList: { string }?, instanceId: string): boolea
 	return false
 end
 
+local function isDeletePending(instanceId: string): boolean
+	local expiresAt = pendingDeleteByInstance[instanceId]
+	if not expiresAt then
+		return false
+	end
+	if os.clock() > expiresAt then
+		pendingDeleteByInstance[instanceId] = nil
+		return false
+	end
+	return true
+end
+
 local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): TextButton
 	local unlocked = canAccessEgg(state, egg)
 	local selected = refs.selectedEggId == egg.id
@@ -205,17 +226,19 @@ local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): Tex
 	card.Parent = parent
 	restyleStroke(card, if selected then LAB_STROKE else (if unlocked then LAB_STROKE_DARK else Color3.fromRGB(60, 70, 85)), if selected then 2 else 1.25, if selected then 0.12 else 0.45)
 
-	makeSmallLabel(card, egg.tier .. " Egg", UDim2.new(0, 6, 0, 5), UDim2.new(1, -12, 0, 18), 12, titleColor)
-	local area = makeSmallLabel(card, egg.areaDisplayName, UDim2.new(0, 6, 0, 23), UDim2.new(1, -12, 0, 16), 11)
+	local title = makeSmallLabel(card, egg.displayName, UDim2.new(0, 8, 0, 6), UDim2.new(1, -16, 0, 32), 14, titleColor)
+	title.TextWrapped = true
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	local area = makeSmallLabel(card, egg.areaDisplayName, UDim2.new(0, 8, 0, 41), UDim2.new(1, -16, 0, 16), 11)
 	area.TextColor3 = if unlocked then TEXT_SECONDARY else TEXT_MUTED
 	area.TextXAlignment = Enum.TextXAlignment.Left
-	local cost = makeSmallLabel(card, NumberFormatter.format(egg.cost) .. " DNA", UDim2.new(0, 6, 0, 41), UDim2.new(1, -12, 0, 14), 11, REWARD_GOLD)
+	local cost = makeSmallLabel(card, NumberFormatter.format(egg.cost) .. " DNA", UDim2.new(0, 8, 0, 60), UDim2.new(1, -16, 0, 14), 11, REWARD_GOLD)
 	cost.TextXAlignment = Enum.TextXAlignment.Left
 	local status = makeSmallLabel(
 		card,
 		if unlocked then (if selected then "SELECTED" else "OPEN") else "LOCKED",
-		UDim2.new(0, 6, 0, 56),
-		UDim2.new(1, -12, 0, 13),
+		UDim2.new(0, 8, 0, 76),
+		UDim2.new(1, -16, 0, 14),
 		10,
 		if unlocked then DNA_GREEN else DANGER_RED
 	)
@@ -256,7 +279,7 @@ local function buildPetCard(parent: ScrollingFrame, instanceId: string, def, equ
 
 	local action = Instance.new("TextButton")
 	action.Name = "Action"
-	action.Size = UDim2.new(1, -8, 0, 26)
+	action.Size = UDim2.new(0.58, -6, 0, 26)
 	action.Position = UDim2.new(0, 4, 1, -30)
 	Theme.applyButtonStyle(action, if equipped then DANGER_RED else DNA_GREEN)
 	action.Text = if equipped then "UNEQUIP" else "EQUIP"
@@ -272,6 +295,41 @@ local function buildPetCard(parent: ScrollingFrame, instanceId: string, def, equ
 		else
 			RequestEquipPet:FireServer(instanceId)
 		end
+	end)
+
+	local deleteButton = Instance.new("TextButton")
+	deleteButton.Name = "Delete"
+	deleteButton.Size = UDim2.new(0.42, -6, 0, 26)
+	deleteButton.Position = UDim2.new(0.58, 2, 1, -30)
+	Theme.applyButtonStyle(deleteButton, if isDeletePending(instanceId) then DANGER_RED else Color3.fromRGB(82, 36, 44))
+	deleteButton.Text = if isDeletePending(instanceId) then "CONFIRM" else "DELETE"
+	deleteButton.TextSize = 11
+	deleteButton.TextScaled = false
+	deleteButton.ZIndex = 9
+	deleteButton.Parent = card
+
+	deleteButton.MouseButton1Click:Connect(function()
+		UIAnimator.buttonPunch(deleteButton)
+		if isDeletePending(instanceId) then
+			pendingDeleteByInstance[instanceId] = nil
+			RequestDeletePet:FireServer(instanceId)
+			return
+		end
+
+		local expiresAt = os.clock() + DELETE_CONFIRM_SECONDS
+		pendingDeleteByInstance[instanceId] = expiresAt
+		deleteButton.Text = "CONFIRM"
+		deleteButton.BackgroundColor3 = DANGER_RED
+		task.delay(DELETE_CONFIRM_SECONDS, function()
+			if pendingDeleteByInstance[instanceId] ~= expiresAt then
+				return
+			end
+			pendingDeleteByInstance[instanceId] = nil
+			if deleteButton.Parent then
+				deleteButton.Text = "DELETE"
+				deleteButton.BackgroundColor3 = Color3.fromRGB(82, 36, 44)
+			end
+		end)
 	end)
 
 	return card
@@ -692,9 +750,11 @@ function PetFrame.update(refs: Refs, state)
 	if selectedEgg then
 		local unlocked = canAccessEgg(state, selectedEgg)
 		local enoughDna = (state.DnaCoins or 0) >= selectedEgg.cost
+		local requirement = eggRequirementText(selectedEgg)
 		refs.eggNameLabel.Text = selectedEgg.displayName
 		refs.eggNameLabel.TextColor3 = selectedEgg.color
-		refs.eggReqLabel.Text = "Requirement: " .. eggRequirementText(selectedEgg)
+		refs.eggReqLabel.Visible = requirement ~= ""
+		refs.eggReqLabel.Text = if requirement ~= "" then "Requirement: " .. requirement else ""
 		refs.eggCostLabel.Text = "Cost: " .. NumberFormatter.format(selectedEgg.cost) .. " DNA"
 		refs.hatchButton.Text = if unlocked then (if enoughDna then "HATCH" else "NEED DNA") else "LOCKED"
 		refs.hatchButton.BackgroundColor3 = if unlocked and enoughDna then DNA_GREEN else DANGER_RED
@@ -705,8 +765,8 @@ function PetFrame.update(refs: Refs, state)
 			child:Destroy()
 		end
 	end
-	for _, egg in ipairs(getSortedEggs()) do
-		buildEggCard(refs.eggScroll, refs, egg, state)
+	if selectedEgg then
+		buildEggCard(refs.eggScroll, refs, selectedEgg, state)
 	end
 
 	local petCount = 0
