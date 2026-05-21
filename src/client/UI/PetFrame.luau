@@ -16,6 +16,7 @@ local PetConfig = require(Configs:WaitForChild("PetConfig"))
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestEquipPet = Remotes:WaitForChild("RequestEquipPet") :: RemoteEvent
 local RequestUnequipPet = Remotes:WaitForChild("RequestUnequipPet") :: RemoteEvent
+local RequestDeletePet = Remotes:WaitForChild("RequestDeletePet") :: RemoteEvent
 local RequestHatchPetEgg = Remotes:WaitForChild("RequestHatchPetEgg") :: RemoteEvent
 local OpenPetEggShop = Remotes:WaitForChild("OpenPetEggShop") :: RemoteEvent
 local HatchPetResult = Remotes:WaitForChild("HatchPetResult") :: RemoteEvent
@@ -54,7 +55,7 @@ type Refs = {
 	eggOnlyMode: boolean,
 }
 
-local PET_CARD_SIZE = Vector2.new(136, 104)
+local PET_CARD_SIZE = Vector2.new(152, 124)
 local EGG_CARD_SIZE = Vector2.new(332, 96)
 local LAB_BASE = Color3.fromRGB(10, 14, 22)
 local LAB_PANEL = Color3.fromRGB(18, 24, 35)
@@ -67,6 +68,8 @@ local TEXT_MUTED = Color3.fromRGB(110, 120, 135)
 local DNA_GREEN = Color3.fromRGB(0, 220, 120)
 local REWARD_GOLD = Color3.fromRGB(255, 220, 80)
 local DANGER_RED = Color3.fromRGB(255, 70, 75)
+local DELETE_CONFIRM_SECONDS = 4
+local pendingDeleteByInstance: { [string]: number } = {}
 
 local function restyleStroke(gui: GuiObject, color: Color3, thickness: number?, transparency: number?)
 	local stroke = gui:FindFirstChildOfClass("UIStroke")
@@ -190,6 +193,18 @@ local function isEquipped(equippedList: { string }?, instanceId: string): boolea
 	return false
 end
 
+local function isDeletePending(instanceId: string): boolean
+	local expiresAt = pendingDeleteByInstance[instanceId]
+	if not expiresAt then
+		return false
+	end
+	if os.clock() > expiresAt then
+		pendingDeleteByInstance[instanceId] = nil
+		return false
+	end
+	return true
+end
+
 local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): TextButton
 	local unlocked = canAccessEgg(state, egg)
 	local selected = refs.selectedEggId == egg.id
@@ -264,7 +279,7 @@ local function buildPetCard(parent: ScrollingFrame, instanceId: string, def, equ
 
 	local action = Instance.new("TextButton")
 	action.Name = "Action"
-	action.Size = UDim2.new(1, -8, 0, 26)
+	action.Size = UDim2.new(0.58, -6, 0, 26)
 	action.Position = UDim2.new(0, 4, 1, -30)
 	Theme.applyButtonStyle(action, if equipped then DANGER_RED else DNA_GREEN)
 	action.Text = if equipped then "UNEQUIP" else "EQUIP"
@@ -280,6 +295,41 @@ local function buildPetCard(parent: ScrollingFrame, instanceId: string, def, equ
 		else
 			RequestEquipPet:FireServer(instanceId)
 		end
+	end)
+
+	local deleteButton = Instance.new("TextButton")
+	deleteButton.Name = "Delete"
+	deleteButton.Size = UDim2.new(0.42, -6, 0, 26)
+	deleteButton.Position = UDim2.new(0.58, 2, 1, -30)
+	Theme.applyButtonStyle(deleteButton, if isDeletePending(instanceId) then DANGER_RED else Color3.fromRGB(82, 36, 44))
+	deleteButton.Text = if isDeletePending(instanceId) then "CONFIRM" else "DELETE"
+	deleteButton.TextSize = 11
+	deleteButton.TextScaled = false
+	deleteButton.ZIndex = 9
+	deleteButton.Parent = card
+
+	deleteButton.MouseButton1Click:Connect(function()
+		UIAnimator.buttonPunch(deleteButton)
+		if isDeletePending(instanceId) then
+			pendingDeleteByInstance[instanceId] = nil
+			RequestDeletePet:FireServer(instanceId)
+			return
+		end
+
+		local expiresAt = os.clock() + DELETE_CONFIRM_SECONDS
+		pendingDeleteByInstance[instanceId] = expiresAt
+		deleteButton.Text = "CONFIRM"
+		deleteButton.BackgroundColor3 = DANGER_RED
+		task.delay(DELETE_CONFIRM_SECONDS, function()
+			if pendingDeleteByInstance[instanceId] ~= expiresAt then
+				return
+			end
+			pendingDeleteByInstance[instanceId] = nil
+			if deleteButton.Parent then
+				deleteButton.Text = "DELETE"
+				deleteButton.BackgroundColor3 = Color3.fromRGB(82, 36, 44)
+			end
+		end)
 	end)
 
 	return card

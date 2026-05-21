@@ -24,6 +24,7 @@ local PetVisualBuilder = require(Modules:WaitForChild("PetVisualBuilder"))
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestEquipPet = Remotes:WaitForChild("RequestEquipPet") :: RemoteEvent
 local RequestUnequipPet = Remotes:WaitForChild("RequestUnequipPet") :: RemoteEvent
+local RequestDeletePet = Remotes:WaitForChild("RequestDeletePet") :: RemoteEvent
 local RequestHatchPetEgg = Remotes:WaitForChild("RequestHatchPetEgg") :: RemoteEvent
 local OpenPetEggShop = Remotes:WaitForChild("OpenPetEggShop") :: RemoteEvent
 local HatchPetResult = Remotes:WaitForChild("HatchPetResult") :: RemoteEvent
@@ -638,6 +639,17 @@ local function findEquippedIndex(profile, instanceId: string): number?
 	return nil
 end
 
+local function removeEquippedPet(profile, instanceId: string): boolean
+	local removed = false
+	for i = #profile.EquippedPets, 1, -1 do
+		if profile.EquippedPets[i] == instanceId then
+			table.remove(profile.EquippedPets, i)
+			removed = true
+		end
+	end
+	return removed
+end
+
 function PetService.equipPet(player: Player, instanceId: string)
 	local profile = DataService.getProfile(player)
 	if not profile then
@@ -671,6 +683,29 @@ function PetService.unequipPet(player: Player, instanceId: string)
 		refreshPetVisuals(player)
 		StatService.broadcastProfile(player)
 	end
+end
+
+function PetService.deletePet(player: Player, instanceId: string)
+	local profile = DataService.getProfile(player)
+	if not profile then
+		return
+	end
+	ensurePetTables(profile)
+	if type(instanceId) ~= "string" or instanceId == "" then
+		return
+	end
+	if not profile.Pets[instanceId] then
+		return
+	end
+
+	local wasEquipped = removeEquippedPet(profile, instanceId)
+	profile.Pets[instanceId] = nil
+
+	if wasEquipped then
+		refreshPetVisuals(player)
+	end
+	StatService.broadcastProfile(player)
+	ShowPopup:FireClient(player, "Pet deleted.")
 end
 
 function PetService.equipBest(player: Player)
@@ -738,6 +773,13 @@ local function handleUnequipRequest(player: Player, payload: any)
 	PetService.unequipPet(player, payload)
 end
 
+local function handleDeleteRequest(player: Player, payload: any)
+	if type(payload) ~= "string" then
+		return
+	end
+	PetService.deletePet(player, payload)
+end
+
 function PetService.start(deps)
 	DataService = deps.DataService
 	StatService = deps.StatService
@@ -748,6 +790,7 @@ function PetService.start(deps)
 
 	AntiExploitService.safeBind(RequestEquipPet, 8, handleEquipRequest)
 	AntiExploitService.safeBind(RequestUnequipPet, 8, handleUnequipRequest)
+	AntiExploitService.safeBind(RequestDeletePet, 4, handleDeleteRequest)
 	AntiExploitService.safeBind(RequestHatchPetEgg, 3, function(player, eggId)
 		if type(eggId) ~= "string" then
 			return
