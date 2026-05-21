@@ -1910,32 +1910,65 @@ local function buildTrainingArea(parent, bedsFolder, _gatesFolder, area, x)
 
 	-- Boden/Markierung bleibt als klare Trainingsflaeche erhalten.
 	makePart(model, "TrainingBayFloor", Vector3.new(bayWidthX, 0.6, bayDepthZ), Vector3.new(x, FLOOR_Y + 0.32, bayZ), tint(LAB_PANEL, primary, 0.14), Enum.Material.SmoothPlastic, true)
-	makePart(model, "TrainingBayFloorInset", Vector3.new(bayWidthX - 8, 0.1, bayDepthZ - 7), Vector3.new(x, FLOOR_Y + 0.62, bayZ), Color3.fromRGB(80, 86, 86), Enum.Material.Metal, false).Transparency = 0.2
 	-- Gelb-schwarze Schwelle als Eingangsmarkierung zum Laufweg.
-	makePart(model, "TrainingBayThreshold", Vector3.new(bayWidthX, 0.08, 1.8), Vector3.new(x, FLOOR_Y + 0.4, bayMouthZ - 1), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false).Transparency = 0.32
+	makePart(model, "TrainingBayThreshold", Vector3.new(bayWidthX, 0.06, 1.8), Vector3.new(x, FLOOR_Y + 0.68, bayMouthZ - 1), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false).Transparency = 0.42
 
 	-- Ein breiter, klarer Power-Trainingsbereich. DNA/Luck-Training wurde
 	-- bewusst entfernt, damit die Bay nicht wie drei getrennte Shops wirkt.
 	local center = Vector3.new(x, FLOOR_Y, bayZ)
-	local trainColor = LAB_WARNING_RED
-	local tp = makePart(model, "TrainPad", Vector3.new(42, 0.5, 20), center + Vector3.new(0, 0.75, 0), trainColor, Enum.Material.SmoothPlastic, false)
-	tp.Transparency = 0.34
-	local stationBase = makePart(model, "TrainStationBase", Vector3.new(50, 0.25, 24), center + Vector3.new(0, 0.5, 0), LAB_DARK, Enum.Material.Metal, false)
-	stationBase.Transparency = 0.08
-	makePart(model, "TrainPadStripe", Vector3.new(34, 0.12, 0.55), center + Vector3.new(0, 0.95, 8.6), trainColor, Enum.Material.SmoothPlastic, false).Transparency = 0.3
-	for _, edgeX in ipairs({ -21, 21 }) do
-		makePart(model, "TrainScannerPost", Vector3.new(0.8, 7.2, 0.8), center + Vector3.new(edgeX, 3.8, -8.7), LAB_DARK, Enum.Material.Metal, false)
+	local padBase = makePart(model, "TrainStationBase", Vector3.new(50, 0.18, 24), center + Vector3.new(0, 0.82, 0), Color3.fromRGB(18, 21, 25), Enum.Material.Metal, false)
+	padBase.Transparency = 0.04
+	local pad = makePart(model, "TrainPad", Vector3.new(43, 0.12, 17.5), center + Vector3.new(0, 1.02, 0), Color3.fromRGB(38, 42, 47), Enum.Material.SmoothPlastic, false)
+	pad.Transparency = 0.08
+	makePart(model, "TrainPadInnerPanel", Vector3.new(35, 0.06, 11.5), center + Vector3.new(0, 1.16, 0), Color3.fromRGB(28, 31, 36), Enum.Material.SmoothPlastic, false).Transparency = 0.04
+	local centerLine = makePart(model, "TrainPadCenterLine", Vector3.new(37, 0.04, 0.28), center + Vector3.new(0, 1.28, 0), Color3.fromRGB(72, 100, 72), Enum.Material.SmoothPlastic, false)
+	centerLine.Transparency = 0.32
+	for _, xOffset in ipairs({ -22.2, 22.2 }) do
+		makePart(model, "TrainPadSideFrame", Vector3.new(0.42, 0.06, 18.2), center + Vector3.new(xOffset, 1.36, 0), LAB_TRIM, Enum.Material.Metal, false).Transparency = 0.06
 	end
-	local scannerBeam = makePart(model, "TrainScannerBeam", Vector3.new(43, 0.7, 0.8), center + Vector3.new(0, 7.4, -8.7), LAB_DARK, Enum.Material.Metal, false)
-	neonStrip(model, Vector3.new(36, 0.22, 0.34), scannerBeam.Position + Vector3.new(0, -0.45, 0.42), trainColor, 0.5)
-	local terminal = makePart(model, "TrainTerminal", Vector3.new(7, 3.4, 3.4), center + Vector3.new(0, 1.7, -10.1), LAB_DARK, Enum.Material.Metal, false)
-	local screen = makePart(model, "TrainTerminalScreen", Vector3.new(5.6, 2.4, 0.36), terminal.Position + Vector3.new(0, 1, 1.9), trainColor, Enum.Material.SmoothPlastic, false)
-	screen.Transparency = 0.22
-	label(screen, "PWR", Color3.fromRGB(255, 255, 255), 30, UDim2.fromOffset(120, 34), Vector3.new(0, 0, 0))
-	local cabinet = makePart(model, "TrainingBreakerBox", Vector3.new(4.2, 5.4, 1.1), center + Vector3.new(-18, 3.2, -10.8), Color3.fromRGB(54, 60, 62), Enum.Material.Metal, false)
-	label(cabinet, "SYS\nOK", LAB_GREEN, 22, UDim2.fromOffset(56, 34), Vector3.new(0, 0, 0))
-	local post = makePart(model, "TrainSignPost", Vector3.new(0.6, 6.4, 0.6), center + Vector3.new(0, 3.2, 9.7), LAB_TRIM, Enum.Material.Metal, false)
-	label(post, "POWER TRAINING", trainColor, 44, UDim2.fromOffset(210, 44), Vector3.new(0, 3, 0))
+
+	local ledOrbit = Instance.new("Model")
+	ledOrbit.Name = "TrainPadLedOrbit"
+	ledOrbit.Parent = model
+	ledOrbit:SetAttribute("FlowSpeed", 0.78)
+	local pivot = makePart(ledOrbit, "LedOrbitPivot", Vector3.new(0.2, 0.2, 0.2), center + Vector3.new(0, 1.43, 0), Color3.fromRGB(255, 255, 255), Enum.Material.SmoothPlastic, false)
+	pivot.Transparency = 1
+	pivot.CanTouch = false
+	ledOrbit.PrimaryPart = pivot
+
+	local ledRed = Color3.fromRGB(150, 42, 46)
+	local ledGreen = Color3.fromRGB(52, 156, 82)
+	local ledLength = 3.25
+	local ledGap = 0.12
+	local topZ = 9.55
+	local sideX = 22.88
+	local ledY = 1.72
+	local function ledColor(index)
+		return if index % 2 == 0 then ledRed else ledGreen
+	end
+	local ledIndex = 0
+	for sideIndex, zOffset in ipairs({ -topZ, topZ }) do
+		for i = 1, 13 do
+			ledIndex += 1
+			local xOffset = -20.25 + (i - 1) * (ledLength + ledGap)
+			local strip = makePart(ledOrbit, "TrainingLedStrip", Vector3.new(ledLength, 0.78, 0.82), center + Vector3.new(xOffset, ledY, zOffset), ledColor(i + sideIndex), Enum.Material.Neon, false)
+			strip.Transparency = 0
+			strip.CanTouch = false
+			strip.CastShadow = false
+			strip:SetAttribute("LedIndex", ledIndex)
+		end
+	end
+	for sideIndex, xOffset in ipairs({ -sideX, sideX }) do
+		for i = 1, 5 do
+			ledIndex += 1
+			local zOffset = -7.9 + (i - 1) * (ledLength + ledGap)
+			local strip = makePart(ledOrbit, "TrainingLedStrip", Vector3.new(0.82, 0.78, ledLength), center + Vector3.new(xOffset, ledY, zOffset), ledColor(i + sideIndex + 1), Enum.Material.Neon, false)
+			strip.Transparency = 0
+			strip.CanTouch = false
+			strip.CastShadow = false
+			strip:SetAttribute("LedIndex", ledIndex)
+		end
+	end
 
 	-- Trainings-Bett (Vertrag mit TrainingZoneService): Model + Hitbox-Part.
 	-- Hitbox deckt die Bay ab -> Spieler trainiert, waehrend er in der Bay
@@ -3062,11 +3095,14 @@ local FLOOR_LABEL_BY_MENU = {
 -- Interaktiver Labor-Kiosk: Prompt oeffnet vorhandene UI-Menues clientseitig.
 -- Geometrie (Pillar/Screen/Marquee/NPC-Position) bleibt unveraendert, damit
 -- bestehende Stations-Layouts und ProximityPrompt-Funktion erhalten bleiben.
-local function buildStationKiosk(parent, name, pos, accent, title, hint, menuTarget, actionText, npcName, npcStyle, faceSign)
+local function buildStationKiosk(parent, name, pos, accent, title, hint, menuTarget, actionText, npcName, npcStyle, faceSign, auraTier: number?)
 	local model = Instance.new("Model")
 	model.Name = name
 	model.Parent = parent
 	local face = faceSign or 1
+	if menuTarget == "Auras" and auraTier then
+		model:SetAttribute("AuraTier", auraTier)
+	end
 
 	-- Boden-Akzent unter und vor dem Kiosk: flacher Bodenbelag (Mat), kein
 	-- erhoehtes Podest -> NPC-Schuhe stehen sauber darueber, kein Clipping
@@ -3143,7 +3179,14 @@ local function buildStationKiosk(parent, name, pos, accent, title, hint, menuTar
 	-- NPC (Position UNVERAENDERT). Prompt bleibt am Torso.
 	local npcPromptPart = buildStationNpc(model, "NPC_" .. npcName:gsub("%s+", ""), pos + Vector3.new(0, 0, 7.1 * face), accent, npcName, npcStyle, face)
 	npcPromptPart:SetAttribute("MenuTarget", menuTarget)
+	if menuTarget == "Auras" and auraTier then
+		npcPromptPart:SetAttribute("AuraTier", auraTier)
+	end
 	makePrompt(npcPromptPart, menuTarget, actionText, npcName)
+	local prompt = npcPromptPart:FindFirstChild("OpenMenuPrompt")
+	if prompt and prompt:IsA("ProximityPrompt") and menuTarget == "Auras" and auraTier then
+		prompt:SetAttribute("AuraTier", auraTier)
+	end
 
 	local trigger = makePart(model, "StationProximityTrigger", Vector3.new(12, 8, 12), pos + Vector3.new(0, FLOOR_Y + 4, 5.0 * face), Color3.new(1, 1, 1), Enum.Material.SmoothPlastic, false)
 	trigger.Transparency = 1
@@ -3151,6 +3194,9 @@ local function buildStationKiosk(parent, name, pos, accent, title, hint, menuTar
 	trigger.CanTouch = false
 	trigger.CanQuery = false
 	trigger:SetAttribute("MenuTarget", menuTarget)
+	if menuTarget == "Auras" and auraTier then
+		trigger:SetAttribute("AuraTier", auraTier)
+	end
 
 	-- Sample-Tank seitlich (urspruengliches Element, sauberer gerahmt).
 	local sampleA = makePart(model, "SampleCapsuleA", Vector3.new(1.4, 3.2, 1.4), pos + Vector3.new(-4.7, 2.4, 2.6 * face), Color3.fromRGB(180, 220, 210), Enum.Material.Glass, false)
@@ -3174,6 +3220,7 @@ local function buildStationKiosk(parent, name, pos, accent, title, hint, menuTar
 
 	-- Stations-spezifische Hero-Deko (Boost-Kapsel/Geschenk/DNA/Aura ...).
 	buildStationSignature(model, menuTarget, pos, accent, face)
+	return model
 end
 
 local function buildBiohazardDrum(parent, name, pos, accent)
@@ -3855,12 +3902,12 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	-- die Sidebar. Laufwege bleiben frei; alle Stationen liegen seitlich.
 	local stations = {
 		{ n = "UpgradeLabStation", t = "UPGRADE LAB", h = "Improve your mutation power", c = LAB_GREEN, dx = -64, z = 82, menu = "Skills", action = "Open Upgrades", npc = "Dr. Upgrade", style = "Lab" },
-		{ n = "AuraStation", t = "AURA STATION", h = "Unlock mutation effects", c = Color3.fromRGB(132, 116, 170), dx = -24, z = 82, menu = "Auras", action = "Open Auras", npc = "Aura Dealer", style = "Dark" },
+		{ n = "AuraStation", t = "AURA STATION", h = "Tier 1 mutation effects", c = Color3.fromRGB(132, 116, 170), dx = -24, z = 82, menu = "Auras", action = "Open Auras", npc = "Aura Dealer", style = "Dark", tier = 1 },
 		{ n = "ShopTerminalStation", t = "SHOP", h = "Boosts & Items", c = LAB_CYAN, dx = 16, z = 82, menu = "Shop", action = "Open Shop", npc = "Shop Vendor", style = "Dark" },
 		{ n = "DailyRewardStation", t = "DAILY REWARD", h = "Claim free rewards", c = LAB_WARNING_YELLOW, dx = 56, z = 82, menu = "Daily", action = "Claim Daily", npc = "Daily Bot", style = "Bot" },
 	}
 	for _, st in ipairs(stations) do
-		buildStationKiosk(orgFolders.npcStations, st.n, Vector3.new(cx + st.dx, FLOOR_Y, st.z), st.c, st.t, st.h, st.menu, st.action, st.npc, st.style, -1)
+		buildStationKiosk(orgFolders.npcStations, st.n, Vector3.new(cx + st.dx, FLOOR_Y, st.z), st.c, st.t, st.h, st.menu, st.action, st.npc, st.style, -1, st.tier)
 	end
 
 	-- Biohazard-Container / Glas-Tank / Kisten als Hub-Deko (off-path).
@@ -3873,6 +3920,39 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 
 	-- Tutorial- und Richtungsschilder wurden entfernt, damit der Spawn
 	-- cleaner wirkt und die NPC-Stationen nicht verdeckt werden.
+end
+
+local function buildAreaAuraStation(parent: Instance, area)
+	if area.index < 2 or area.index > 10 then
+		return
+	end
+
+	local gateX = area.hallCenterX + L.GateOffsetX
+	local stationX = gateX - 34
+	local stationZ = 25
+	local accent = area.primaryColor:Lerp(Color3.fromRGB(132, 116, 170), 0.3)
+	local station = Instance.new("Folder")
+	station.Name = "AreaAuraStation_" .. tostring(area.index)
+	station.Parent = parent
+
+	buildStationKiosk(
+		station,
+		"AuraStation_Area" .. tostring(area.index),
+		Vector3.new(stationX, FLOOR_Y, stationZ),
+		accent,
+		"AURA STATION",
+		"Tier " .. tostring(area.index) .. " mutation effects",
+		"Auras",
+		"Open Auras",
+		"Aura Dealer",
+		"Dark",
+		-1,
+		area.index
+	)
+
+	station:SetAttribute("AreaIndex", area.index)
+	station:SetAttribute("AuraTier", area.index)
+	station:SetAttribute("MenuTarget", "Auras")
 end
 
 -- ---- Lighting -------------------------------------------------------------
@@ -4038,6 +4118,7 @@ function VirusLabBuilder.build()
 
 		-- Trainingsbereich (vor der Halle) + ggf. Rebirth-Gate.
 		buildTrainingArea(areaModel, bedsFolder, gatesFolder, area, hallX + L.TrainingOffsetX)
+		buildAreaAuraStation(areaModel, area)
 
 		-- Gegner dieser Area.
 		local defs = EnemyConfig.getByArea(area.id)

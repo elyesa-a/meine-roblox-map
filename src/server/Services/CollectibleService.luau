@@ -24,6 +24,7 @@ local rng = Random.new()
 local activeByZone: { [string]: number } = {}
 local playerTouchCooldown: { [Player]: number } = {}
 local folder: Folder
+local COLLECTIBLES_ENABLED = false
 
 local function makeFolder(): Folder
 	local existing = Workspace:FindFirstChild("Collectibles")
@@ -187,6 +188,11 @@ function CollectibleService.start(deps)
 	DailyQuestService = deps.DailyQuestService
 	TitleService = deps.TitleService
 	folder = makeFolder()
+
+	if not COLLECTIBLES_ENABLED then
+		activeByZone = {}
+		return
+	end
 
 	for _, zone in ipairs(ZoneConfig) do
 		if zone.enabled then

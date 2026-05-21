@@ -25,6 +25,7 @@ type Refs = {
 	infoLabel: TextLabel,
 	nextLabel: TextLabel,
 	cards: { [string]: { card: Frame, button: TextButton, status: TextLabel } },
+	shopTier: number?,
 }
 
 local function makeCard(parent: ScrollingFrame, def): { card: Frame, button: TextButton, status: TextLabel }
@@ -240,6 +241,7 @@ function AuraFrame.create(parent: ScreenGui): Refs
 		infoLabel = infoLabel,
 		nextLabel = nextLabel,
 		cards = cards,
+		shopTier = 1,
 	}
 end
 
@@ -247,11 +249,20 @@ function AuraFrame.show(refs: Refs)
 	UIAnimator.framePopIn(refs.backdrop, refs.root)
 end
 
+function AuraFrame.setShopTier(refs: Refs, tier: number?)
+	if type(tier) ~= "number" then
+		refs.shopTier = 1
+		return
+	end
+	refs.shopTier = math.clamp(math.floor(tier), 1, AuraConfig.MaxTier)
+end
+
 function AuraFrame.update(refs: Refs, state)
 	local auras = if type(state.Auras) == "table" then state.Auras else {}
 	local equipped = state.EquippedAura
 	local dna = state.DnaCoins or 0
 	local unlockedTier = AuraConfig.getUnlockedTier(state.HighestBossDefeated)
+	local shopTier = math.clamp(math.floor(refs.shopTier or 1), 1, AuraConfig.MaxTier)
 
 	local equippedName = "-"
 	if equipped then
@@ -261,16 +272,18 @@ function AuraFrame.update(refs: Refs, state)
 		end
 	end
 	refs.infoLabel.Text = string.format(
-		"DNA: %s  |  Current Aura: %s  |  Unlocked Tier: %d / %d",
+		"DNA: %s  |  Current Aura: %s  |  Shop Tier: %d / %d",
 		NumberFormatter.format(dna),
 		equippedName,
-		unlockedTier,
+		shopTier,
 		AuraConfig.MaxTier
 	)
-	if unlockedTier < AuraConfig.MaxTier then
-		refs.nextLabel.Text = "Next Tier locked: Beat Area " .. tostring(unlockedTier) .. " Boss to unlock"
+	if shopTier > unlockedTier then
+		refs.nextLabel.Text = "Locked: Beat Area " .. tostring(shopTier - 1) .. " Boss to unlock this Aura tier"
+	elseif shopTier < AuraConfig.MaxTier then
+		refs.nextLabel.Text = "This shop contains Tier " .. tostring(shopTier) .. " Auras."
 	else
-		refs.nextLabel.Text = "Max aura tier unlocked."
+		refs.nextLabel.Text = "This shop contains final Apex Aura tier."
 	end
 
 	for index, def in ipairs(AuraConfig.Auras) do
@@ -288,15 +301,14 @@ function AuraFrame.update(refs: Refs, state)
 			end
 		end
 		local isEquipped = AuraConfig.matchesId(def, equipped)
-		local isCurrentTier = def.requiredTier == unlockedTier
-		local isNextTier = def.requiredTier == unlockedTier + 1
-		local showCard = owned or isCurrentTier or isNextTier
+		local isShopTier = def.requiredTier == shopTier
+		local showCard = isShopTier
 		local btn = cardRefs.button
 		local status = cardRefs.status
 		cardRefs.card.Visible = showCard
 		cardRefs.card.Size = if showCard then UDim2.new(1, 0, 0, 78) else UDim2.new(1, 0, 0, 0)
-		cardRefs.card.LayoutOrder = if isCurrentTier then index elseif owned then 1000 + index else 2000 + index
-		cardRefs.card.BackgroundTransparency = if isNextTier and not owned then 0.34 else 0
+		cardRefs.card.LayoutOrder = index
+		cardRefs.card.BackgroundTransparency = if def.requiredTier > unlockedTier and not owned then 0.34 else 0
 
 		if isEquipped then
 			btn.Text = "EQUIPPED"
