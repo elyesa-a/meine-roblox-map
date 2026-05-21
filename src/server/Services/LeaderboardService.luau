@@ -278,6 +278,19 @@ local function anchorDummy(model: Model)
 	end
 end
 
+local function getPodiumDisplayCFrame(podium: BasePart, height: number, spin: number?): CFrame
+	local pos = podium.Position + Vector3.new(0, podium.Size.Y / 2 + height / 2, 0)
+	local targetX = podium:GetAttribute("FaceTargetX")
+	local targetZ = podium:GetAttribute("FaceTargetZ")
+	if type(targetX) == "number" and type(targetZ) == "number" then
+		local target = Vector3.new(targetX, pos.Y, targetZ)
+		if (target - pos).Magnitude > 0.1 then
+			return CFrame.lookAt(pos, target) * CFrame.Angles(0, spin or 0, 0)
+		end
+	end
+	return CFrame.new(pos) * CFrame.Angles(0, -math.pi / 2 + (spin or 0), 0)
+end
+
 local function updatePodiums(powerEntries)
 	local zone = getZone()
 	if not zone then
@@ -325,7 +338,7 @@ local function updatePodiums(powerEntries)
 			anchorDummy(model)
 			model.Parent = folder
 			local height = model:GetExtentsSize().Y
-			model:PivotTo(CFrame.new(podium.Position + Vector3.new(0, podium.Size.Y / 2 + height / 2, 0)) * CFrame.Angles(0, -math.pi / 2, 0))
+			model:PivotTo(getPodiumDisplayCFrame(podium, height, 0))
 		end)
 	end
 end
@@ -372,7 +385,7 @@ local function spinDummies()
 					local podium = zone and zone:FindFirstChild("Top" .. tostring(rank) .. "Podium", true)
 					if model and model:IsA("Model") and podium and podium:IsA("BasePart") then
 						local height = model:GetExtentsSize().Y
-						model:PivotTo(CFrame.new(podium.Position + Vector3.new(0, podium.Size.Y / 2 + height / 2, 0)) * CFrame.Angles(0, -math.pi / 2 + dummySpin, 0))
+						model:PivotTo(getPodiumDisplayCFrame(podium, height, dummySpin))
 					end
 				end
 			end

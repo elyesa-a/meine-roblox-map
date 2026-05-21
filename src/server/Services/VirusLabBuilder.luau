@@ -3216,19 +3216,31 @@ local function buildLeaderboardZone(parent: Instance, cx: number)
 	buildLeaderboardBoard(zone, "BossKills", "TOP BOSS KILLS", Vector3.new(wallX + 1, boardY, baseZ + 38), accentRed)
 
 	local podiumFolder = makeFolder("TopPlayerPodiums", zone)
-	local podiums = {
-		{ rank = 2, z = baseZ - 14, size = Vector3.new(10, 1.3, 10), accent = accentCyan },
-		{ rank = 1, z = baseZ, size = Vector3.new(13, 2, 13), accent = accentPower },
-		{ rank = 3, z = baseZ + 14, size = Vector3.new(10, 1.1, 10), accent = accentGold },
-	}
-	for _, p in ipairs(podiums) do
-		local pod = makePart(podiumFolder, "Top" .. tostring(p.rank) .. "Podium", p.size, Vector3.new(cx - 132, FLOOR_Y + p.size.Y / 2, p.z), Color3.fromRGB(25, 30, 36), Enum.Material.Metal, true)
-		pod:SetAttribute("PodiumRank", p.rank)
-		neonStrip(podiumFolder, Vector3.new(p.size.X + 2, 0.08, 0.5), pod.Position + Vector3.new(0, p.size.Y / 2 + 0.12, -p.size.Z / 2 - 0.2), p.accent, 0.42)
-		neonStrip(podiumFolder, Vector3.new(p.size.X + 2, 0.08, 0.5), pod.Position + Vector3.new(0, p.size.Y / 2 + 0.12, p.size.Z / 2 + 0.2), p.accent, 0.42)
+	local podiumTarget = Vector3.new(cx, FLOOR_Y, FLOOR_CENTER_Z)
+	local function faceSpawn(part: BasePart)
+		local target = Vector3.new(podiumTarget.X, part.Position.Y, podiumTarget.Z)
+		part.CFrame = CFrame.lookAt(part.Position, target)
+		part:SetAttribute("FaceTargetX", podiumTarget.X)
+		part:SetAttribute("FaceTargetZ", podiumTarget.Z)
 	end
 
-	local floorMark = makePart(zone, "RankingZoneFloorMark", Vector3.new(38, 0.08, 48), Vector3.new(cx - 132, FLOOR_Y + 1.2, baseZ), Color3.fromRGB(28, 36, 42), Enum.Material.SmoothPlastic, false)
+	local podiums = {
+		{ rank = 2, pos = Vector3.new(wallX + 16, FLOOR_Y + 0.65, baseZ + 84), size = Vector3.new(10, 1.3, 10), accent = accentCyan },
+		{ rank = 1, pos = Vector3.new(wallX + 34, FLOOR_Y + 1, baseZ + 84), size = Vector3.new(13, 2, 13), accent = accentPower },
+		{ rank = 3, pos = Vector3.new(wallX + 52, FLOOR_Y + 0.55, baseZ + 84), size = Vector3.new(10, 1.1, 10), accent = accentGold },
+	}
+	for _, p in ipairs(podiums) do
+		local pod = makePart(podiumFolder, "Top" .. tostring(p.rank) .. "Podium", p.size, p.pos, Color3.fromRGB(25, 30, 36), Enum.Material.Metal, true)
+		faceSpawn(pod)
+		pod:SetAttribute("PodiumRank", p.rank)
+		local frontStrip = neonStrip(podiumFolder, Vector3.new(p.size.X + 2, 0.08, 0.5), pod.Position, p.accent, 0.42)
+		frontStrip.CFrame = pod.CFrame * CFrame.new(0, p.size.Y / 2 + 0.12, -p.size.Z / 2 - 0.2)
+		local backStrip = neonStrip(podiumFolder, Vector3.new(p.size.X + 2, 0.08, 0.5), pod.Position, p.accent, 0.42)
+		backStrip.CFrame = pod.CFrame * CFrame.new(0, p.size.Y / 2 + 0.12, p.size.Z / 2 + 0.2)
+	end
+
+	local floorMark = makePart(zone, "RankingZoneFloorMark", Vector3.new(58, 0.08, 22), Vector3.new(wallX + 34, FLOOR_Y + 1.2, baseZ + 84), Color3.fromRGB(28, 36, 42), Enum.Material.SmoothPlastic, false)
+	faceSpawn(floorMark)
 	floorMark.Transparency = 0.48
 
 	makeFolder("AvatarDummies", zone)
