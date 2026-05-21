@@ -7,7 +7,8 @@ export type ChestReward = {
 	streakDay: number,
 	dna: number,
 	power: number,
-	-- Optional: bonus Spin oder Pet etc.
+	rebirths: number?,
+	-- Optional: short display-only bonus text.
 	bonusText: string?,
 }
 
@@ -18,12 +19,12 @@ DailyChestConfig.ResetAfterSec = 48 * 60 * 60 -- > 48h ohne Claim = Streak zurue
 
 DailyChestConfig.Rewards = {
 	{ streakDay = 1, dna = 25, power = 100 },
-	{ streakDay = 2, dna = 50, power = 250 },
-	{ streakDay = 3, dna = 100, power = 600 },
-	{ streakDay = 4, dna = 200, power = 1500 },
-	{ streakDay = 5, dna = 400, power = 3500 },
-	{ streakDay = 6, dna = 800, power = 8000 },
-	{ streakDay = 7, dna = 2000, power = 25000, bonusText = "+1 Pet" },
+	{ streakDay = 2, dna = 5_000, power = 25_000 },
+	{ streakDay = 3, dna = 10_000, power = 60_000 },
+	{ streakDay = 4, dna = 20_000, power = 150_000 },
+	{ streakDay = 5, dna = 40_000, power = 350_000 },
+	{ streakDay = 6, dna = 80_000, power = 800_000 },
+	{ streakDay = 7, dna = 200_000, power = 2_500_000, rebirths = 1_000, bonusText = "+1K Rebirths" },
 } :: { ChestReward }
 
 function DailyChestConfig.getReward(streakDay: number): ChestReward

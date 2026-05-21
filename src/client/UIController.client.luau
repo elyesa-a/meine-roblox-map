@@ -82,18 +82,54 @@ local menuController = MenuController.new({
 	Spin = { backdrop = spinRefs.backdrop, root = spinRefs.root, show = SpinFrame.show },
 })
 
-local STATION_OPEN_RADIUS = 7
-local STATION_CLOSE_RADIUS = 10
+local STATION_OPEN_RADIUS = 8
+local STATION_CLOSE_RADIUS = 12
 local STATION_REOPEN_COOLDOWN = 5
+local SPAWN_CENTER_X = -180
+local STATION_TRIGGER_Z = 77
+local AUTO_STATION_ZONES = {
+	{ menu = "Skills", modelName = "UpgradeLabStation", fallback = Vector3.new(SPAWN_CENTER_X - 64, 4, STATION_TRIGGER_Z) },
+	{ menu = "Auras", modelName = "AuraStation", fallback = Vector3.new(SPAWN_CENTER_X - 24, 4, STATION_TRIGGER_Z) },
+	{ menu = "Shop", modelName = "ShopTerminalStation", fallback = Vector3.new(SPAWN_CENTER_X + 16, 4, STATION_TRIGGER_Z) },
+	{ menu = "Daily", modelName = "DailyRewardStation", fallback = Vector3.new(SPAWN_CENTER_X + 56, 4, STATION_TRIGGER_Z) },
+}
 local stationTriggers: { BasePart } = {}
 local autoOpenedMenu: string? = nil
 local suppressedStationMenus: { [string]: boolean } = {}
 local stationReopenAt: { [string]: number } = {}
 
+local function isStationMenuTarget(target: any): boolean
+	return target == "Shop" or target == "Skills" or target == "Auras" or target == "Daily"
+end
+
+local function isStationTriggerPart(inst: Instance): boolean
+	if not inst:IsA("BasePart") then
+		return false
+	end
+	local target = inst:GetAttribute("MenuTarget")
+	if not isStationMenuTarget(target) then
+		return false
+	end
+	if inst.Name == "StationProximityTrigger" or inst.Name == "ShopProximityTrigger" then
+		return true
+	end
+	if inst:FindFirstChildOfClass("ProximityPrompt") then
+		return true
+	end
+	local parent = inst.Parent
+	while parent do
+		if parent.Name == "NPCStations" or parent.Name == "StationNPCs" then
+			return true
+		end
+		parent = parent.Parent
+	end
+	return false
+end
+
 local function refreshStationTriggers(): { BasePart }
 	local valid: { BasePart } = {}
 	for _, trigger in ipairs(stationTriggers) do
-		if trigger.Parent and trigger:IsA("BasePart") and type(trigger:GetAttribute("MenuTarget")) == "string" then
+		if trigger.Parent and isStationTriggerPart(trigger) then
 			table.insert(valid, trigger)
 		end
 	end
@@ -103,11 +139,8 @@ local function refreshStationTriggers(): { BasePart }
 	end
 
 	for _, inst in ipairs(Workspace:GetDescendants()) do
-		if inst:IsA("BasePart")
-			and (inst.Name == "StationProximityTrigger" or inst.Name == "ShopProximityTrigger")
-			and type(inst:GetAttribute("MenuTarget")) == "string"
-		then
-			table.insert(valid, inst)
+		if isStationTriggerPart(inst) then
+			table.insert(valid, inst :: BasePart)
 		end
 	end
 	stationTriggers = valid
@@ -117,6 +150,46 @@ end
 local function getRootPart(): BasePart?
 	local character = player.Character
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+local function getDistanceToPartBounds(part: BasePart, worldPosition: Vector3): number
+	local localPosition = part.CFrame:PointToObjectSpace(worldPosition)
+	local halfSize = part.Size * 0.5
+	local outside = Vector3.new(
+		math.max(math.abs(localPosition.X) - halfSize.X, 0),
+		math.max(math.abs(localPosition.Y) - halfSize.Y, 0),
+		math.max(math.abs(localPosition.Z) - halfSize.Z, 0)
+	)
+	return outside.Magnitude
+end
+
+local function getFlatDistance(a: Vector3, b: Vector3): number
+	local dx = a.X - b.X
+	local dz = a.Z - b.Z
+	return math.sqrt(dx * dx + dz * dz)
+end
+
+local function findStationPosition(modelName: string): Vector3?
+	local map = Workspace:FindFirstChild("Map")
+	local spawnHub = map and map:FindFirstChild("SpawnHub")
+	local stations = spawnHub and spawnHub:FindFirstChild("NPCStations")
+	local model = stations and stations:FindFirstChild(modelName)
+	if not model then
+		return nil
+	end
+	local trigger = model:FindFirstChild("StationProximityTrigger", true)
+	if trigger and trigger:IsA("BasePart") then
+		return trigger.Position
+	end
+	local prompt = model:FindFirstChild("OpenMenuPrompt", true)
+	if prompt and prompt:IsA("ProximityPrompt") and prompt.Parent and prompt.Parent:IsA("BasePart") then
+		return prompt.Parent.Position
+	end
+	local body = model:FindFirstChild("KioskBody", true)
+	if body and body:IsA("BasePart") then
+		return body.Position
+	end
+	return nil
 end
 
 local function isAnyMenuOpenExcept(exceptMenuName: string): boolean
@@ -291,27 +364,33 @@ RunService.Heartbeat:Connect(function(dt)
 		shopAccum = 0
 		local rootPart = getRootPart()
 		if rootPart then
-			local nearestTrigger: BasePart? = nil
 			local nearestTarget: string? = nil
 			local nearestDistance = math.huge
 			local activeMenuDistance = math.huge
+			local function considerStation(target: string, distance: number)
+				if distance > STATION_CLOSE_RADIUS then
+					suppressedStationMenus[target] = false
+				end
+				if autoOpenedMenu == target then
+					activeMenuDistance = math.min(activeMenuDistance, distance)
+				end
+				if distance < nearestDistance then
+					nearestDistance = distance
+					nearestTarget = target
+				end
+			end
 
 			for _, trigger in ipairs(refreshStationTriggers()) do
 				local target = trigger:GetAttribute("MenuTarget")
 				if type(target) == "string" and menuController.menus[target] then
-					local distance = (rootPart.Position - trigger.Position).Magnitude
-					if distance > STATION_CLOSE_RADIUS then
-						suppressedStationMenus[target] = false
-					end
-					if autoOpenedMenu == target then
-						activeMenuDistance = math.min(activeMenuDistance, distance)
-					end
-					if distance < nearestDistance then
-						nearestDistance = distance
-						nearestTrigger = trigger
-						nearestTarget = target
-					end
+					local distance = getDistanceToPartBounds(trigger, rootPart.Position)
+					considerStation(target, distance)
 				end
+			end
+			for _, zone in ipairs(AUTO_STATION_ZONES) do
+				local pos = findStationPosition(zone.modelName) or zone.fallback
+				local distance = getFlatDistance(pos, rootPart.Position)
+				considerStation(zone.menu, distance)
 			end
 
 			if autoOpenedMenu then
@@ -327,7 +406,7 @@ RunService.Heartbeat:Connect(function(dt)
 				end
 			end
 
-			if nearestTrigger and nearestTarget and nearestDistance <= STATION_OPEN_RADIUS then
+			if nearestTarget and nearestDistance <= STATION_OPEN_RADIUS then
 				local refs = menuController.menus[nearestTarget]
 				if refs
 					and not refs.backdrop.Visible

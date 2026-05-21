@@ -35,6 +35,13 @@ local function formatCooldown(sec: number): string
 	return string.format("%02d:%02d:%02d", h, m, s)
 end
 
+local function formatBonusSuffix(bonusText: string?): string
+	if type(bonusText) ~= "string" or bonusText == "" then
+		return ""
+	end
+	return ", " .. bonusText
+end
+
 function DailyChestFrame.create(parent: ScreenGui): Refs
 	local backdrop = Instance.new("Frame")
 	backdrop.Name = "DailyChestBackdrop"
@@ -258,7 +265,7 @@ function DailyChestFrame.tick(refs: Refs, state)
 		((nextStreak - 1) % #DailyChestConfig.Rewards) + 1,
 		NumberFormatter.format(rew.dna),
 		NumberFormatter.format(rew.power),
-		rew.bonusText and (" + " .. rew.bonusText) or ""
+		formatBonusSuffix(rew.bonusText)
 	)
 
 	-- Cards highlighten: claimed/current/future with lab-terminal colors.

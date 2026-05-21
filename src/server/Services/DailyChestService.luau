@@ -1,5 +1,5 @@
 --!strict
--- DailyChestService: 24h-Cooldown, Streak bis 7 Tage, DNA+Kraft als Belohnung.
+-- DailyChestService: 24h-Cooldown, Streak bis 7 Tage, DNA/Kraft/Rebirths als Belohnung.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,10 +14,21 @@ local DailyChestService = {}
 
 local DataService
 local StatService
-local PetService
 local AntiExploitService
 local DailyQuestService
 local TitleService
+
+local function formatClaimPopup(day: number, dna: number, power: number, rebirths: number): string
+	local parts = {
+		string.format("Day %d!", day),
+		string.format("+%d DNA", dna),
+		string.format("+%d Power", power),
+	}
+	if rebirths > 0 then
+		table.insert(parts, string.format("+%d Rebirths", rebirths))
+	end
+	return table.concat(parts, " ")
+end
 
 function DailyChestService.canClaim(player: Player): (boolean, number)
 	-- Liefert (canClaim, secondsUntilNext).
@@ -71,6 +82,13 @@ function DailyChestService.claim(player: Player)
 	if reward.power > 0 then
 		StatService.addPowerReward(player, reward.power)
 	end
+	local rebirthReward = reward.rebirths or 0
+	if rebirthReward > 0 then
+		profile.Rebirths = (profile.Rebirths or 0) + rebirthReward
+		if DailyQuestService then
+			DailyQuestService.record(player, "Rebirth", rebirthReward)
+		end
+	end
 
 	profile.DailyChest.LastClaim = os.time()
 	profile.DailyChest.Streak = nextStreak
@@ -78,23 +96,7 @@ function DailyChestService.claim(player: Player)
 		TitleService.evaluatePlayer(player)
 	end
 
-	-- Streak-7 Bonus: ein Random-Pet.
-	if reward.bonusText and PetService then
-		local pets = require(ReplicatedStorage.Configs.PetConfig)
-		local rand = Random.new()
-		local def = pets.rollRandomPet(rand)
-		if def then
-			PetService.grantPet(player, def.id)
-		end
-	end
-
-	ShowPopup:FireClient(player, string.format(
-		"Day %d! +%d DNA, +%d Power%s",
-		nextStreak,
-		reward.dna,
-		reward.power,
-		reward.bonusText and (", " .. reward.bonusText) or ""
-	))
+	ShowPopup:FireClient(player, formatClaimPopup(nextStreak, reward.dna, reward.power, rebirthReward))
 	StatService.broadcastProfile(player)
 	StatService.playSound(player, "Reward")
 end
@@ -102,7 +104,6 @@ end
 function DailyChestService.start(deps)
 	DataService = deps.DataService
 	StatService = deps.StatService
-	PetService = deps.PetService
 	AntiExploitService = deps.AntiExploitService
 	DailyQuestService = deps.DailyQuestService
 	TitleService = deps.TitleService
