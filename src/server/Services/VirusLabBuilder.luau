@@ -2152,6 +2152,228 @@ local function addCeilingConduits(parent, cx)
 	end
 end
 
+-- ---- Spawn-Environment-Polish --------------------------------------------
+-- Rein dekorativer Pass um den Spawn. Beruehrt KEIN System (SpawnLocation,
+-- NPC-Stationen, Pet-Egg, Hero-Statue, Hub, Egg-Catch, Training). Fuegt nur
+-- Wand-Panels, Lueftungen, Decken-Lichter, Kabel-Trassen und einen
+-- weichen Spawn-Ring um den Spawnpunkt hinzu. Alles non-collide / Anchored.
+local function addSpawnEnvironmentPolish(parent, cx)
+	local envFolder = makeFolder("SpawnEnvironment", parent)
+	local wallDeco = makeFolder("WallDeco", envFolder)
+	local ceilingDeco = makeFolder("CeilingDeco", envFolder)
+	local ringMarker = makeFolder("SpawnRingMarker", envFolder)
+
+	-- Spawn-X-Range: cx-150 .. 0 (mit cx=-180 also -330 .. 0).
+	-- Innenseiten der Seitenwaende: z=-85 (links) und z=130 (rechts).
+
+	-- === SPAWN-RING um die SpawnLocation =================================
+	-- Cyan Glow-Disc unter der SpawnLocation (welche bei Y=0..1.0 steht).
+	-- Sichtbar wird nur der Rand ausserhalb der 14x14-Spawnplatte.
+	-- Cylinder-Konvention (siehe buildMaintenanceHatch): Size.X = Dicke der
+	-- Scheibe, Size.Y/Z = Durchmesser; Orientation (0,0,90) legt sie flach.
+	local glowDisc = makePart(ringMarker, "SpawnRingGlow", Vector3.new(0.16, 28, 28), Vector3.new(cx, FLOOR_Y + 0.08, 0), LAB_CYAN, Enum.Material.Neon, false)
+	glowDisc.Shape = Enum.PartType.Cylinder
+	glowDisc.Orientation = Vector3.new(0, 0, 90)
+	glowDisc.Transparency = 0.55
+	local discRim = makePart(ringMarker, "SpawnRingRim", Vector3.new(0.10, 30, 30), Vector3.new(cx, FLOOR_Y + 0.12, 0), Color3.fromRGB(28, 32, 36), Enum.Material.SmoothPlastic, false)
+	discRim.Shape = Enum.PartType.Cylinder
+	discRim.Orientation = Vector3.new(0, 0, 90)
+	discRim.Transparency = 0.08
+	-- Vier Bodenlampen-Pylonen an den Diagonalen (radius 12, off-spawn).
+	for i = 0, 3 do
+		local a = math.pi / 4 + i * math.pi / 2
+		local lx = cx + math.cos(a) * 12
+		local lz = math.sin(a) * 12
+		makePart(ringMarker, "SpawnLampPost", Vector3.new(0.6, 4, 0.6), Vector3.new(lx, FLOOR_Y + 2, lz), LAB_DARK, Enum.Material.Metal, false)
+		local lamp = makePart(ringMarker, "SpawnLampOrb", Vector3.new(0.95, 0.95, 0.95), Vector3.new(lx, FLOOR_Y + 4.4, lz), LAB_CYAN, Enum.Material.Neon, false)
+		lamp.Shape = Enum.PartType.Ball
+		lamp.Transparency = 0.1
+		local pl = Instance.new("PointLight")
+		pl.Brightness = 0.4
+		pl.Range = 9
+		pl.Color = LAB_CYAN
+		pl.Parent = lamp
+	end
+	-- Boden-Label "SUBJECT ENTRY" direkt vor der SpawnLocation (z=+18,
+	-- weg vom Hub und ausserhalb der 14-Stud-Spawnplatte). Inline-SurfaceGui.
+	local entryPlate = makePart(ringMarker, "SpawnEntryLabel", Vector3.new(14, 0.05, 2.4), Vector3.new(cx, FLOOR_Y + 1.05, 18), Color3.fromRGB(28, 32, 36), Enum.Material.SmoothPlastic, false)
+	entryPlate.Transparency = 0.1
+	do
+		local sg = Instance.new("SurfaceGui")
+		sg.Face = Enum.NormalId.Top
+		sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		sg.PixelsPerStud = 50
+		sg.LightInfluence = 1
+		sg.AlwaysOnTop = false
+		sg.Adornee = entryPlate
+		sg.Parent = entryPlate
+		local tl = Instance.new("TextLabel")
+		tl.BackgroundTransparency = 1
+		tl.Size = UDim2.fromScale(0.94, 0.78)
+		tl.Position = UDim2.fromScale(0.03, 0.11)
+		tl.Text = "SUBJECT ENTRY"
+		tl.Font = Enum.Font.GothamBold
+		tl.TextScaled = true
+		tl.TextColor3 = Color3.fromRGB(180, 240, 230)
+		tl.TextStrokeColor3 = Color3.new(0, 0, 0)
+		tl.TextStrokeTransparency = 0.35
+		tl.Parent = sg
+	end
+
+	-- === SEITENWAND-PANELS mit Schildern (beide Wände) ====================
+	-- An Stellen positioniert, wo aktuell weder Hub-Pylonen noch
+	-- NPC-Stationen oder Containment-Tubes vor der Wand stehen.
+	-- Wand-Innenseiten: z=-85 (links) und z=130 (rechts). Panels haengen
+	-- knapp davor (facing schiebt die Frontplatten Richtung Raum-Mitte).
+	local wallSigns = {
+		{ x = -280, z = -85, sign = "QUARANTINE",       facing = 1 },
+		{ x = -90,  z = -85, sign = "BIOHAZARD ZONE",   facing = 1 },
+		{ x = -280, z = 130, sign = "DNA RESEARCH",     facing = -1 },
+		{ x = -90,  z = 130, sign = "MUTATION CONTROL", facing = -1 },
+	}
+	for i, spot in ipairs(wallSigns) do
+		-- Helle Labor-Wandflaeche.
+		makePart(wallDeco, "SpawnWallPanel" .. i, Vector3.new(26, 14, 0.35), Vector3.new(spot.x, FLOOR_Y + 12, spot.z + 0.4 * spot.facing), Color3.fromRGB(220, 226, 230), Enum.Material.SmoothPlastic, false)
+		-- Dunkler Aussenrahmen.
+		makePart(wallDeco, "SpawnWallFrame" .. i, Vector3.new(28, 15.5, 0.2), Vector3.new(spot.x, FLOOR_Y + 12, spot.z + 0.3 * spot.facing), LAB_DARK, Enum.Material.SmoothPlastic, false)
+		-- Akzent-Streifen (grün unten, cyan oben).
+		neonStrip(wallDeco, Vector3.new(22, 0.28, 0.28), Vector3.new(spot.x, FLOOR_Y + 5.5, spot.z + 0.62 * spot.facing), LAB_GREEN, 0.32)
+		neonStrip(wallDeco, Vector3.new(22, 0.28, 0.28), Vector3.new(spot.x, FLOOR_Y + 18.5, spot.z + 0.62 * spot.facing), LAB_CYAN, 0.35)
+		-- Dunkles Backboard mit Schrift.
+		local signPlate = makePart(wallDeco, "SpawnWallSignPlate" .. i, Vector3.new(18, 4.4, 0.4), Vector3.new(spot.x, FLOOR_Y + 12, spot.z + 0.65 * spot.facing), LAB_DARK, Enum.Material.SmoothPlastic, false)
+		label(signPlate, spot.sign, Color3.fromRGB(160, 240, 220), 55, UDim2.fromOffset(260, 56), Vector3.new(0, 0, 0))
+		-- Vertikale Metall-Trim-Streifen.
+		for _, dx in ipairs({ -13, 13 }) do
+			makePart(wallDeco, "SpawnWallTrim" .. i .. "_" .. dx, Vector3.new(0.55, 15, 0.4), Vector3.new(spot.x + dx, FLOOR_Y + 12, spot.z + 0.5 * spot.facing), LAB_TRIM, Enum.Material.Metal, false)
+		end
+		-- Mini-Status-LED oben.
+		local led = makePart(wallDeco, "SpawnWallLed" .. i, Vector3.new(0.7, 0.7, 0.25), Vector3.new(spot.x + 11, FLOOR_Y + 18, spot.z + 0.65 * spot.facing), LAB_GREEN, Enum.Material.Neon, false)
+		led.Shape = Enum.PartType.Ball
+		led.Transparency = 0.1
+	end
+
+	-- Glas-Beobachtungsfenster mit Virus-Probe dahinter (jeweils zwischen
+	-- den Sign-Panels). Wirkt wie eine echte Quarantäne-Vitrine.
+	local glassSpots = {
+		{ x = -185, z = -85, facing = 1 },
+		{ x = -185, z = 130, facing = -1 },
+	}
+	for i, spot in ipairs(glassSpots) do
+		-- Dunkler Rahmen vor dem Fenster.
+		makePart(wallDeco, "SpawnGlassFrame" .. i, Vector3.new(18, 10, 0.6), Vector3.new(spot.x, FLOOR_Y + 14, spot.z + 0.35 * spot.facing), LAB_DARK, Enum.Material.Metal, false)
+		-- Glasscheibe.
+		local glass = makePart(wallDeco, "SpawnGlassPane" .. i, Vector3.new(14, 7, 0.35), Vector3.new(spot.x, FLOOR_Y + 14, spot.z + 0.6 * spot.facing), Color3.fromRGB(132, 178, 178), Enum.Material.Glass, false)
+		glass.Transparency = 0.55
+		-- Virus-Probe-Tank dahinter (sichtbar durch das Fenster).
+		-- Cylinder vertikal: Size.X = Hoehe, Size.Y/Z = Durchmesser.
+		local tank = makePart(wallDeco, "SpawnGlassTank" .. i, Vector3.new(5.2, 3.4, 3.4), Vector3.new(spot.x, FLOOR_Y + 13.5, spot.z + 1.4 * spot.facing), tint(LAB_GREEN, LAB_OLIVE, 0.25), Enum.Material.Glass, false)
+		tank.Shape = Enum.PartType.Cylinder
+		tank.Orientation = Vector3.new(0, 0, 90)
+		tank.Transparency = 0.32
+		-- Sample-Kern.
+		local core = makePart(wallDeco, "SpawnGlassTankCore" .. i, Vector3.new(3, 1.5, 1.5), tank.Position, tint(LAB_GREEN, Color3.fromRGB(220, 240, 200), 0.3), Enum.Material.Neon, false)
+		core.Shape = Enum.PartType.Cylinder
+		core.Orientation = Vector3.new(0, 0, 90)
+		core.Transparency = 0.18
+		-- Tank-Caps (flache Discs).
+		local capTop = makePart(wallDeco, "SpawnGlassTankCapTop" .. i, Vector3.new(0.4, 4, 4), Vector3.new(spot.x, FLOOR_Y + 16.3, spot.z + 1.4 * spot.facing), LAB_TRIM, Enum.Material.Metal, false)
+		capTop.Shape = Enum.PartType.Cylinder
+		capTop.Orientation = Vector3.new(0, 0, 90)
+		local capBot = makePart(wallDeco, "SpawnGlassTankCapBot" .. i, Vector3.new(0.4, 4, 4), Vector3.new(spot.x, FLOOR_Y + 10.7, spot.z + 1.4 * spot.facing), LAB_DARK, Enum.Material.Metal, false)
+		capBot.Shape = Enum.PartType.Cylinder
+		capBot.Orientation = Vector3.new(0, 0, 90)
+	end
+
+	-- Lüftungsgitter hoch oben an den Wänden.
+	local ventSpots = {
+		{ x = -240, z = -85, facing = 1 },
+		{ x = -135, z = -85, facing = 1 },
+		{ x = -40,  z = -85, facing = 1 },
+		{ x = -240, z = 130, facing = -1 },
+		{ x = -135, z = 130, facing = -1 },
+		{ x = -40,  z = 130, facing = -1 },
+	}
+	for i, spot in ipairs(ventSpots) do
+		makePart(wallDeco, "SpawnVent" .. i, Vector3.new(7, 3.5, 0.35), Vector3.new(spot.x, FLOOR_Y + 23.5, spot.z + 0.45 * spot.facing), Color3.fromRGB(70, 78, 82), Enum.Material.Metal, false)
+		for j = -2, 2 do
+			makePart(wallDeco, "SpawnVentSlat" .. i .. "_" .. j, Vector3.new(6, 0.18, 0.18), Vector3.new(spot.x, FLOOR_Y + 23.5 + j * 0.65, spot.z + 0.62 * spot.facing), LAB_DARK, Enum.Material.Metal, false)
+		end
+	end
+
+	-- Lange Kabel-Trasse oben an beiden Wänden mit Mounts (innerhalb der
+	-- Spawn-X-Range -330..0, Mitte cx+15=-165, Size 280).
+	for _, z in ipairs({ -85, 130 }) do
+		local sign = if z < 0 then 1 else -1
+		makePart(wallDeco, "SpawnCableTray", Vector3.new(280, 0.7, 1.4), Vector3.new(cx + 15, FLOOR_Y + 27.2, z + 1.2 * sign), LAB_DARK, Enum.Material.Metal, false)
+		for _, x in ipairs({ -290, -200, -110, -25 }) do
+			makePart(wallDeco, "SpawnCableMount", Vector3.new(0.4, 2, 0.55), Vector3.new(x, FLOOR_Y + 28.2, z + 0.85 * sign), LAB_TRIM, Enum.Material.Metal, false)
+		end
+		neonStrip(wallDeco, Vector3.new(260, 0.16, 0.16), Vector3.new(cx + 15, FLOOR_Y + 26.7, z + 1.7 * sign), LAB_GREEN, 0.5)
+	end
+
+	-- === DECKEN-DEKO =====================================================
+	-- Vier zusätzliche flache Labor-Lichtpanels (matt-neon, kein grelles
+	-- Bloom). Eingerahmt mit dunklen Bezels.
+	local ceilingY = FLOOR_Y + L.WallHeight - 1.5
+	local ceilingPanels = {
+		{ x = -260, z = 30 },
+		{ x = -260, z = -30 },
+		{ x = -80,  z = 30 },
+		{ x = -80,  z = -30 },
+	}
+	for i, spot in ipairs(ceilingPanels) do
+		local panel = makePart(ceilingDeco, "SpawnLightPanel" .. i, Vector3.new(16, 0.3, 8), Vector3.new(spot.x, ceilingY, spot.z), Color3.fromRGB(232, 240, 240), Enum.Material.Neon, false)
+		panel.Transparency = 0.32
+		makePart(ceilingDeco, "SpawnLightFrame" .. i, Vector3.new(18, 0.18, 10), Vector3.new(spot.x, ceilingY + 0.25, spot.z), LAB_DARK, Enum.Material.SmoothPlastic, false)
+		local plight = Instance.new("PointLight")
+		plight.Brightness = 0.3
+		plight.Range = 18
+		plight.Color = Color3.fromRGB(224, 234, 236)
+		plight.Parent = panel
+	end
+
+	-- Zwei rote Warnleuchten an der Decke (sparsam, klein, im Sichtfeld).
+	for i, spot in ipairs({
+		{ x = -250, z = 0 },
+		{ x = -90,  z = 0 },
+	}) do
+		local base = makePart(ceilingDeco, "SpawnWarnBase" .. i, Vector3.new(0.6, 2.2, 2.2), Vector3.new(spot.x, FLOOR_Y + L.WallHeight - 1.8, spot.z), LAB_DARK, Enum.Material.Metal, false)
+		base.Shape = Enum.PartType.Cylinder
+		base.Orientation = Vector3.new(0, 0, 90)
+		local lamp = makePart(ceilingDeco, "SpawnWarnLamp" .. i, Vector3.new(1.3, 1.3, 1.3), Vector3.new(spot.x, FLOOR_Y + L.WallHeight - 2.6, spot.z), LAB_WARNING_RED, Enum.Material.Neon, false)
+		lamp.Shape = Enum.PartType.Ball
+		lamp.Transparency = 0.18
+		local pl = Instance.new("PointLight")
+		pl.Brightness = 0.25
+		pl.Range = 7
+		pl.Color = LAB_WARNING_RED
+		pl.Parent = lamp
+	end
+
+	-- Kurze Decken-Querträger zwischen den Lichtpanels (selbe X-Range wie
+	-- die bestehenden Ceiling-Pipes, etwas tiefer als die CeilingPanels).
+	for _, z in ipairs({ -30, 30 }) do
+		makePart(ceilingDeco, "SpawnCeilingTruss", Vector3.new(220, 0.55, 0.75), Vector3.new(cx - 24, FLOOR_Y + L.WallHeight - 1.9, z), LAB_DARK, Enum.Material.Metal, false)
+	end
+
+	-- === ATMOSPHÄRE: 3 sanfte PointLights ================================
+	-- Anker-Parts sind unsichtbar (Transparency=1, mini-size).
+	local atmSpots = {
+		{ x = -280, y = 14, z = 0,  color = LAB_CYAN,  br = 0.45, range = 22 },
+		{ x = -90,  y = 14, z = 0,  color = LAB_GREEN, br = 0.4,  range = 22 },
+		{ x = cx,   y = 8,  z = -15, color = LAB_CYAN,  br = 0.35, range = 16 },
+	}
+	for i, spot in ipairs(atmSpots) do
+		local anchor = makePart(envFolder, "SpawnAtmLight" .. i, Vector3.new(0.2, 0.2, 0.2), Vector3.new(spot.x, FLOOR_Y + spot.y, spot.z), Color3.fromRGB(0, 0, 0), Enum.Material.SmoothPlastic, false)
+		anchor.Transparency = 1
+		local pl = Instance.new("PointLight")
+		pl.Brightness = spot.br
+		pl.Range = spot.range
+		pl.Color = spot.color
+		pl.Parent = anchor
+	end
+end
+
 -- ---- Decken-Stufen-Bulkhead ----------------------------------------------
 -- Schliesst die senkrechte Lücke zwischen zwei unterschiedlich hohen
 -- Korridor-Decken (Spawn-Decke Y=L.WallHeight, Area-Decke nach
@@ -3321,6 +3543,11 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	addBackWallLabFeature(model, cx)
 	addCeilingConduits(model, cx)
 	addSpawnFloorArrows(model, cx, LAB_GREEN)
+	-- Reine Environment-Polish-Schicht (Wand-Schilder, Glasfenster mit
+	-- Virus-Probe, Lueftungen, Kabel-Trassen, zusaetzliche Decken-Lichter,
+	-- Warn-Lampen, Spawn-Ring + Bodenlabel, Atmosphaere-Lights). Beruehrt
+	-- keine bestehenden Systeme oder Stations-Folder.
+	addSpawnEnvironmentPolish(model, cx)
 
 	-- Boden-Detail (Hub fertig wirken lassen): Labor-Bodenplatten, Fugen,
 	-- Kabelkanaele, Wartungsdeckel, Bodenbeschriftungen, Biohazard-Marken,
