@@ -76,7 +76,6 @@ local REWARD_GOLD = Color3.fromRGB(255, 220, 80)
 local DANGER_RED = Color3.fromRGB(255, 70, 75)
 local SELECT_BLUE = Color3.fromRGB(58, 154, 255)
 local DELETE_CONFIRM_SECONDS = 4
-local pendingDeleteByInstance: { [string]: number } = {}
 
 local function restyleStroke(gui: GuiObject, color: Color3, thickness: number?, transparency: number?)
 	local stroke = gui:FindFirstChildOfClass("UIStroke")
@@ -202,18 +201,6 @@ local function isEquipped(equippedList: { string }?, instanceId: string): boolea
 		end
 	end
 	return false
-end
-
-local function isDeletePending(instanceId: string): boolean
-	local expiresAt = pendingDeleteByInstance[instanceId]
-	if not expiresAt then
-		return false
-	end
-	if os.clock() > expiresAt then
-		pendingDeleteByInstance[instanceId] = nil
-		return false
-	end
-	return true
 end
 
 local function countSelectedDeletePets(refs: Refs): number
@@ -420,7 +407,7 @@ local function buildPetCard(parent: ScrollingFrame, refs: Refs, instanceId: stri
 
 	local action = Instance.new("TextButton")
 	action.Name = "Action"
-	action.Size = UDim2.new(0.58, -6, 0, 26)
+	action.Size = UDim2.new(1, -8, 0, 26)
 	action.Position = UDim2.new(0, 4, 1, -30)
 	Theme.applyButtonStyle(action, if equipped then DANGER_RED else DNA_GREEN)
 	action.Text = if equipped then "UNEQUIP" else "EQUIP"
@@ -436,41 +423,6 @@ local function buildPetCard(parent: ScrollingFrame, refs: Refs, instanceId: stri
 		else
 			RequestEquipPet:FireServer(instanceId)
 		end
-	end)
-
-	local deleteButton = Instance.new("TextButton")
-	deleteButton.Name = "Delete"
-	deleteButton.Size = UDim2.new(0.42, -6, 0, 26)
-	deleteButton.Position = UDim2.new(0.58, 2, 1, -30)
-	Theme.applyButtonStyle(deleteButton, if isDeletePending(instanceId) then DANGER_RED else Color3.fromRGB(82, 36, 44))
-	deleteButton.Text = if isDeletePending(instanceId) then "CONFIRM" else "DELETE"
-	deleteButton.TextSize = 11
-	deleteButton.TextScaled = false
-	deleteButton.ZIndex = 9
-	deleteButton.Parent = card
-
-	deleteButton.MouseButton1Click:Connect(function()
-		UIAnimator.buttonPunch(deleteButton)
-		if isDeletePending(instanceId) then
-			pendingDeleteByInstance[instanceId] = nil
-			RequestDeletePet:FireServer(instanceId)
-			return
-		end
-
-		local expiresAt = os.clock() + DELETE_CONFIRM_SECONDS
-		pendingDeleteByInstance[instanceId] = expiresAt
-		deleteButton.Text = "CONFIRM"
-		deleteButton.BackgroundColor3 = DANGER_RED
-		task.delay(DELETE_CONFIRM_SECONDS, function()
-			if pendingDeleteByInstance[instanceId] ~= expiresAt then
-				return
-			end
-			pendingDeleteByInstance[instanceId] = nil
-			if deleteButton.Parent then
-				deleteButton.Text = "DELETE"
-				deleteButton.BackgroundColor3 = Color3.fromRGB(82, 36, 44)
-			end
-		end)
 	end)
 
 	return card
