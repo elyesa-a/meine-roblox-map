@@ -17,8 +17,10 @@ type OrbitState = {
 
 local started = false
 local orbits: { [Model]: OrbitState } = {}
-local LED_RED = Color3.fromRGB(210, 42, 48)
-local LED_GREEN = Color3.fromRGB(54, 225, 105)
+-- Lila Lichter: dunkles Lila <-> helles Magenta-Lila, damit die Welle
+-- weiterhin sichtbar pulsiert, aber die Farbe komplett lila bleibt.
+local LED_DARK = Color3.fromRGB(78, 22, 142)
+local LED_BRIGHT = Color3.fromRGB(206, 118, 255)
 
 local function collectStrips(model: Model): { BasePart }
 	local strips = {}
@@ -90,7 +92,7 @@ function TrainingPadVisuals.start()
 						local wave = math.sin((index * 0.86 - state.phase) * math.pi)
 						local blend = (wave + 1) * 0.5
 						local smoothBlend = blend * blend * (3 - 2 * blend)
-						local color = LED_RED:Lerp(LED_GREEN, smoothBlend)
+						local color = LED_DARK:Lerp(LED_BRIGHT, smoothBlend)
 						strip.Color = color
 						strip.Transparency = 0
 					end

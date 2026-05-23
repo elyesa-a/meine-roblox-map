@@ -38,11 +38,13 @@ local VirusLabBuilder = {}
 local L = AreaConfig.Layout
 
 -- ---- Basis-Farben (sauberes Labor) ---------------------------------------
-local LAB_WHITE = Color3.fromRGB(214, 217, 216)
-local LAB_PANEL = Color3.fromRGB(174, 180, 180)
-local LAB_TRIM = Color3.fromRGB(112, 120, 122)
+local LAB_WHITE = Color3.fromRGB(232, 234, 234)
+local LAB_PANEL = Color3.fromRGB(204, 208, 210)
+local LAB_TRIM = Color3.fromRGB(138, 144, 146)
 local LAB_DARK = Color3.fromRGB(20, 24, 27)
 local LAB_CYAN = Color3.fromRGB(125, 180, 184)
+local LAB_PURPLE = Color3.fromRGB(178, 110, 240) -- helles Akzent-Lila fuer Raum-Lichter
+local LAB_PURPLE_SOFT = Color3.fromRGB(220, 198, 245) -- gedaempftes Lila fuer Deckenpanels
 local LAB_GREEN = Color3.fromRGB(104, 148, 112)
 local LAB_OLIVE = Color3.fromRGB(92, 112, 68)
 local LAB_WARNING_YELLOW = Color3.fromRGB(188, 162, 76)
@@ -237,7 +239,7 @@ local function addLabTrim(parent, centerX, lengthX)
 		for _, y in ipairs({ FLOOR_Y + 4, FLOOR_Y + L.WallHeight - 8 }) do
 			makePart(parent, "WallBlackTrim", Vector3.new(lengthX, 1.1, 0.35), Vector3.new(centerX, y, z), LAB_DARK, Enum.Material.SmoothPlastic, false)
 		end
-		neonStrip(parent, Vector3.new(lengthX - 16, 0.35, 0.35), Vector3.new(centerX, FLOOR_Y + L.WallHeight - 13, panelZ), LAB_CYAN, 0.25)
+		neonStrip(parent, Vector3.new(lengthX - 16, 0.35, 0.35), Vector3.new(centerX, FLOOR_Y + L.WallHeight - 13, panelZ), LAB_PURPLE, 0.25)
 		for i = 1, 3 do
 			local px = centerX - lengthX / 2 + lengthX * i / 4
 			makePart(parent, "WallPanelSeam", Vector3.new(0.75, L.WallHeight - 8, 0.35), Vector3.new(px, FLOOR_Y + L.WallHeight / 2, z), LAB_TRIM, Enum.Material.Metal, false)
@@ -263,8 +265,17 @@ local function addCeilingLabLights(parent, centerX, lengthX, color)
 		local px = centerX - lengthX / 2 + lengthX * i / 5
 		makePart(parent, "RoofCrossTruss", Vector3.new(3.5, 1.4, FLOOR_SIZE_Z - 10), Vector3.new(px, FLOOR_Y + L.WallHeight - 1.7, FLOOR_CENTER_Z), LAB_DARK, Enum.Material.Metal, false)
 		for _, z in ipairs({ CORRIDOR_MIN_Z + 34, FLOOR_CENTER_Z, CORRIDOR_MAX_Z - 34 }) do
-			local lightPanel = makePart(parent, "RoofLightPanel", Vector3.new(24, 0.28, 10), Vector3.new(px, FLOOR_Y + L.WallHeight - 2.95, z), Color3.fromRGB(228, 234, 232), Enum.Material.Neon, false)
-			lightPanel.Transparency = 0.34
+			local lightPanel = makePart(parent, "RoofLightPanel", Vector3.new(24, 0.28, 10), Vector3.new(px, FLOOR_Y + L.WallHeight - 2.95, z), LAB_PURPLE_SOFT, Enum.Material.Neon, false)
+			lightPanel.Transparency = 0.18
+			-- Echte Lichtquelle: SurfaceLight nach unten beleuchtet den Boden.
+			local sl = Instance.new("SurfaceLight")
+			sl.Face = Enum.NormalId.Bottom
+			sl.Brightness = 2.6
+			sl.Range = 38
+			sl.Angle = 150
+			sl.Color = Color3.fromRGB(238, 226, 255)
+			sl.Shadows = false
+			sl.Parent = lightPanel
 			makePart(parent, "RoofPanelFrame", Vector3.new(29, 0.22, 14), Vector3.new(px, FLOOR_Y + L.WallHeight - 2.75, z), LAB_DARK, Enum.Material.SmoothPlastic, false)
 			makePart(parent, "RoofVentGrille", Vector3.new(17, 0.2, 3.2), Vector3.new(px, FLOOR_Y + L.WallHeight - 2.55, z - 8.5), Color3.fromRGB(74, 80, 82), Enum.Material.Metal, false)
 		end
@@ -289,7 +300,7 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 		"LabFloor",
 		Vector3.new(lengthX, FLOOR_THICKNESS, FLOOR_SIZE_Z),
 		Vector3.new(centerX, FLOOR_Y - FLOOR_THICKNESS / 2, FLOOR_CENTER_Z),
-		Color3.fromRGB(168, 173, 172),
+		Color3.fromRGB(202, 206, 208),
 		Enum.Material.SmoothPlastic,
 		true
 	)
@@ -1052,15 +1063,16 @@ local function liftBacteriaLabCeiling(parent)
 			child.Transparency = 0.22
 		elseif child.Name == "RoofLightPanel" then
 			child.Position += Vector3.new(0, BACTERIA_CEILING_LIFT, 0)
-			child.Transparency = 0.42
+			child.Transparency = 0.2
 		elseif child.Name == "CeilBeam" then
 			child.Position += Vector3.new(0, BACTERIA_CEILING_LIFT, 0)
 			child.Size = Vector3.new(10, 0.35, FLOOR_SIZE_Z - 52)
 			child.Transparency = 0.72
 			for _, light in ipairs(child:GetChildren()) do
 				if light:IsA("PointLight") then
-					light.Brightness = 0.35
-					light.Range = 28
+					light.Brightness = 1.6
+					light.Range = 40
+					light.Color = Color3.fromRGB(232, 218, 255)
 				end
 			end
 		end
@@ -1784,7 +1796,7 @@ local function addBacteriaLabDetails(parent, area, hallX, primary)
 		makePart(deco, "BacteriaWallDarkBase", Vector3.new(wallLength, 1.4, 3.5), Vector3.new(wallCenterX, FLOOR_Y + 0.8, z), LAB_DARK, Enum.Material.Metal, true)
 		makePart(deco, "BacteriaWallTopRail", Vector3.new(wallLength, 1.2, 3.6), Vector3.new(wallCenterX, FLOOR_Y + tunnelWallHeight - 0.6, z), LAB_DARK, Enum.Material.Metal, true)
 		neonStrip(deco, Vector3.new(wallLength - 12, 0.18, 0.26), Vector3.new(wallCenterX, FLOOR_Y + 5.8, z), primary, 0.78)
-		neonStrip(deco, Vector3.new(wallLength - 16, 0.16, 0.24), Vector3.new(wallCenterX, FLOOR_Y + tunnelWallHeight - 5.5, z), LAB_CYAN, 0.82)
+		neonStrip(deco, Vector3.new(wallLength - 16, 0.16, 0.24), Vector3.new(wallCenterX, FLOOR_Y + tunnelWallHeight - 5.5, z), LAB_PURPLE, 0.82)
 		for i = 1, 4 do
 			local sx = wallStartX + wallLength * i / 5
 			makePart(deco, "BacteriaWallSupport", Vector3.new(1.6, tunnelWallHeight, 4), Vector3.new(sx, FLOOR_Y + tunnelWallHeight / 2, z), LAB_TRIM, Enum.Material.Metal, true)
@@ -1900,57 +1912,103 @@ local function buildTrainingArea(parent, bedsFolder, _gatesFolder, area, x)
 	model.Parent = parent
 
 	-- ---- Seitlicher Trainingsbereich (links, -Z) -------------------------
-	-- Offen gebaut: keine Mauern/Portale um den Trainingsbereich, damit nur
-	-- die Trainingsstation selbst sichtbar bleibt und der Laufweg clean wirkt.
-	local bayZ = -54
-	local bayDepthZ = 42
+	-- Vergroesserte, futuristische Trainings-Bay: erhoehte Plattform mit
+	-- Tech-Floor, holographischen Trainings-Props, Glas-Halbwaenden, vier
+	-- Pylonen mit Statusringen und einem schwebenden POWER-TRAINING-Schild.
+	-- Bleibt im weissen Bio-Labor (Cyan/Gruen-Akzente). Vertraege erhalten:
+	-- TrainPadLedOrbit + TrainingLedStrip + LedIndex (Client-Animation) und
+	-- Bett-Model + Hitbox + RequiredRebirth/PowerPerSecond (Service).
+	local bayZ = -56
+	local bayDepthZ = 56
 	local bayHalfZ = bayDepthZ / 2
-	local bayMouthZ = bayZ + bayHalfZ -- Richtung Laufweg (offene Seite)
-	local bayWidthX = 78
+	local bayMouthZ = bayZ + bayHalfZ
+	local bayBackZ = bayZ - bayHalfZ + 0.6
+	local bayWidthX = 112
+	local center = Vector3.new(x, FLOOR_Y, bayZ)
 
-	-- Boden/Markierung bleibt als klare Trainingsflaeche erhalten.
-	makePart(model, "TrainingBayFloor", Vector3.new(bayWidthX, 0.6, bayDepthZ), Vector3.new(x, FLOOR_Y + 0.32, bayZ), tint(LAB_PANEL, primary, 0.14), Enum.Material.SmoothPlastic, true)
-	-- Gelb-schwarze Schwelle als Eingangsmarkierung zum Laufweg.
+	-- Trainings-Akzente komplett auf Lila (vorher Cyan). "accentCyan" bleibt
+	-- als Variablenname fuer minimal-invasive Aenderung erhalten -- Farbe ist Lila.
+	local accentCyan = LAB_PURPLE
+	local accentGreen = tint(LAB_PURPLE, primary, 0.35)
+	local glassCol = Color3.fromRGB(206, 224, 230)
+	local padTop = Color3.fromRGB(40, 46, 54)
+	local padInset = Color3.fromRGB(28, 33, 40)
+	local padDeep = Color3.fromRGB(18, 22, 28)
+
+	-- 1. Bay-Boden + gelbe Eingangsschwelle (Schwelle bleibt zum Laufweg).
+	makePart(model, "TrainingBayFloor", Vector3.new(bayWidthX, 0.6, bayDepthZ), Vector3.new(x, FLOOR_Y + 0.32, bayZ), tint(LAB_PANEL, primary, 0.10), Enum.Material.SmoothPlastic, true)
 	makePart(model, "TrainingBayThreshold", Vector3.new(bayWidthX, 0.06, 1.8), Vector3.new(x, FLOOR_Y + 0.68, bayMouthZ - 1), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false).Transparency = 0.42
 
-	-- Ein breiter, klarer Power-Trainingsbereich. DNA/Luck-Training wurde
-	-- bewusst entfernt, damit die Bay nicht wie drei getrennte Shops wirkt.
-	local center = Vector3.new(x, FLOOR_Y, bayZ)
-	local padBase = makePart(model, "TrainStationBase", Vector3.new(50, 0.18, 24), center + Vector3.new(0, 0.82, 0), Color3.fromRGB(18, 21, 25), Enum.Material.Metal, false)
+	-- 2. Erhoehte Trainingsplattform (groesser: 96x44 statt 50x24).
+	local padBase = makePart(model, "TrainStationBase", Vector3.new(96, 0.22, 44), center + Vector3.new(0, 0.82, 0), padDeep, Enum.Material.Metal, false)
 	padBase.Transparency = 0.04
-	local pad = makePart(model, "TrainPad", Vector3.new(43, 0.12, 17.5), center + Vector3.new(0, 1.02, 0), Color3.fromRGB(38, 42, 47), Enum.Material.SmoothPlastic, false)
-	pad.Transparency = 0.08
-	makePart(model, "TrainPadInnerPanel", Vector3.new(35, 0.06, 11.5), center + Vector3.new(0, 1.16, 0), Color3.fromRGB(28, 31, 36), Enum.Material.SmoothPlastic, false).Transparency = 0.04
-	local centerLine = makePart(model, "TrainPadCenterLine", Vector3.new(37, 0.04, 0.28), center + Vector3.new(0, 1.28, 0), Color3.fromRGB(72, 100, 72), Enum.Material.SmoothPlastic, false)
-	centerLine.Transparency = 0.32
-	for _, xOffset in ipairs({ -22.2, 22.2 }) do
-		makePart(model, "TrainPadSideFrame", Vector3.new(0.42, 0.06, 18.2), center + Vector3.new(xOffset, 1.36, 0), LAB_TRIM, Enum.Material.Metal, false).Transparency = 0.06
+	local pad = makePart(model, "TrainPad", Vector3.new(86, 0.16, 36), center + Vector3.new(0, 1.02, 0), padTop, Enum.Material.SmoothPlastic, false)
+	pad.Transparency = 0.06
+	makePart(model, "TrainPadInnerPanel", Vector3.new(70, 0.08, 26), center + Vector3.new(0, 1.16, 0), padInset, Enum.Material.SmoothPlastic, false).Transparency = 0.04
+
+	-- 3. Tech-Grid auf dem Pad: 4 Quadrant-Kacheln + Crosshair + Center-Ring.
+	for _, dx in ipairs({ -19, 19 }) do
+		for _, dz in ipairs({ -8, 8 }) do
+			local tile = makePart(model, "TrainPadHexTile", Vector3.new(30, 0.06, 11.5), center + Vector3.new(dx, 1.22, dz), Color3.fromRGB(54, 62, 72), Enum.Material.Metal, false)
+			tile.Transparency = 0.05
+		end
+	end
+	-- Crosshair-Linien
+	local gridX = makePart(model, "TrainPadGridX", Vector3.new(82, 0.04, 0.22), center + Vector3.new(0, 1.26, 0), accentCyan, Enum.Material.Neon, false)
+	gridX.Transparency = 0.18
+	local gridZ = makePart(model, "TrainPadGridZ", Vector3.new(0.22, 0.04, 32), center + Vector3.new(0, 1.26, 0), accentCyan, Enum.Material.Neon, false)
+	gridZ.Transparency = 0.18
+	-- Center-Ringe (Cylinder als flache Scheibe via Orientation).
+	local ringOuter = makePart(model, "TrainPadCenterRingOuter", Vector3.new(0.3, 9, 9), center + Vector3.new(0, 1.26, 0), accentCyan, Enum.Material.Neon, false)
+	ringOuter.Shape = Enum.PartType.Cylinder
+	ringOuter.Orientation = Vector3.new(0, 0, 90)
+	ringOuter.Transparency = 0.5
+	local ringInner = makePart(model, "TrainPadCenterRingInner", Vector3.new(0.3, 4.2, 4.2), center + Vector3.new(0, 1.28, 0), accentGreen, Enum.Material.Neon, false)
+	ringInner.Shape = Enum.PartType.Cylinder
+	ringInner.Orientation = Vector3.new(0, 0, 90)
+	ringInner.Transparency = 0.35
+	local centerDot = makePart(model, "TrainPadCenterDot", Vector3.new(0.18, 1.4, 1.4), center + Vector3.new(0, 1.3, 0), accentCyan, Enum.Material.Neon, false)
+	centerDot.Shape = Enum.PartType.Cylinder
+	centerDot.Orientation = Vector3.new(0, 0, 90)
+	centerDot.Transparency = 0.05
+	-- Pad-Kanten als duenne Cyan-Neon-Trim-Streifen.
+	for _, dx in ipairs({ -43, 43 }) do
+		makePart(model, "TrainPadSideFrame", Vector3.new(0.5, 0.4, 36), center + Vector3.new(dx, 1.2, 0), accentCyan, Enum.Material.Neon, false).Transparency = 0.32
+	end
+	for _, dz in ipairs({ -18, 18 }) do
+		makePart(model, "TrainPadEndFrame", Vector3.new(86, 0.4, 0.5), center + Vector3.new(0, 1.2, dz), accentCyan, Enum.Material.Neon, false).Transparency = 0.32
 	end
 
+	-- 4. LED-Orbit (Client-Vertrag: Modellname + Part-Name + LedIndex bleiben).
 	local ledOrbit = Instance.new("Model")
 	ledOrbit.Name = "TrainPadLedOrbit"
 	ledOrbit.Parent = model
-	ledOrbit:SetAttribute("FlowSpeed", 0.78)
-	local pivot = makePart(ledOrbit, "LedOrbitPivot", Vector3.new(0.2, 0.2, 0.2), center + Vector3.new(0, 1.43, 0), Color3.fromRGB(255, 255, 255), Enum.Material.SmoothPlastic, false)
+	ledOrbit:SetAttribute("FlowSpeed", 0.85)
+	local pivot = makePart(ledOrbit, "LedOrbitPivot", Vector3.new(0.2, 0.2, 0.2), center + Vector3.new(0, 1.6, 0), Color3.fromRGB(255, 255, 255), Enum.Material.SmoothPlastic, false)
 	pivot.Transparency = 1
 	pivot.CanTouch = false
 	ledOrbit.PrimaryPart = pivot
 
 	local ledRed = Color3.fromRGB(150, 42, 46)
 	local ledGreen = Color3.fromRGB(52, 156, 82)
-	local ledLength = 3.25
-	local ledGap = 0.12
-	local topZ = 9.55
-	local sideX = 22.88
-	local ledY = 1.72
+	local ledLength = 3.4
+	local ledGap = 0.18
+	local ledStep = ledLength + ledGap
+	local ledRowsX = 22
+	local ledRowsZ = 9
+	local ledRowSpanX = (ledRowsX - 1) * ledStep
+	local ledRowSpanZ = (ledRowsZ - 1) * ledStep
+	local topZ = 17.6
+	local sideX = 41.2
+	local ledY = 1.78
 	local function ledColor(index)
 		return if index % 2 == 0 then ledRed else ledGreen
 	end
 	local ledIndex = 0
 	for sideIndex, zOffset in ipairs({ -topZ, topZ }) do
-		for i = 1, 13 do
+		for i = 1, ledRowsX do
 			ledIndex += 1
-			local xOffset = -20.25 + (i - 1) * (ledLength + ledGap)
+			local xOffset = -ledRowSpanX / 2 + (i - 1) * ledStep
 			local strip = makePart(ledOrbit, "TrainingLedStrip", Vector3.new(ledLength, 0.78, 0.82), center + Vector3.new(xOffset, ledY, zOffset), ledColor(i + sideIndex), Enum.Material.Neon, false)
 			strip.Transparency = 0
 			strip.CanTouch = false
@@ -1959,9 +2017,9 @@ local function buildTrainingArea(parent, bedsFolder, _gatesFolder, area, x)
 		end
 	end
 	for sideIndex, xOffset in ipairs({ -sideX, sideX }) do
-		for i = 1, 5 do
+		for i = 1, ledRowsZ do
 			ledIndex += 1
-			local zOffset = -7.9 + (i - 1) * (ledLength + ledGap)
+			local zOffset = -ledRowSpanZ / 2 + (i - 1) * ledStep
 			local strip = makePart(ledOrbit, "TrainingLedStrip", Vector3.new(0.82, 0.78, ledLength), center + Vector3.new(xOffset, ledY, zOffset), ledColor(i + sideIndex + 1), Enum.Material.Neon, false)
 			strip.Transparency = 0
 			strip.CanTouch = false
@@ -1970,13 +2028,170 @@ local function buildTrainingArea(parent, bedsFolder, _gatesFolder, area, x)
 		end
 	end
 
+	-- 5. Vier Eckpylonen mit Statusringen + Spitzenlicht.
+	for _, sx in ipairs({ -1, 1 }) do
+		for _, sz in ipairs({ -1, 1 }) do
+			local px = center.X + sx * 47
+			local pz = center.Z + sz * 20.5
+			local pylonH = 14
+			local pylonY = FLOOR_Y + pylonH / 2
+			makePart(model, "TrainPylonCore", Vector3.new(2.2, pylonH, 2.2), Vector3.new(px, pylonY, pz), LAB_DARK, Enum.Material.Metal, true)
+			local shell = makePart(model, "TrainPylonShell", Vector3.new(2.9, pylonH * 0.88, 2.9), Vector3.new(px, pylonY + 0.4, pz), LAB_PANEL, Enum.Material.Metal, false)
+			shell.Transparency = 0.04
+			for ringIdx, ringY in ipairs({ FLOOR_Y + 4, FLOOR_Y + 8, FLOOR_Y + 11.5 }) do
+				local ringCol = if ringIdx == 2 then accentGreen else accentCyan
+				local pr = makePart(model, "TrainPylonRing", Vector3.new(0.35, 3.6, 3.6), Vector3.new(px, ringY, pz), ringCol, Enum.Material.Neon, false)
+				pr.Shape = Enum.PartType.Cylinder
+				pr.Orientation = Vector3.new(0, 0, 90)
+				pr.Transparency = 0.22 + ringIdx * 0.04
+			end
+			makePart(model, "TrainPylonCap", Vector3.new(3.4, 0.6, 3.4), Vector3.new(px, FLOOR_Y + pylonH + 0.3, pz), LAB_TRIM, Enum.Material.Metal, false)
+			local capLight = makePart(model, "TrainPylonLight", Vector3.new(0.3, 2, 2), Vector3.new(px, FLOOR_Y + pylonH + 1.4, pz), accentCyan, Enum.Material.Neon, false)
+			capLight.Shape = Enum.PartType.Cylinder
+			capLight.Orientation = Vector3.new(0, 0, 90)
+			capLight.Transparency = 0.15
+			local pl = Instance.new("PointLight")
+			pl.Brightness = 1.2
+			pl.Range = 18
+			pl.Color = accentCyan
+			pl.Parent = capLight
+		end
+	end
+
+	-- 6. Rueckwand-Schild "POWER TRAINING" mit Cyan-Akzentstreifen.
+	local rearZ = bayBackZ
+	makePart(model, "TrainBackPanel", Vector3.new(bayWidthX - 22, 13, 0.7), Vector3.new(x, FLOOR_Y + 9, rearZ), LAB_PANEL, Enum.Material.Metal, false)
+	makePart(model, "TrainBackPanelInset", Vector3.new(bayWidthX - 32, 9, 0.35), Vector3.new(x, FLOOR_Y + 9, rearZ + 0.3), LAB_DARK, Enum.Material.SmoothPlastic, false).Transparency = 0.04
+	-- Cyan-Glow oben/unten am Schild
+	makePart(model, "TrainBackPanelTopStrip", Vector3.new(bayWidthX - 28, 0.35, 0.5), Vector3.new(x, FLOOR_Y + 15.6, rearZ + 0.4), accentCyan, Enum.Material.Neon, false).Transparency = 0.12
+	makePart(model, "TrainBackPanelBottomStrip", Vector3.new(bayWidthX - 28, 0.35, 0.5), Vector3.new(x, FLOOR_Y + 2.4, rearZ + 0.4), accentCyan, Enum.Material.Neon, false).Transparency = 0.18
+	for _, sx in ipairs({ -1, 1 }) do
+		makePart(model, "TrainBackEdgeLight", Vector3.new(0.5, 11, 0.5), Vector3.new(x + sx * (bayWidthX / 2 - 13), FLOOR_Y + 9, rearZ + 0.4), accentCyan, Enum.Material.Neon, false).Transparency = 0.15
+	end
+	-- Daten-Pixel rechts auf dem Schild (kleine vertikale "Balken").
+	for i = 1, 8 do
+		local px = x + (bayWidthX / 2 - 18) + (i - 1) * 0.9
+		local barH = 1.6 + ((i * 7) % 5) * 0.5
+		makePart(model, "TrainBackDataBar", Vector3.new(0.5, barH, 0.4), Vector3.new(px, FLOOR_Y + 6 + barH / 2, rearZ + 0.5), if i % 2 == 0 then accentGreen else accentCyan, Enum.Material.Neon, false).Transparency = 0.18
+	end
+
+	-- 7. Glas-Halbwaende an den Laengsseiten (offen zur Mouth-Seite).
+	for _, sx in ipairs({ -1, 1 }) do
+		local wallX = x + sx * (bayWidthX / 2 - 1.6)
+		local glassWall = makePart(model, "TrainSideGlass", Vector3.new(0.5, 11, bayDepthZ - 8), Vector3.new(wallX, FLOOR_Y + 5.6, bayZ - 2), glassCol, Enum.Material.Glass, false)
+		glassWall.Transparency = 0.7
+		-- vertikale Rahmen entlang der Bay-Tiefe
+		for _, fz in ipairs({ -bayHalfZ + 6, -bayHalfZ + 24, -bayHalfZ + 42 }) do
+			makePart(model, "TrainSideFrame", Vector3.new(0.7, 11.4, 0.7), Vector3.new(wallX, FLOOR_Y + 5.7, bayZ + fz), LAB_TRIM, Enum.Material.Metal, false)
+		end
+		-- oberer Cyan-Akzent
+		makePart(model, "TrainSideTopGlow", Vector3.new(0.3, 0.3, bayDepthZ - 10), Vector3.new(wallX, FLOOR_Y + 11, bayZ - 2), accentCyan, Enum.Material.Neon, false).Transparency = 0.25
+	end
+
+	-- 8. Holographischer Boxsack (vertikaler Cylinder mit Neon + Ringe).
+	local bagX = center.X
+	local bagZ = center.Z + 9
+	makePart(model, "TrainBagAnchor", Vector3.new(2.2, 0.6, 2.2), Vector3.new(bagX, FLOOR_Y + 16.3, bagZ), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(model, "TrainBagCable", Vector3.new(0.35, 4.5, 0.35), Vector3.new(bagX, FLOOR_Y + 14, bagZ), LAB_TRIM, Enum.Material.Metal, false)
+	local bag = makePart(model, "TrainHoloBag", Vector3.new(7, 2.8, 2.8), Vector3.new(bagX, FLOOR_Y + 7.5, bagZ), accentCyan, Enum.Material.Neon, false)
+	bag.Shape = Enum.PartType.Cylinder
+	bag.Orientation = Vector3.new(0, 0, 90)
+	bag.Transparency = 0.55
+	for _, ringY in ipairs({ FLOOR_Y + 5, FLOOR_Y + 7.5, FLOOR_Y + 10 }) do
+		local br = makePart(model, "TrainHoloBagRing", Vector3.new(0.3, 3.4, 3.4), Vector3.new(bagX, ringY, bagZ), accentGreen, Enum.Material.Neon, false)
+		br.Shape = Enum.PartType.Cylinder
+		br.Orientation = Vector3.new(0, 0, 90)
+		br.Transparency = 0.3
+	end
+	-- Projektor-Sockel unter dem Boxsack
+	local bagProj = makePart(model, "TrainHoloBagProjector", Vector3.new(0.4, 4, 4), Vector3.new(bagX, FLOOR_Y + 1.18, bagZ), accentCyan, Enum.Material.Neon, false)
+	bagProj.Shape = Enum.PartType.Cylinder
+	bagProj.Orientation = Vector3.new(0, 0, 90)
+	bagProj.Transparency = 0.2
+
+	-- 9. Zwei holographische Hanteln links/rechts auf Projektor-Sockeln.
+	for _, sx in ipairs({ -1, 1 }) do
+		local dbX = center.X + sx * 22
+		local dbY = FLOOR_Y + 6
+		local dbZ = center.Z - 5
+		makePart(model, "TrainHoloDumbbellBar", Vector3.new(0.5, 0.5, 3.8), Vector3.new(dbX, dbY, dbZ), accentGreen, Enum.Material.Neon, false).Transparency = 0.3
+		for _, dz in ipairs({ -1.9, 1.9 }) do
+			makePart(model, "TrainHoloDumbbellWeight", Vector3.new(1.8, 1.8, 0.95), Vector3.new(dbX, dbY, dbZ + dz), accentCyan, Enum.Material.Neon, false).Transparency = 0.35
+		end
+		local proj = makePart(model, "TrainHoloDumbbellProjector", Vector3.new(0.3, 3.2, 3.2), Vector3.new(dbX, FLOOR_Y + 1.18, dbZ), accentCyan, Enum.Material.Neon, false)
+		proj.Shape = Enum.PartType.Cylinder
+		proj.Orientation = Vector3.new(0, 0, 90)
+		proj.Transparency = 0.2
+	end
+
+	-- 10. Schwebende DNA-Spirale als Trainings-Ziel (vor dem Schild).
+	local dnaX = center.X
+	local dnaZ = center.Z - 12
+	local dnaBaseY = FLOOR_Y + 4
+	local dnaTopY = FLOOR_Y + 13
+	local dnaProj = makePart(model, "TrainHoloDNAProjector", Vector3.new(0.3, 3.4, 3.4), Vector3.new(dnaX, FLOOR_Y + 1.18, dnaZ), accentGreen, Enum.Material.Neon, false)
+	dnaProj.Shape = Enum.PartType.Cylinder
+	dnaProj.Orientation = Vector3.new(0, 0, 90)
+	dnaProj.Transparency = 0.2
+	for i = 0, 10 do
+		local t = i / 10
+		local h = dnaBaseY + t * (dnaTopY - dnaBaseY)
+		local a = t * math.pi * 3.2
+		local r = 1.6
+		local left = makePart(model, "TrainHoloDNANode", Vector3.new(0.55, 0.55, 0.55), Vector3.new(dnaX + math.cos(a) * r, h, dnaZ + math.sin(a) * r), accentGreen, Enum.Material.Neon, false)
+		left.Shape = Enum.PartType.Ball
+		left.Transparency = 0.2
+		local right = makePart(model, "TrainHoloDNANode", Vector3.new(0.55, 0.55, 0.55), Vector3.new(dnaX - math.cos(a) * r, h, dnaZ - math.sin(a) * r), accentCyan, Enum.Material.Neon, false)
+		right.Shape = Enum.PartType.Ball
+		right.Transparency = 0.2
+	end
+
+	-- 11. Decken-Spotlights ueber dem Pad.
+	for _, sx in ipairs({ -1, 1 }) do
+		for _, sz in ipairs({ -1, 1 }) do
+			local lx = center.X + sx * 22
+			local lz = center.Z + sz * 10
+			makePart(model, "TrainSpotMount", Vector3.new(3.2, 0.6, 3.2), Vector3.new(lx, FLOOR_Y + 17, lz), LAB_TRIM, Enum.Material.Metal, true)
+			local cone = makePart(model, "TrainSpotCone", Vector3.new(0.4, 2.6, 2.6), Vector3.new(lx, FLOOR_Y + 16.5, lz), Color3.fromRGB(232, 220, 250), Enum.Material.Neon, false)
+			cone.Shape = Enum.PartType.Cylinder
+			cone.Orientation = Vector3.new(0, 0, 90)
+			cone.Transparency = 0.12
+			local pl = Instance.new("PointLight")
+			pl.Brightness = 1.6
+			pl.Range = 24
+			pl.Color = Color3.fromRGB(220, 200, 250)
+			pl.Parent = cone
+		end
+	end
+
+	-- 12. Boden-Leitungen (Cyan-Streifen aussen um die Plattform).
+	for _, dz in ipairs({ -bayHalfZ + 4, bayHalfZ - 4 }) do
+		makePart(model, "TrainFloorConduit", Vector3.new(bayWidthX - 22, 0.05, 0.55), Vector3.new(x, LAYER_LANE_GLOW, bayZ + dz), accentCyan, Enum.Material.Neon, false).Transparency = 0.45
+	end
+	for _, sx in ipairs({ -1, 1 }) do
+		makePart(model, "TrainFloorConduitSide", Vector3.new(0.55, 0.05, bayDepthZ - 14), Vector3.new(x + sx * (bayWidthX / 2 - 9), LAYER_LANE_GLOW, bayZ), accentCyan, Enum.Material.Neon, false).Transparency = 0.45
+	end
+
+	-- 13. Schwebendes "POWER TRAINING"-Schild ueber der Bay.
+	local signAnchor = makePart(model, "TrainSignAnchor", Vector3.new(0.4, 0.4, 0.4), center + Vector3.new(0, 19, 4), Color3.fromRGB(255, 255, 255), Enum.Material.SmoothPlastic, false)
+	signAnchor.Transparency = 1
+	signAnchor.CanTouch = false
+	label(
+		signAnchor,
+		string.format("⚡ POWER TRAINING\n+%s PWR/s ⋅ %s", NumberFormatter.format(bedDef.powerPerSecond), area.displayName),
+		Color3.fromRGB(238, 224, 255),
+		200,
+		UDim2.fromOffset(340, 92),
+		Vector3.new(0, 0, 0)
+	)
+
 	-- Trainings-Bett (Vertrag mit TrainingZoneService): Model + Hitbox-Part.
-	-- Hitbox deckt die Bay ab -> Spieler trainiert, waehrend er in der Bay
-	-- steht (Side-Bay-Verhalten). Attribute UNVERAENDERT.
+	-- Hitbox deckt die gesamte Bay ab -> Spieler trainiert in der Bay.
+	-- Attribute UNVERAENDERT.
 	local bedModel = Instance.new("Model")
 	bedModel.Name = bedDef.id
 	bedModel.Parent = bedsFolder
-	local hitbox = makePart(bedModel, "Hitbox", Vector3.new(bayWidthX - 6, 8, bayDepthZ - 4), Vector3.new(x, FLOOR_Y + 4, bayZ), primary, Enum.Material.SmoothPlastic, false)
+	local hitbox = makePart(bedModel, "Hitbox", Vector3.new(bayWidthX - 10, 8, bayDepthZ - 6), Vector3.new(x, FLOOR_Y + 4, bayZ), primary, Enum.Material.SmoothPlastic, false)
 	hitbox.Transparency = 1
 	hitbox.CanCollide = false
 	hitbox.CanTouch = false
@@ -2434,14 +2649,18 @@ local function addSpawnEnvironmentPolish(parent, cx)
 		{ x = -80,  z = -30 },
 	}
 	for i, spot in ipairs(ceilingPanels) do
-		local panel = makePart(ceilingDeco, "SpawnLightPanel" .. i, Vector3.new(16, 0.3, 8), Vector3.new(spot.x, ceilingY, spot.z), Color3.fromRGB(232, 240, 240), Enum.Material.Neon, false)
-		panel.Transparency = 0.32
+		local panel = makePart(ceilingDeco, "SpawnLightPanel" .. i, Vector3.new(16, 0.3, 8), Vector3.new(spot.x, ceilingY, spot.z), LAB_PURPLE_SOFT, Enum.Material.Neon, false)
+		panel.Transparency = 0.18
 		makePart(ceilingDeco, "SpawnLightFrame" .. i, Vector3.new(18, 0.18, 10), Vector3.new(spot.x, ceilingY + 0.25, spot.z), LAB_DARK, Enum.Material.SmoothPlastic, false)
-		local plight = Instance.new("PointLight")
-		plight.Brightness = 0.3
-		plight.Range = 18
-		plight.Color = Color3.fromRGB(224, 234, 236)
-		plight.Parent = panel
+		-- Starke SurfaceLight: leuchtet den Boden + Waende des Spawn-Labors aus.
+		local sl = Instance.new("SurfaceLight")
+		sl.Face = Enum.NormalId.Bottom
+		sl.Brightness = 3.2
+		sl.Range = 45
+		sl.Angle = 160
+		sl.Color = Color3.fromRGB(238, 226, 255)
+		sl.Shadows = false
+		sl.Parent = panel
 	end
 
 	-- Zwei rote Warnleuchten an der Decke (sparsam, klein, im Sichtfeld).
@@ -2471,9 +2690,9 @@ local function addSpawnEnvironmentPolish(parent, cx)
 	-- === ATMOSPHÄRE: 3 sanfte PointLights ================================
 	-- Anker-Parts sind unsichtbar (Transparency=1, mini-size).
 	local atmSpots = {
-		{ x = -280, y = 14, z = 0,  color = LAB_CYAN,  br = 0.45, range = 22 },
-		{ x = -90,  y = 14, z = 0,  color = LAB_GREEN, br = 0.4,  range = 22 },
-		{ x = cx,   y = 8,  z = -15, color = LAB_CYAN,  br = 0.35, range = 16 },
+		{ x = -280, y = 14, z = 0,   color = LAB_PURPLE, br = 1.4, range = 32 },
+		{ x = -90,  y = 14, z = 0,   color = LAB_PURPLE, br = 1.4, range = 32 },
+		{ x = cx,   y = 8,  z = -15, color = LAB_PURPLE, br = 1.0, range = 22 },
 	}
 	for i, spot in ipairs(atmSpots) do
 		local anchor = makePart(envFolder, "SpawnAtmLight" .. i, Vector3.new(0.2, 0.2, 0.2), Vector3.new(spot.x, FLOOR_Y + spot.y, spot.z), Color3.fromRGB(0, 0, 0), Enum.Material.SmoothPlastic, false)
@@ -3109,8 +3328,18 @@ local function buildStationKiosk(parent, name, pos, accent, title, hint, menuTar
 	-- mit FLOOR_Y. Boden bleibt Spieler-passierbar (non-collide).
 	local platform = makePart(model, "StationPlatform", Vector3.new(13, 0.08, 15), pos + Vector3.new(0, FLOOR_Y + 0.06, 2.5 * face), Color3.fromRGB(228, 232, 234), Enum.Material.SmoothPlastic, false)
 	platform.Transparency = 0.04
-	local platformEdge = makePart(model, "StationPlatformEdge", Vector3.new(13.5, 0.05, 15.5), pos + Vector3.new(0, FLOOR_Y + 0.12, 2.5 * face), Color3.fromRGB(28, 30, 34), Enum.Material.SmoothPlastic, false)
-	platformEdge.Transparency = 0.1
+	-- Boden-Glow in der Stations-Akzentfarbe: leuchtet sichtbar und wirft
+	-- ueber SurfaceLight farbiges Licht nach oben auf NPC und Kiosk.
+	local platformEdge = makePart(model, "StationPlatformEdge", Vector3.new(13.5, 0.05, 15.5), pos + Vector3.new(0, FLOOR_Y + 0.12, 2.5 * face), accent, Enum.Material.Neon, false)
+	platformEdge.Transparency = 0.32
+	local glowLight = Instance.new("SurfaceLight")
+	glowLight.Face = Enum.NormalId.Top
+	glowLight.Brightness = 2.4
+	glowLight.Range = 18
+	glowLight.Angle = 170
+	glowLight.Color = accent
+	glowLight.Shadows = false
+	glowLight.Parent = platformEdge
 	neonStrip(model, Vector3.new(11.6, 0.05, 0.32), pos + Vector3.new(0, FLOOR_Y + 0.16, 9.5 * face), accent, 0.35)
 	neonStrip(model, Vector3.new(11.6, 0.05, 0.32), pos + Vector3.new(0, FLOOR_Y + 0.16, -4.0 * face), accent:Lerp(LAB_CYAN, 0.5), 0.55)
 	-- Boden-Label direkt vor dem Stand (z.B. "SHOP", "DAILY" ...). Inline
@@ -3901,10 +4130,10 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	-- Interaktive NPC-Stationen: oeffnen clientseitig dieselben Menues wie
 	-- die Sidebar. Laufwege bleiben frei; alle Stationen liegen seitlich.
 	local stations = {
-		{ n = "UpgradeLabStation", t = "UPGRADE LAB", h = "Improve your mutation power", c = LAB_GREEN, dx = -64, z = 82, menu = "Skills", action = "Open Upgrades", npc = "Dr. Upgrade", style = "Lab" },
-		{ n = "AuraStation", t = "AURA STATION", h = "Tier 1 mutation effects", c = Color3.fromRGB(132, 116, 170), dx = -24, z = 82, menu = "Auras", action = "Open Auras", npc = "Aura Dealer", style = "Dark", tier = 1 },
-		{ n = "ShopTerminalStation", t = "SHOP", h = "Boosts & Items", c = LAB_CYAN, dx = 16, z = 82, menu = "Shop", action = "Open Shop", npc = "Shop Vendor", style = "Dark" },
-		{ n = "DailyRewardStation", t = "DAILY REWARD", h = "Claim free rewards", c = LAB_WARNING_YELLOW, dx = 56, z = 82, menu = "Daily", action = "Claim Daily", npc = "Daily Bot", style = "Bot" },
+		{ n = "UpgradeLabStation", t = "UPGRADE LAB", h = "Improve your mutation power", c = Color3.fromRGB(80, 220, 110), dx = -64, z = 82, menu = "Skills", action = "Open Upgrades", npc = "Dr. Upgrade", style = "Lab" },
+		{ n = "AuraStation", t = "AURA STATION", h = "Tier 1 mutation effects", c = Color3.fromRGB(178, 110, 240), dx = -24, z = 82, menu = "Auras", action = "Open Auras", npc = "Aura Dealer", style = "Dark", tier = 1 },
+		{ n = "ShopTerminalStation", t = "SHOP", h = "Boosts & Items", c = Color3.fromRGB(60, 140, 240), dx = 16, z = 82, menu = "Shop", action = "Open Shop", npc = "Shop Vendor", style = "Dark" },
+		{ n = "DailyRewardStation", t = "DAILY REWARD", h = "Claim free rewards", c = Color3.fromRGB(248, 208, 60), dx = 56, z = 82, menu = "Daily", action = "Claim Daily", npc = "Daily Bot", style = "Bot" },
 	}
 	for _, st in ipairs(stations) do
 		buildStationKiosk(orgFolders.npcStations, st.n, Vector3.new(cx + st.dx, FLOOR_Y, st.z), st.c, st.t, st.h, st.menu, st.action, st.npc, st.style, -1, st.tier)
