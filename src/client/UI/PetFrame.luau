@@ -48,7 +48,13 @@ type Refs = {
 	scroll: ScrollingFrame,
 	bestButton: TextButton,
 	unequipAllButton: TextButton,
+	deleteModeButton: TextButton,
+	selectAllButton: TextButton,
+	deleteSelectedButton: TextButton,
 	selectedEggId: string?,
+	deleteMode: boolean,
+	selectedDeletePets: { [string]: boolean },
+	deleteConfirmUntil: number?,
 	lastState: { [string]: any }?,
 	previewSpin: number,
 	previewModel: Model?,
@@ -68,6 +74,7 @@ local TEXT_MUTED = Color3.fromRGB(110, 120, 135)
 local DNA_GREEN = Color3.fromRGB(0, 220, 120)
 local REWARD_GOLD = Color3.fromRGB(255, 220, 80)
 local DANGER_RED = Color3.fromRGB(255, 70, 75)
+local SELECT_BLUE = Color3.fromRGB(58, 154, 255)
 local DELETE_CONFIRM_SECONDS = 4
 local pendingDeleteByInstance: { [string]: number } = {}
 
@@ -209,6 +216,89 @@ local function isDeletePending(instanceId: string): boolean
 	return true
 end
 
+local function countSelectedDeletePets(refs: Refs): number
+	local count = 0
+	for _, selected in pairs(refs.selectedDeletePets) do
+		if selected then
+			count += 1
+		end
+	end
+	return count
+end
+
+local function countUnequippedPets(pets, equipped): number
+	local count = 0
+	for instanceId in pairs(pets) do
+		if not isEquipped(equipped, instanceId) then
+			count += 1
+		end
+	end
+	return count
+end
+
+local function pruneDeleteSelection(refs: Refs, pets, equipped)
+	for instanceId in pairs(refs.selectedDeletePets) do
+		if not refs.deleteMode or not pets[instanceId] or isEquipped(equipped, instanceId) then
+			refs.selectedDeletePets[instanceId] = nil
+		end
+	end
+end
+
+local function setActionButtonVisible(button: TextButton, visible: boolean, width: number)
+	button.Visible = visible
+	button.Size = UDim2.new(0, if visible then width else 0, 1, 0)
+end
+
+local function updateDeleteModeButtons(refs: Refs, pets, equipped)
+	local selectedCount = countSelectedDeletePets(refs)
+	local unequippedCount = countUnequippedPets(pets, equipped)
+	local allUnequippedSelected = unequippedCount > 0 and selectedCount >= unequippedCount
+	local confirmActive = refs.deleteConfirmUntil ~= nil and os.clock() <= refs.deleteConfirmUntil
+
+	setActionButtonVisible(refs.bestButton, not refs.deleteMode, 190)
+	setActionButtonVisible(refs.unequipAllButton, not refs.deleteMode, 170)
+	setActionButtonVisible(refs.deleteModeButton, true, 170)
+	setActionButtonVisible(refs.selectAllButton, refs.deleteMode, 150)
+	setActionButtonVisible(refs.deleteSelectedButton, refs.deleteMode, 190)
+
+	refs.deleteModeButton.Text = if refs.deleteMode then "CANCEL DELETE" else "DELETE MODE"
+	refs.deleteModeButton.BackgroundColor3 = if refs.deleteMode then DANGER_RED else Color3.fromRGB(82, 36, 44)
+	refs.selectAllButton.Text = if allUnequippedSelected then "CLEAR ALL" else "SELECT ALL"
+	refs.selectAllButton.BackgroundColor3 = if allUnequippedSelected then Color3.fromRGB(82, 36, 44) else SELECT_BLUE
+	if confirmActive then
+		refs.deleteSelectedButton.Text = "CONFIRM DELETE"
+	else
+		refs.deleteSelectedButton.Text = if selectedCount > 0 then "DELETE (" .. tostring(selectedCount) .. ")" else "DELETE SELECTED"
+	end
+	refs.deleteSelectedButton.BackgroundColor3 = if selectedCount > 0 then DANGER_RED else Color3.fromRGB(82, 36, 44)
+end
+
+local function refreshAfterDeleteSelectionChange(refs: Refs)
+	refs.deleteConfirmUntil = nil
+	if refs.lastState then
+		PetFrame.update(refs, refs.lastState)
+	end
+end
+
+local function setDeleteMode(refs: Refs, enabled: boolean)
+	refs.deleteMode = enabled
+	refs.deleteConfirmUntil = nil
+	if not enabled then
+		table.clear(refs.selectedDeletePets)
+	end
+	if refs.lastState then
+		PetFrame.update(refs, refs.lastState)
+	end
+end
+
+local function toggleDeleteSelection(refs: Refs, instanceId: string, equipped: boolean)
+	if not refs.deleteMode or equipped then
+		return
+	end
+	refs.selectedDeletePets[instanceId] = if refs.selectedDeletePets[instanceId] then nil else true
+	refreshAfterDeleteSelectionChange(refs)
+end
+
 local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): TextButton
 	local unlocked = canAccessEgg(state, egg)
 	local selected = refs.selectedEggId == egg.id
@@ -258,17 +348,30 @@ local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): Tex
 	return card
 end
 
-local function buildPetCard(parent: ScrollingFrame, instanceId: string, def, equipped: boolean): Frame
+local function buildPetCard(parent: ScrollingFrame, refs: Refs, instanceId: string, def, equipped: boolean): TextButton
 	local petColor = rarityColor(def.rarity)
+	local selectedForDelete = refs.deleteMode and refs.selectedDeletePets[instanceId] == true
+	local cardColor = if equipped then Color3.fromRGB(20, 34, 32) else LAB_PANEL
+	if selectedForDelete then
+		cardColor = Color3.fromRGB(48, 24, 32)
+	end
 
-	local card = Instance.new("Frame")
+	local card = Instance.new("TextButton")
 	card.Name = "Pet_" .. instanceId
 	card.LayoutOrder = (if equipped then 0 else 100000) - math.floor(petMultiplier(def) * 1000)
 	card.Size = UDim2.fromOffset(PET_CARD_SIZE.X, PET_CARD_SIZE.Y)
-	Theme.applyPanelStyle(card, if equipped then Color3.fromRGB(20, 34, 32) else LAB_PANEL)
+	card.Text = ""
+	card.TextScaled = false
+	card.AutoButtonColor = false
+	Theme.applyPanelStyle(card, cardColor)
 	card.ZIndex = 7
 	card.Parent = parent
-	restyleStroke(card, petColor, if equipped then 2 else 1.35, if equipped then 0.12 else 0.35)
+	restyleStroke(
+		card,
+		if selectedForDelete then DANGER_RED else petColor,
+		if selectedForDelete or equipped then 2 else 1.35,
+		if selectedForDelete then 0.05 else (if equipped then 0.12 else 0.35)
+	)
 
 	local name = makeSmallLabel(card, def.displayName, UDim2.new(0, 4, 0, 4), UDim2.new(1, -8, 0, 20), 13)
 	name.TextColor3 = TEXT_MAIN
@@ -286,6 +389,34 @@ local function buildPetCard(parent: ScrollingFrame, instanceId: string, def, equ
 	)
 	multi.TextColor3 = REWARD_GOLD
 	multi.TextXAlignment = Enum.TextXAlignment.Center
+
+	if refs.deleteMode then
+		local selectButton = Instance.new("TextButton")
+		selectButton.Name = "DeleteSelect"
+		selectButton.Size = UDim2.new(1, -8, 0, 30)
+		selectButton.Position = UDim2.new(0, 4, 1, -34)
+		Theme.applyButtonStyle(
+			selectButton,
+			if equipped then Color3.fromRGB(48, 55, 64) else (if selectedForDelete then DANGER_RED else SELECT_BLUE)
+		)
+		selectButton.Text = if equipped then "EQUIPPED" else (if selectedForDelete then "[X] SELECTED" else "[ ] SELECT")
+		selectButton.TextSize = 12
+		selectButton.TextScaled = false
+		selectButton.ZIndex = 9
+		selectButton.Parent = card
+
+		if not equipped then
+			card.MouseButton1Click:Connect(function()
+				toggleDeleteSelection(refs, instanceId, equipped)
+			end)
+			selectButton.MouseButton1Click:Connect(function()
+				UIAnimator.buttonPunch(selectButton)
+				toggleDeleteSelection(refs, instanceId, equipped)
+			end)
+		end
+
+		return card
+	end
 
 	local action = Instance.new("TextButton")
 	action.Name = "Action"
@@ -541,6 +672,35 @@ function PetFrame.create(parent: ScreenGui): Refs
 	unequipAllButton.ZIndex = 8
 	unequipAllButton.Parent = actionRow
 
+	local deleteModeButton = Instance.new("TextButton")
+	deleteModeButton.Size = UDim2.new(0, 170, 1, 0)
+	deleteModeButton.Text = "DELETE MODE"
+	Theme.applyButtonStyle(deleteModeButton, Color3.fromRGB(82, 36, 44))
+	deleteModeButton.TextSize = 14
+	deleteModeButton.TextScaled = false
+	deleteModeButton.ZIndex = 8
+	deleteModeButton.Parent = actionRow
+
+	local selectAllButton = Instance.new("TextButton")
+	selectAllButton.Size = UDim2.new(0, 0, 1, 0)
+	selectAllButton.Text = "SELECT ALL"
+	selectAllButton.Visible = false
+	Theme.applyButtonStyle(selectAllButton, SELECT_BLUE)
+	selectAllButton.TextSize = 13
+	selectAllButton.TextScaled = false
+	selectAllButton.ZIndex = 8
+	selectAllButton.Parent = actionRow
+
+	local deleteSelectedButton = Instance.new("TextButton")
+	deleteSelectedButton.Size = UDim2.new(0, 0, 1, 0)
+	deleteSelectedButton.Text = "DELETE SELECTED"
+	deleteSelectedButton.Visible = false
+	Theme.applyButtonStyle(deleteSelectedButton, Color3.fromRGB(82, 36, 44))
+	deleteSelectedButton.TextSize = 13
+	deleteSelectedButton.TextScaled = false
+	deleteSelectedButton.ZIndex = 8
+	deleteSelectedButton.Parent = actionRow
+
 	local scroll = Instance.new("ScrollingFrame")
 	scroll.Name = "PetGrid"
 	scroll.Size = UDim2.new(1, -32, 1, -318)
@@ -596,7 +756,13 @@ function PetFrame.create(parent: ScreenGui): Refs
 		scroll = scroll,
 		bestButton = bestButton,
 		unequipAllButton = unequipAllButton,
+		deleteModeButton = deleteModeButton,
+		selectAllButton = selectAllButton,
+		deleteSelectedButton = deleteSelectedButton,
 		selectedEggId = PetConfig.DefaultEggId,
+		deleteMode = false,
+		selectedDeletePets = {},
+		deleteConfirmUntil = nil,
 		lastState = nil,
 		previewSpin = 0,
 		previewModel = nil,
@@ -633,6 +799,70 @@ function PetFrame.create(parent: ScreenGui): Refs
 	unequipAllButton.MouseButton1Click:Connect(function()
 		UIAnimator.buttonPunch(unequipAllButton)
 		RequestUnequipPet:FireServer("ALL")
+	end)
+
+	deleteModeButton.MouseButton1Click:Connect(function()
+		UIAnimator.buttonPunch(deleteModeButton)
+		setDeleteMode(refs, not refs.deleteMode)
+	end)
+
+	selectAllButton.MouseButton1Click:Connect(function()
+		UIAnimator.buttonPunch(selectAllButton)
+		local state = refs.lastState
+		if not state then
+			return
+		end
+		local pets = if type(state.Pets) == "table" then state.Pets else {}
+		local equipped = if type(state.EquippedPets) == "table" then state.EquippedPets else {}
+		local unequippedCount = countUnequippedPets(pets, equipped)
+		local selectedCount = countSelectedDeletePets(refs)
+		table.clear(refs.selectedDeletePets)
+		if selectedCount < unequippedCount then
+			for instanceId in pairs(pets) do
+				if not isEquipped(equipped, instanceId) then
+					refs.selectedDeletePets[instanceId] = true
+				end
+			end
+		end
+		refreshAfterDeleteSelectionChange(refs)
+	end)
+
+	deleteSelectedButton.MouseButton1Click:Connect(function()
+		UIAnimator.buttonPunch(deleteSelectedButton)
+		local selectedIds = {}
+		for instanceId, selected in pairs(refs.selectedDeletePets) do
+			if selected then
+				table.insert(selectedIds, instanceId)
+			end
+		end
+		if #selectedIds <= 0 then
+			deleteSelectedButton.Text = "SELECT PETS"
+			task.delay(1.2, function()
+				if deleteSelectedButton.Parent and refs.deleteMode and countSelectedDeletePets(refs) <= 0 then
+					deleteSelectedButton.Text = "DELETE SELECTED"
+				end
+			end)
+			return
+		end
+
+		if not refs.deleteConfirmUntil or os.clock() > refs.deleteConfirmUntil then
+			refs.deleteConfirmUntil = os.clock() + DELETE_CONFIRM_SECONDS
+			if refs.lastState then
+				PetFrame.update(refs, refs.lastState)
+			end
+			task.delay(DELETE_CONFIRM_SECONDS, function()
+				if refs.deleteConfirmUntil and os.clock() >= refs.deleteConfirmUntil then
+					refs.deleteConfirmUntil = nil
+					if refs.lastState then
+						PetFrame.update(refs, refs.lastState)
+					end
+				end
+			end)
+			return
+		end
+
+		RequestDeletePet:FireServer(selectedIds)
+		setDeleteMode(refs, false)
 	end)
 
 	OpenPetEggShop.OnClientEvent:Connect(function(payload)
@@ -711,6 +941,9 @@ end
 local function setEggOnlyMode(refs: Refs, enabled: boolean)
 	refs.eggOnlyMode = enabled
 	if enabled then
+		refs.deleteMode = false
+		refs.deleteConfirmUntil = nil
+		table.clear(refs.selectedDeletePets)
 		refs.header.Text = "EGG SHOP"
 		refs.root.Size = UDim2.new(0, 760, 0, 270)
 		refs.eggPanel.Position = UDim2.new(0, 16, 0, 52)
@@ -755,6 +988,7 @@ function PetFrame.update(refs: Refs, state)
 	local pets = if type(state.Pets) == "table" then state.Pets else {}
 	local equipped = if type(state.EquippedPets) == "table" then state.EquippedPets else {}
 	local petMult = state.PetMultiplier or 1
+	pruneDeleteSelection(refs, pets, equipped)
 
 	local selectedEgg = findSelectedEgg(refs)
 	if selectedEgg then
@@ -791,9 +1025,10 @@ function PetFrame.update(refs: Refs, state)
 		PetConfig.MaxEquipped
 	)
 	refs.multLabel.Text = "Pet Power: " .. formatPetMultiplier(petMult) .. "x"
+	updateDeleteModeButtons(refs, pets, equipped)
 
 	for _, child in ipairs(refs.scroll:GetChildren()) do
-		if child:IsA("Frame") and child.Name:sub(1, 4) == "Pet_" then
+		if child:IsA("GuiObject") and child.Name:sub(1, 4) == "Pet_" then
 			child:Destroy()
 		end
 	end
@@ -817,7 +1052,7 @@ function PetFrame.update(refs: Refs, state)
 	end)
 
 	for _, entry in ipairs(sorted) do
-		buildPetCard(refs.scroll, entry.instanceId, entry.def, entry.equipped)
+		buildPetCard(refs.scroll, refs, entry.instanceId, entry.def, entry.equipped)
 	end
 end
 

@@ -712,6 +712,43 @@ function PetService.deletePet(player: Player, instanceId: string)
 	ShowPopup:FireClient(player, "Pet deleted.")
 end
 
+function PetService.deletePets(player: Player, instanceIds: { any })
+	local profile = DataService.getProfile(player)
+	if not profile then
+		return
+	end
+	ensurePetTables(profile)
+	if type(instanceIds) ~= "table" or #instanceIds <= 0 or #instanceIds > PetConfig.MaxInventorySize then
+		return
+	end
+
+	local seen: { [string]: boolean } = {}
+	local deleteIds: { string } = {}
+	for _, rawInstanceId in ipairs(instanceIds) do
+		if type(rawInstanceId) ~= "string" or rawInstanceId == "" or seen[rawInstanceId] then
+			return
+		end
+		seen[rawInstanceId] = true
+		if not profile.Pets[rawInstanceId] then
+			return
+		end
+		if findEquippedIndex(profile, rawInstanceId) then
+			ShowPopup:FireClient(player, "Unequip pets before deleting them.")
+			return
+		end
+		table.insert(deleteIds, rawInstanceId)
+	end
+	if #deleteIds <= 0 then
+		return
+	end
+
+	for _, instanceId in ipairs(deleteIds) do
+		profile.Pets[instanceId] = nil
+	end
+	StatService.broadcastProfile(player)
+	ShowPopup:FireClient(player, string.format("%d pets deleted.", #deleteIds))
+end
+
 function PetService.equipBest(player: Player)
 	local profile = DataService.getProfile(player)
 	if not profile then
@@ -778,6 +815,10 @@ local function handleUnequipRequest(player: Player, payload: any)
 end
 
 local function handleDeleteRequest(player: Player, payload: any)
+	if type(payload) == "table" then
+		PetService.deletePets(player, payload)
+		return
+	end
 	if type(payload) ~= "string" then
 		return
 	end
