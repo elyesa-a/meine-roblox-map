@@ -85,6 +85,10 @@ local function petMultiplier(def): number
 	return if type(value) == "number" then value else 1
 end
 
+local function formatPetMultiplier(multiplier: number): string
+	return NumberFormatter.formatDecimal(multiplier, 2)
+end
+
 local function rarityColor(rarity: string?): Color3
 	if rarity and PetConfig.RarityColor[rarity] then
 		return PetConfig.RarityColor[rarity]
@@ -273,7 +277,13 @@ local function buildPetCard(parent: ScrollingFrame, instanceId: string, def, equ
 	local rarity = makeSmallLabel(card, def.rarity, UDim2.new(0, 4, 0, 26), UDim2.new(1, -8, 0, 16), 11, petColor)
 	rarity.TextXAlignment = Enum.TextXAlignment.Center
 
-	local multi = makeSmallLabel(card, string.format("%.2gx Power", petMultiplier(def)), UDim2.new(0, 4, 0, 45), UDim2.new(1, -8, 0, 22), 16)
+	local multi = makeSmallLabel(
+		card,
+		"x" .. formatPetMultiplier(petMultiplier(def)) .. " Power",
+		UDim2.new(0, 4, 0, 45),
+		UDim2.new(1, -8, 0, 22),
+		16
+	)
 	multi.TextColor3 = REWARD_GOLD
 	multi.TextXAlignment = Enum.TextXAlignment.Center
 
@@ -478,7 +488,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 	resultNameLabel.TextXAlignment = Enum.TextXAlignment.Left
 	local resultRarityLabel = makeSmallLabel(resultPanel, "Rarity", UDim2.new(0, 56, 0, 24), UDim2.new(0.5, -32, 0, 16), 12, DNA_GREEN)
 	resultRarityLabel.TextXAlignment = Enum.TextXAlignment.Left
-	local resultMultiplierLabel = makeSmallLabel(resultPanel, "1x Power", UDim2.new(0.5, 0, 0, 24), UDim2.new(0.5, -8, 0, 16), 12, REWARD_GOLD)
+	local resultMultiplierLabel = makeSmallLabel(resultPanel, "x1 Power", UDim2.new(0.5, 0, 0, 24), UDim2.new(0.5, -8, 0, 16), 12, REWARD_GOLD)
 	resultMultiplierLabel.TextXAlignment = Enum.TextXAlignment.Right
 
 	local infoRow = Instance.new("Frame")
@@ -657,7 +667,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 		refs.resultNameLabel.TextColor3 = TEXT_MAIN
 		refs.resultRarityLabel.Text = rarity
 		refs.resultRarityLabel.TextColor3 = color
-		refs.resultMultiplierLabel.Text = string.format("%.2gx Power", mult)
+		refs.resultMultiplierLabel.Text = "x" .. formatPetMultiplier(mult) .. " Power"
 
 		-- Live-Vorschau: alten Preview-Inhalt loeschen, neues Pet-Modell mit
 		-- PetVisualBuilder bauen und in das ViewportFrame setzen.
@@ -780,7 +790,7 @@ function PetFrame.update(refs: Refs, state)
 		#equipped,
 		PetConfig.MaxEquipped
 	)
-	refs.multLabel.Text = string.format("Pet Power: %.3gx", petMult)
+	refs.multLabel.Text = "Pet Power: " .. formatPetMultiplier(petMult) .. "x"
 
 	for _, child in ipairs(refs.scroll:GetChildren()) do
 		if child:IsA("Frame") and child.Name:sub(1, 4) == "Pet_" then

@@ -105,6 +105,10 @@ local function getPetPowerMultiplier(def): number
 	return math.max(1, value)
 end
 
+local function formatPowerMultiplier(multiplier: number): string
+	return NumberFormatter.formatDecimal(multiplier, 2)
+end
+
 local function getVisualFolder(): Folder
 	if visualFolder and visualFolder.Parent then
 		return visualFolder
@@ -609,10 +613,10 @@ function PetService.hatchEgg(player: Player, eggId: string)
 		eggName = egg.displayName,
 	})
 	ShowPopup:FireClient(player, string.format(
-		"Hatched %s (%s) - %.2gx Power!",
+		"Hatched %s (%s) - x%s Power!",
 		petDef.displayName,
 		petDef.rarity,
-		multiplier
+		formatPowerMultiplier(multiplier)
 	))
 	if TutorialService then
 		TutorialService.record(player, "EggHatched", {

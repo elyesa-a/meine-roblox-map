@@ -75,18 +75,7 @@ local function formatPowerGain(amount: number): string
 	if amount >= 1000 then
 		return NumberFormatter.format(amount)
 	end
-
-	local roundedInteger = math.floor(amount + 0.5)
-	if math.abs(amount - roundedInteger) < 0.05 then
-		return tostring(roundedInteger)
-	end
-
-	local roundedTenths = math.floor(amount * 10 + 0.5) / 10
-	if roundedTenths >= 1000 then
-		return NumberFormatter.format(roundedTenths)
-	end
-
-	return string.format("%.1f", roundedTenths)
+	return NumberFormatter.formatDecimal(amount, 2)
 end
 
 local function showPowerPopup(screen: ScreenGui, anchorPos: UDim2, color: Color3, amount: number)
