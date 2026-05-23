@@ -35,25 +35,22 @@ local function restyleStroke(gui: GuiObject, color: Color3, thickness: number?, 
 	end
 end
 
-local BONUS_ORDER = {
-	Power = 1,
-	Luck = 2,
-	Dna = 3,
-	Rebirth = 4,
-	Mixed = 5,
-	Other = 6,
-}
-
 local RARITY_ORDER = {
 	Common = 1,
-	Rare = 2,
-	Epic = 3,
-	Legendary = 4,
-	Mythic = 5,
-	Secret = 6,
-	Exclusive = 7,
-	Other = 8,
+	Uncommon = 2,
+	Rare = 3,
+	Epic = 4,
+	Legendary = 5,
+	Mythic = 6,
+	Secret = 7,
+	Exclusive = 8,
+	Other = 99,
 }
+
+local CONFIG_ORDER_BY_ID: { [string]: number } = {}
+for order, def in ipairs(TitleConfig.Titles) do
+	CONFIG_ORDER_BY_ID[def.id] = order
+end
 
 type CardRefs = {
 	card: Frame,
@@ -85,51 +82,65 @@ local function bonusText(def): string
 	return "Bonus: " .. table.concat(parts, " | ")
 end
 
-local function getBonusCategory(def): string
-	local bonus = def.bonus
-	if not bonus then
-		if def.category == "Rebirth" then
-			return "Rebirth"
+local function getConditionGroup(def): string
+	local condition = def.condition
+	if type(condition) ~= "table" then
+		return "None"
+	end
+	local kind = tostring(condition.kind or "None")
+	if kind == "Boss" then
+		return "Boss"
+	end
+	return kind .. ":" .. tostring(condition.key or "")
+end
+
+local function getConditionValue(def): number
+	local condition = def.condition
+	if type(condition) ~= "table" then
+		return 0
+	end
+	if condition.kind == "Auto" then
+		return 0
+	end
+	if condition.kind == "Boss" and type(condition.key) == "string" then
+		local area, enemy = string.match(condition.key, "^A(%d+)E(%d+)$")
+		if area and enemy then
+			local areaNumber = tonumber(area)
+			local enemyNumber = tonumber(enemy)
+			if areaNumber and enemyNumber then
+				return areaNumber * 100 + enemyNumber
+			end
 		end
-		return "Other"
 	end
-
-	local keys = {}
-	if bonus.Power then
-		table.insert(keys, "Power")
+	if type(condition.value) == "number" then
+		return condition.value
 	end
-	if bonus.Luck then
-		table.insert(keys, "Luck")
-	end
-	if bonus.Dna then
-		table.insert(keys, "Dna")
-	end
-
-	if #keys > 1 then
-		return "Mixed"
-	end
-	if #keys == 1 then
-		return keys[1]
-	end
-	if def.category == "Rebirth" then
-		return "Rebirth"
-	end
-	return "Other"
+	return 0
 end
 
 local function sortedTitleDefs(): { any }
 	local list = table.clone(TitleConfig.Titles)
 	table.sort(list, function(a, b)
-		local aCategory = BONUS_ORDER[getBonusCategory(a)] or BONUS_ORDER.Other
-		local bCategory = BONUS_ORDER[getBonusCategory(b)] or BONUS_ORDER.Other
-		if aCategory ~= bCategory then
-			return aCategory < bCategory
-		end
-
 		local aRarity = RARITY_ORDER[a.rarity] or RARITY_ORDER.Other
 		local bRarity = RARITY_ORDER[b.rarity] or RARITY_ORDER.Other
 		if aRarity ~= bRarity then
 			return aRarity < bRarity
+		end
+
+		local aGroup = getConditionGroup(a)
+		local bGroup = getConditionGroup(b)
+		if aGroup == bGroup then
+			local aValue = getConditionValue(a)
+			local bValue = getConditionValue(b)
+			if aValue ~= bValue then
+				return aValue < bValue
+			end
+		end
+
+		local aOrder = CONFIG_ORDER_BY_ID[a.id] or math.huge
+		local bOrder = CONFIG_ORDER_BY_ID[b.id] or math.huge
+		if aOrder ~= bOrder then
+			return aOrder < bOrder
 		end
 
 		return string.lower(a.displayName or a.id) < string.lower(b.displayName or b.id)
