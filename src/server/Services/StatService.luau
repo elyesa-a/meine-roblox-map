@@ -180,7 +180,7 @@ local function afterPowerChanged(player: Player, profile)
 	sendUpdate(player)
 end
 
-function StatService.addPower(player: Player, baseAmount: number)
+function StatService.addPower(player: Player, baseAmount: number): number?
 	if baseAmount <= 0 then
 		return
 	end
@@ -191,6 +191,7 @@ function StatService.addPower(player: Player, baseAmount: number)
 	local total = baseAmount * StatService.computeMultiplier(player)
 	profile.Power = math.floor(profile.Power + total)
 	afterPowerChanged(player, profile)
+	return total
 end
 
 function StatService.addPowerReward(player: Player, amount: number)

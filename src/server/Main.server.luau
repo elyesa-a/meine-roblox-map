@@ -215,14 +215,18 @@ end
 -- 6b. Click-Remote (+1 Kraft pro Klick, serverseitiger 0.15s Cooldown).
 local CLICK_COOLDOWN = 0.15
 local lastPowerClickAt: { [Player]: number } = {}
-AntiExploitService.safeBind(RequestClick, 7, function(player)
+AntiExploitService.safeBind(RequestClick, 7, function(player, clickRequestId)
 	local now = os.clock()
 	local last = lastPowerClickAt[player] or 0
 	if now - last < CLICK_COOLDOWN then
 		return
 	end
 	lastPowerClickAt[player] = now
-	StatService.addPower(player, 1)
+	local awardedPower = StatService.addPower(player, 1)
+	if awardedPower then
+		local echoedClickRequestId = if type(clickRequestId) == "number" then clickRequestId else nil
+		RequestClick:FireClient(player, awardedPower, echoedClickRequestId)
+	end
 	StatService.spawnClickVfx(player)
 end)
 

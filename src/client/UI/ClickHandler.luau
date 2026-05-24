@@ -6,7 +6,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
 
-local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
+local Modules = ReplicatedStorage:WaitForChild("Modules")
+local NumberFormatter = require(Modules:WaitForChild("NumberFormatter"))
+local UIAnimator = require(Modules:WaitForChild("UIAnimator"))
 local SoundController = require(script.Parent:WaitForChild("SoundController"))
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -18,8 +20,15 @@ local AutoTrainingState = Remotes:WaitForChild("AutoTrainingState") :: RemoteEve
 
 local ClickHandler = {}
 
+type PendingClickPopup = {
+	screen: ScreenGui,
+	anchorPos: UDim2,
+	color: Color3,
+}
+
 local CLIENT_RATE = 7 -- pro Sekunde, passend zum serverseitigen 0.15s Cooldown.
 local CLIENT_COOLDOWN = 0.15
+local MAX_PENDING_CLICK_POPUPS = 12
 local AUTO_CLICK_INTERVALS = {
 	Free = 1.5,
 	Premium = 0.35, -- fuer den spaeteren Shop/Gamepass-Autoclicker vorbereitet.
@@ -42,6 +51,10 @@ local tokens = CLIENT_RATE
 local lastRefill = os.clock()
 local lastClickAt = 0
 local boundScreenClick = false
+local boundPowerFeedback = false
+local nextClickRequestId = 0
+local pendingClickPopups: { [number]: PendingClickPopup } = {}
+local pendingClickOrder: { number } = {}
 
 local function consumeToken(): boolean
 	local now = os.clock()
@@ -58,8 +71,78 @@ local function consumeToken(): boolean
 	return false
 end
 
-local function showPowerPopup(screen: ScreenGui, anchorPos: UDim2, color: Color3)
-	UIAnimator.floatText(screen, "+1 Power", anchorPos, color)
+local function formatPowerGain(amount: number): string
+	if amount >= 1000 then
+		return NumberFormatter.format(amount)
+	end
+	return NumberFormatter.formatDecimal(amount, 2)
+end
+
+local function showPowerPopup(screen: ScreenGui, anchorPos: UDim2, color: Color3, amount: number)
+	UIAnimator.floatText(screen, "+" .. formatPowerGain(amount) .. " Power", anchorPos, color)
+end
+
+local function popPendingClick(clickRequestId: number): PendingClickPopup?
+	local pending = pendingClickPopups[clickRequestId]
+	if not pending then
+		return nil
+	end
+	pendingClickPopups[clickRequestId] = nil
+	local orderIndex = table.find(pendingClickOrder, clickRequestId)
+	if orderIndex then
+		table.remove(pendingClickOrder, orderIndex)
+	end
+	return pending
+end
+
+local function popOldestPendingClick(): PendingClickPopup?
+	local clickRequestId = table.remove(pendingClickOrder, 1)
+	if not clickRequestId then
+		return nil
+	end
+	return popPendingClick(clickRequestId)
+end
+
+local function queuePowerPopup(screen: ScreenGui, anchorPos: UDim2, color: Color3): number
+	while #pendingClickOrder >= MAX_PENDING_CLICK_POPUPS do
+		popOldestPendingClick()
+	end
+
+	nextClickRequestId += 1
+	pendingClickPopups[nextClickRequestId] = {
+		screen = screen,
+		anchorPos = anchorPos,
+		color = color,
+	}
+	table.insert(pendingClickOrder, nextClickRequestId)
+	return nextClickRequestId
+end
+
+local function bindPowerFeedback()
+	if boundPowerFeedback then
+		return
+	end
+	boundPowerFeedback = true
+	RequestClick.OnClientEvent:Connect(function(powerGain, clickRequestId)
+		if type(powerGain) ~= "number" then
+			return
+		end
+		if powerGain <= 0 or powerGain ~= powerGain then
+			return
+		end
+
+		local pending: PendingClickPopup?
+		if type(clickRequestId) == "number" then
+			pending = popPendingClick(clickRequestId)
+		else
+			pending = popOldestPendingClick()
+		end
+		if not pending or not pending.screen.Parent then
+			return
+		end
+
+		showPowerPopup(pending.screen, pending.anchorPos, pending.color, powerGain)
+	end)
 end
 
 local function requestPowerClick(screen: ScreenGui, color: Color3, anchorPos: UDim2): boolean
@@ -67,8 +150,8 @@ local function requestPowerClick(screen: ScreenGui, color: Color3, anchorPos: UD
 		return false
 	end
 
-	RequestClick:FireServer()
-	showPowerPopup(screen, anchorPos, color)
+	local clickRequestId = queuePowerPopup(screen, anchorPos, color)
+	RequestClick:FireServer(clickRequestId)
 	SoundController.play("Click")
 	return true
 end
@@ -139,6 +222,8 @@ function ClickHandler.bind(
 	autoFightButton: TextButton?,
 	autoTrainingButton: TextButton?
 )
+	bindPowerFeedback()
+
 	button.MouseButton1Click:Connect(function()
 		requestPowerButtonClick(screen, button, color, true)
 	end)
