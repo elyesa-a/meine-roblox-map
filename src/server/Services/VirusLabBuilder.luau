@@ -96,17 +96,19 @@ local BACTERIA_RIGHT_LIMIT_Z = 38
 -- contam: 0..1 organische Verschmutzung; clean->gefaehrlich pro Tiefe.
 -- sideProp: Bestimmt das wiederkehrende Seiten-Hero-Objekt der Halle.
 -- ceilingTone: Akzent fuer Decken-Lichtfilter.
+-- accent-Werte sind 1:1 mit den AREA_ACCENTS aus TeleportFrame -> jede Area
+-- liest sich farblich genauso wie ihre Teleport-Karte.
 local AreaThemes = {
-	[1] = { id = "Bacteria", accent = Color3.fromRGB(104, 168, 116), contam = 0.14, sideProp = "BioTank", wallText = "BACTERIA LAB", hazard = "BIOHAZARD LEVEL B" },
-	[2] = { id = "Quarantine", accent = Color3.fromRGB(214, 178, 60), contam = 0.05, sideProp = "QuarantineScanner", wallText = "QUARANTINE CORRIDOR", hazard = "BIOHAZARD - LEVEL 2" },
-	[3] = { id = "MutationResearch", accent = Color3.fromRGB(110, 220, 138), contam = 0.18, sideProp = "MutationDNA", wallText = "MUTATION RESEARCH WING", hazard = "GENETIC INSTABILITY" },
-	[4] = { id = "Processing", accent = Color3.fromRGB(232, 142, 58), contam = 0.30, sideProp = "ProcessingMachine", wallText = "BIOHAZARD PROCESSING", hazard = "HEAVY MACHINERY ACTIVE" },
-	[5] = { id = "Cryo", accent = Color3.fromRGB(132, 204, 232), contam = 0.04, sideProp = "CryoCapsule", wallText = "CRYO CONTAINMENT", hazard = "SUB-ZERO - HANDLE WITH CARE" },
-	[6] = { id = "ToxicReactor", accent = Color3.fromRGB(160, 222, 92), contam = 0.36, sideProp = "ToxicReactor", wallText = "TOXIC REACTOR FACILITY", hazard = "UNSTABLE REACTOR CORE" },
-	[7] = { id = "Greenhouse", accent = Color3.fromRGB(140, 214, 138), contam = 0.42, sideProp = "SporePod", wallText = "INFECTED GREENHOUSE", hazard = "AIRBORNE SPORE WARNING" },
-	[8] = { id = "BlackSite", accent = Color3.fromRGB(176, 64, 78), contam = 0.18, sideProp = "BlackSiteChamber", wallText = "BLACK SITE - CLASSIFIED", hazard = "LEVEL OMEGA - RESTRICTED" },
-	[9] = { id = "OmegaDNA", accent = Color3.fromRGB(232, 196, 102), contam = 0.06, sideProp = "OmegaHelix", wallText = "OMEGA DNA CORE", hazard = "PROJECT OMEGA - SECURE" },
-	[10] = { id = "FinalCore", accent = Color3.fromRGB(222, 60, 76), contam = 0.25, sideProp = "FinalVirusCore", wallText = "FINAL VIRUS CORE", hazard = "MAXIMUM CONTAINMENT" },
+	[1] = { id = "Bacteria", accent = Color3.fromRGB(0, 210, 190), contam = 0.14, sideProp = "BioTank", wallText = "BACTERIA LAB", hazard = "BIOHAZARD LEVEL B" },
+	[2] = { id = "Quarantine", accent = Color3.fromRGB(255, 190, 40), contam = 0.05, sideProp = "QuarantineScanner", wallText = "QUARANTINE CORRIDOR", hazard = "BIOHAZARD - LEVEL 2" },
+	[3] = { id = "MutationResearch", accent = Color3.fromRGB(80, 255, 120), contam = 0.18, sideProp = "MutationDNA", wallText = "MUTATION RESEARCH WING", hazard = "GENETIC INSTABILITY" },
+	[4] = { id = "Processing", accent = Color3.fromRGB(255, 150, 55), contam = 0.30, sideProp = "ProcessingMachine", wallText = "BIOHAZARD PROCESSING", hazard = "HEAVY MACHINERY ACTIVE" },
+	[5] = { id = "Cryo", accent = Color3.fromRGB(115, 210, 255), contam = 0.04, sideProp = "CryoCapsule", wallText = "CRYO CONTAINMENT", hazard = "SUB-ZERO - HANDLE WITH CARE" },
+	[6] = { id = "ToxicReactor", accent = Color3.fromRGB(170, 255, 70), contam = 0.36, sideProp = "ToxicReactor", wallText = "TOXIC REACTOR FACILITY", hazard = "UNSTABLE REACTOR CORE" },
+	[7] = { id = "Greenhouse", accent = Color3.fromRGB(120, 220, 145), contam = 0.42, sideProp = "SporePod", wallText = "INFECTED GREENHOUSE", hazard = "AIRBORNE SPORE WARNING" },
+	[8] = { id = "BlackSite", accent = Color3.fromRGB(180, 90, 220), contam = 0.18, sideProp = "BlackSiteChamber", wallText = "BLACK SITE - CLASSIFIED", hazard = "LEVEL OMEGA - RESTRICTED" },
+	[9] = { id = "OmegaDNA", accent = Color3.fromRGB(255, 220, 80), contam = 0.06, sideProp = "OmegaHelix", wallText = "OMEGA DNA CORE", hazard = "PROJECT OMEGA - SECURE" },
+	[10] = { id = "FinalCore", accent = Color3.fromRGB(255, 70, 75), contam = 0.25, sideProp = "FinalVirusCore", wallText = "FINAL VIRUS CORE", hazard = "MAXIMUM CONTAINMENT" },
 }
 
 local function themeFor(index: number)
@@ -227,19 +229,24 @@ local function markAreaVisual(part: BasePart, areaId: string?)
 	end
 end
 
-local function addLabTrim(parent, centerX, lengthX)
+local function addLabTrim(parent, centerX, lengthX, primary)
+	-- Wand-Paneele und Neon-Streifen voll in der Area-Farbe -> ganzer Korridor
+	-- liest sich einheitlich farbig statt fast-weiss.
+	local panelTintA = if primary then tint(Color3.fromRGB(218, 224, 226), primary, 0.72) else Color3.fromRGB(218, 224, 226)
+	local panelTintB = if primary then tint(LAB_WHITE, primary, 0.58) else LAB_WHITE
+	local neonColor = primary or LAB_PURPLE
 	for _, z in ipairs({ CORRIDOR_MIN_Z + 0.2, CORRIDOR_MAX_Z - 0.2 }) do
 		local panelZ = if z < FLOOR_CENTER_Z then CORRIDOR_MIN_Z + 0.35 else CORRIDOR_MAX_Z - 0.35
 		for i = 0, 3 do
 			local panelWidth = lengthX / 4 - 8
 			local px = centerX - lengthX / 2 + lengthX * (i + 0.5) / 4
-			local panelColor = if i % 2 == 0 then Color3.fromRGB(218, 224, 226) else LAB_WHITE
+			local panelColor = if i % 2 == 0 then panelTintA else panelTintB
 			makePart(parent, "WallLabPanel", Vector3.new(panelWidth, 15, 0.35), Vector3.new(px, FLOOR_Y + 14.5, panelZ), panelColor, Enum.Material.SmoothPlastic, false)
 		end
 		for _, y in ipairs({ FLOOR_Y + 4, FLOOR_Y + L.WallHeight - 8 }) do
 			makePart(parent, "WallBlackTrim", Vector3.new(lengthX, 1.1, 0.35), Vector3.new(centerX, y, z), LAB_DARK, Enum.Material.SmoothPlastic, false)
 		end
-		neonStrip(parent, Vector3.new(lengthX - 16, 0.35, 0.35), Vector3.new(centerX, FLOOR_Y + L.WallHeight - 13, panelZ), LAB_PURPLE, 0.25)
+		neonStrip(parent, Vector3.new(lengthX - 16, 0.35, 0.35), Vector3.new(centerX, FLOOR_Y + L.WallHeight - 13, panelZ), neonColor, 0.25)
 		for i = 1, 3 do
 			local px = centerX - lengthX / 2 + lengthX * i / 4
 			makePart(parent, "WallPanelSeam", Vector3.new(0.75, L.WallHeight - 8, 0.35), Vector3.new(px, FLOOR_Y + L.WallHeight / 2, z), LAB_TRIM, Enum.Material.Metal, false)
@@ -292,6 +299,16 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 		visualSecondary = if startsLocked then ACCESS_LOCKED_SOFT else ACCESS_UNLOCKED_SOFT
 	end
 
+	-- Boden + Wand-Tint: pro Area DEUTLICH eingefaerbt, damit die Area schon
+	-- aus der Distanz an ihrer Farbe erkennbar ist. Spawn-Lab (kein areaId)
+	-- bleibt neutral.
+	local floorBase = Color3.fromRGB(202, 206, 208)
+	local wallBase = LAB_WHITE
+	local ceilingBase = Color3.fromRGB(207, 212, 211)
+	local floorColor = if areaId then tint(floorBase, primary, 0.72) else floorBase
+	local wallColor = if areaId then tint(wallBase, primary, 0.62) else wallBase
+	local ceilingColor = if areaId then tint(ceilingBase, primary, 0.42) else ceilingBase
+
 	-- Boden. Dick genug, dass die Unterkante (FLOOR_Y - FLOOR_THICKNESS) die
 	-- dunkle Baseplate (Oberkante Y=-2) als Schnittkoerper durchdringt --
 	-- keine deckungsgleiche Flaeche -> kein schwarzes Z-Fighting mehr.
@@ -300,7 +317,7 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 		"LabFloor",
 		Vector3.new(lengthX, FLOOR_THICKNESS, FLOOR_SIZE_Z),
 		Vector3.new(centerX, FLOOR_Y - FLOOR_THICKNESS / 2, FLOOR_CENTER_Z),
-		Color3.fromRGB(202, 206, 208),
+		floorColor,
 		Enum.Material.SmoothPlastic,
 		true
 	)
@@ -313,7 +330,7 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 		"LabCeiling",
 		Vector3.new(lengthX, 2, FLOOR_SIZE_Z),
 		Vector3.new(centerX, FLOOR_Y + L.WallHeight + 1, FLOOR_CENTER_Z),
-		Color3.fromRGB(207, 212, 211),
+		ceilingColor,
 		Enum.Material.SmoothPlastic,
 		true
 	)
@@ -329,6 +346,8 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 			false
 		)
 	end
+	local ceilingPanelBase = Color3.fromRGB(186, 192, 191)
+	local ceilingPanelColor = if areaId then tint(ceilingPanelBase, primary, 0.50) else ceilingPanelBase
 	for i = 0, 2 do
 		local px = centerX - lengthX / 2 + lengthX * (i + 0.5) / 3
 		makePart(
@@ -336,19 +355,19 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 			"CeilingPanel",
 			Vector3.new(lengthX / 3 - 10, 0.18, FLOOR_SIZE_Z - 18),
 			Vector3.new(px, FLOOR_Y + L.WallHeight - 0.15, FLOOR_CENTER_Z),
-			Color3.fromRGB(186, 192, 191),
+			ceilingPanelColor,
 			Enum.Material.SmoothPlastic,
 			false
 		)
 	end
 
-	-- Seitenwaende.
+	-- Seitenwaende (Area-getoent ueber wallColor).
 	makePart(
 		parent,
 		"LabWallLeft",
 		Vector3.new(lengthX, L.WallHeight, 4),
 		Vector3.new(centerX, FLOOR_Y + L.WallHeight / 2, CORRIDOR_MIN_Z - 2),
-		LAB_WHITE,
+		wallColor,
 		Enum.Material.SmoothPlastic,
 		true
 	)
@@ -357,11 +376,11 @@ local function buildShellSegment(parent, centerX, lengthX, primary, secondary, w
 		"LabWallRight",
 		Vector3.new(lengthX, L.WallHeight, 4),
 		Vector3.new(centerX, FLOOR_Y + L.WallHeight / 2, CORRIDOR_MAX_Z + 2),
-		LAB_WHITE,
+		wallColor,
 		Enum.Material.SmoothPlastic,
 		true
 	)
-	addLabTrim(parent, centerX, lengthX)
+	addLabTrim(parent, centerX, lengthX, if areaId then primary else nil)
 
 	-- Dezente Neon-Leitlinien an den Waenden (Orientierung, keine Disco).
 	markAreaVisual(neonStrip(parent, Vector3.new(lengthX, 0.34, 0.34), Vector3.new(centerX, FLOOR_Y + 6, CORRIDOR_MIN_Z - 0.1), visualPrimary, 0.72), areaId)
@@ -1872,16 +1891,21 @@ local function addBacteriaLabDetails(parent, area, hallX, primary)
 	local deco = makeFolder("TunnelLabDetails", parent)
 	local theme = themeFor(area.index)
 	local accent = theme.accent
+	-- Inner-Tunnel-Waende uebernehmen Area-Farbe deutlich (staerker als die
+	-- aeusseren LabWalls, weil der Spieler hier direkt vorbeilaeuft).
+	local tunnelWallColor = tint(LAB_WHITE, primary, 0.68)
 
 	local wallStartX = hallX + L.GateOffsetX - 10
-	-- Tunnel-Wand muss bis hinter den Boss-Raum reichen (4 Normale + Boss-Luecke).
+	-- Tunnel-Wand muss bis hinter den Boss-Raum reichen, aber NICHT ueber die
+	-- (verschobene) Shell-Naht hinaus, sonst leuchtet die alte Area-Farbe in
+	-- die neue rein. Shell endet bei hallX + 200; lass etwas Sicherheit.
 	local normalSpan = (L.EnemiesPerArea - 2) * L.NormalEnemySpacing
-	local wallEndX = hallX + (normalSpan + L.BossOffsetX) / 2 + 48
+	local wallEndX = math.min(hallX + 196, hallX + (normalSpan + L.BossOffsetX) / 2 + 48)
 	local wallLength = wallEndX - wallStartX
 	local wallCenterX = (wallStartX + wallEndX) / 2
 	local tunnelWallHeight = L.WallHeight + BACTERIA_CEILING_LIFT - 2
 	for _, z in ipairs({ BACTERIA_LEFT_LIMIT_Z, BACTERIA_RIGHT_LIMIT_Z }) do
-		local wall = makePart(deco, "BacteriaTunnelWall", Vector3.new(wallLength, tunnelWallHeight, 3.2), Vector3.new(wallCenterX, FLOOR_Y + tunnelWallHeight / 2, z), LAB_WHITE, Enum.Material.SmoothPlastic, true)
+		local wall = makePart(deco, "BacteriaTunnelWall", Vector3.new(wallLength, tunnelWallHeight, 3.2), Vector3.new(wallCenterX, FLOOR_Y + tunnelWallHeight / 2, z), tunnelWallColor, Enum.Material.SmoothPlastic, true)
 		wall.Transparency = 0.02
 		makePart(deco, "BacteriaWallDarkBase", Vector3.new(wallLength, 1.4, 3.5), Vector3.new(wallCenterX, FLOOR_Y + 0.8, z), LAB_DARK, Enum.Material.Metal, true)
 		makePart(deco, "BacteriaWallTopRail", Vector3.new(wallLength, 1.2, 3.6), Vector3.new(wallCenterX, FLOOR_Y + tunnelWallHeight - 0.6, z), LAB_DARK, Enum.Material.Metal, true)
@@ -1902,8 +1926,8 @@ local function addBacteriaLabDetails(parent, area, hallX, primary)
 	for _, x in ipairs({ wallStartX, wallEndX }) do
 		local leftWidth = BACTERIA_LEFT_LIMIT_Z - CORRIDOR_MIN_Z
 		local rightWidth = CORRIDOR_MAX_Z - BACTERIA_RIGHT_LIMIT_Z
-		makePart(deco, "BacteriaTunnelOuterCapLeft", Vector3.new(3, tunnelWallHeight, leftWidth), Vector3.new(x, FLOOR_Y + tunnelWallHeight / 2, (CORRIDOR_MIN_Z + BACTERIA_LEFT_LIMIT_Z) / 2), LAB_WHITE, Enum.Material.SmoothPlastic, true)
-		makePart(deco, "BacteriaTunnelOuterCapRight", Vector3.new(3, tunnelWallHeight, rightWidth), Vector3.new(x, FLOOR_Y + tunnelWallHeight / 2, (BACTERIA_RIGHT_LIMIT_Z + CORRIDOR_MAX_Z) / 2), LAB_WHITE, Enum.Material.SmoothPlastic, true)
+		makePart(deco, "BacteriaTunnelOuterCapLeft", Vector3.new(3, tunnelWallHeight, leftWidth), Vector3.new(x, FLOOR_Y + tunnelWallHeight / 2, (CORRIDOR_MIN_Z + BACTERIA_LEFT_LIMIT_Z) / 2), tunnelWallColor, Enum.Material.SmoothPlastic, true)
+		makePart(deco, "BacteriaTunnelOuterCapRight", Vector3.new(3, tunnelWallHeight, rightWidth), Vector3.new(x, FLOOR_Y + tunnelWallHeight / 2, (BACTERIA_RIGHT_LIMIT_Z + CORRIDOR_MAX_Z) / 2), tunnelWallColor, Enum.Material.SmoothPlastic, true)
 	end
 
 	-- Boden-Deko: jede flache Flaeche auf EINDEUTIGER Hoehe (LAYER_*), heller
@@ -2016,17 +2040,18 @@ local function buildTrainingArea(parent, bedsFolder, _gatesFolder, area, x)
 	local bayWidthX = 112
 	local center = Vector3.new(x, FLOOR_Y, bayZ)
 
-	-- Trainings-Akzente komplett auf Lila (vorher Cyan). "accentCyan" bleibt
-	-- als Variablenname fuer minimal-invasive Aenderung erhalten -- Farbe ist Lila.
-	local accentCyan = LAB_PURPLE
-	local accentGreen = tint(LAB_PURPLE, primary, 0.35)
+	-- Trainings-Akzente uebernehmen die Area-Farbe (primary) -> Power Training
+	-- liest sich farblich wie die zugehoerige Area. Variablennamen historisch.
+	local accentCyan = primary
+	local accentGreen = tint(primary, Color3.fromRGB(245, 250, 255), 0.45)
+	local accentLightBase = tint(primary, Color3.fromRGB(248, 250, 255), 0.65)
 	local glassCol = Color3.fromRGB(206, 224, 230)
 	local padTop = Color3.fromRGB(40, 46, 54)
 	local padInset = Color3.fromRGB(28, 33, 40)
 	local padDeep = Color3.fromRGB(18, 22, 28)
 
 	-- 1. Bay-Boden + gelbe Eingangsschwelle (Schwelle bleibt zum Laufweg).
-	makePart(model, "TrainingBayFloor", Vector3.new(bayWidthX, 0.6, bayDepthZ), Vector3.new(x, FLOOR_Y + 0.32, bayZ), tint(LAB_PANEL, primary, 0.10), Enum.Material.SmoothPlastic, true)
+	makePart(model, "TrainingBayFloor", Vector3.new(bayWidthX, 0.6, bayDepthZ), Vector3.new(x, FLOOR_Y + 0.32, bayZ), tint(LAB_PANEL, primary, 0.70), Enum.Material.SmoothPlastic, true)
 	makePart(model, "TrainingBayThreshold", Vector3.new(bayWidthX, 0.06, 1.8), Vector3.new(x, FLOOR_Y + 0.68, bayMouthZ - 1), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false).Transparency = 0.42
 
 	-- 2. Erhoehte Trainingsplattform (groesser: 96x44 statt 50x24).
@@ -2074,6 +2099,9 @@ local function buildTrainingArea(parent, bedsFolder, _gatesFolder, area, x)
 	ledOrbit.Name = "TrainPadLedOrbit"
 	ledOrbit.Parent = model
 	ledOrbit:SetAttribute("FlowSpeed", 0.85)
+	-- Client (TrainingPadVisuals) liest AccentColor und animiert die LEDs in
+	-- der Area-Farbe statt im globalen Lila.
+	ledOrbit:SetAttribute("AccentColor", primary)
 	local pivot = makePart(ledOrbit, "LedOrbitPivot", Vector3.new(0.2, 0.2, 0.2), center + Vector3.new(0, 1.6, 0), Color3.fromRGB(255, 255, 255), Enum.Material.SmoothPlastic, false)
 	pivot.Transparency = 1
 	pivot.CanTouch = false
@@ -2242,14 +2270,14 @@ local function buildTrainingArea(parent, bedsFolder, _gatesFolder, area, x)
 			local lx = center.X + sx * 22
 			local lz = center.Z + sz * 10
 			makePart(model, "TrainSpotMount", Vector3.new(3.2, 0.6, 3.2), Vector3.new(lx, FLOOR_Y + 17, lz), LAB_TRIM, Enum.Material.Metal, true)
-			local cone = makePart(model, "TrainSpotCone", Vector3.new(0.4, 2.6, 2.6), Vector3.new(lx, FLOOR_Y + 16.5, lz), Color3.fromRGB(232, 220, 250), Enum.Material.Neon, false)
+			local cone = makePart(model, "TrainSpotCone", Vector3.new(0.4, 2.6, 2.6), Vector3.new(lx, FLOOR_Y + 16.5, lz), accentLightBase, Enum.Material.Neon, false)
 			cone.Shape = Enum.PartType.Cylinder
 			cone.Orientation = Vector3.new(0, 0, 90)
 			cone.Transparency = 0.12
 			local pl = Instance.new("PointLight")
 			pl.Brightness = 1.6
 			pl.Range = 24
-			pl.Color = Color3.fromRGB(220, 200, 250)
+			pl.Color = tint(primary, Color3.fromRGB(248, 250, 255), 0.4)
 			pl.Parent = cone
 		end
 	end
@@ -2269,7 +2297,7 @@ local function buildTrainingArea(parent, bedsFolder, _gatesFolder, area, x)
 	label(
 		signAnchor,
 		string.format("⚡ POWER TRAINING\n+%s PWR/s ⋅ %s", NumberFormatter.format(bedDef.powerPerSecond), area.displayName),
-		Color3.fromRGB(238, 224, 255),
+		accentLightBase,
 		200,
 		UDim2.fromOffset(340, 92),
 		Vector3.new(0, 0, 0)
@@ -4070,9 +4098,11 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	model.Name = "SpawnLab"
 	model.Parent = parent
 
-	-- Boden + Shell des Spawn-Raums (reicht bis Area 1 bei X = 0).
-	local floorLen = math.abs(0 - (cx - 150)) -- (cx-150) .. 0
-	local floorCx = (cx - 150 + 0) / 2
+	-- Boden + Shell des Spawn-Raums. Endet bei X=-60, weil Area 1's Shell jetzt
+	-- 60 Studs nach hinten verschoben ist (Naht direkt nach dem Boss).
+	local spawnEndX = -60
+	local floorLen = math.abs(spawnEndX - (cx - 150)) -- (cx-150) .. spawnEndX
+	local floorCx = (cx - 150 + spawnEndX) / 2
 	buildShellSegment(model, floorCx, floorLen, Color3.fromRGB(95, 230, 200), Color3.fromRGB(150, 255, 220), true)
 	addBackWallLabFeature(model, cx)
 	addCeilingConduits(model, cx)
@@ -4423,8 +4453,12 @@ function VirusLabBuilder.build()
 		local areaModel = makeFolder(area.id, labFolder)
 		local theme = themeFor(area.index)
 
-		-- Shell-Segment der Area.
-		buildShellSegment(areaModel, hallX, L.AreaSpan, primary, secondary, true, area.id, area.index > 1)
+		-- Shell-Segment der Area. Center um 60 Studs nach hinten verschoben,
+		-- damit die Naht 40 Studs hinter dem Boss liegt (war 100). Der neue
+		-- Area-Farbton ist direkt nach dem Boss sichtbar, statt erst weit
+		-- spaeter im Zwischen-Korridor.
+		local shellCenterX = hallX - 60
+		buildShellSegment(areaModel, shellCenterX, L.AreaSpan, primary, secondary, true, area.id, area.index > 1)
 		liftBacteriaLabCeiling(areaModel)
 		addBacteriaLabDetails(areaModel, area, hallX, primary)
 

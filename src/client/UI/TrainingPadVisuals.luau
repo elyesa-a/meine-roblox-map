@@ -1,7 +1,7 @@
 --!strict
--- Kleine lokale Optik fuer Trainingspads: rot/gruene LED-Segmente bleiben
--- fest am Pad und das Lichtmuster laeuft langsam um den Rand.
--- Reine Client-Visuals, keine Gameplay-Logik.
+-- Kleine lokale Optik fuer Trainingspads: die LED-Segmente am Rand pulsieren
+-- in der Area-Farbe (gelesen vom Model-Attribut AccentColor, gesetzt vom
+-- VirusLabBuilder). Reine Client-Visuals, keine Gameplay-Logik.
 
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -13,14 +13,27 @@ type OrbitState = {
 	strips: { BasePart },
 	phase: number,
 	speed: number,
+	dark: Color3,
+	bright: Color3,
 }
 
 local started = false
 local orbits: { [Model]: OrbitState } = {}
--- Lila Lichter: dunkles Lila <-> helles Magenta-Lila, damit die Welle
--- weiterhin sichtbar pulsiert, aber die Farbe komplett lila bleibt.
-local LED_DARK = Color3.fromRGB(78, 22, 142)
-local LED_BRIGHT = Color3.fromRGB(206, 118, 255)
+-- Fallback (falls Server kein AccentColor-Attribut gesetzt hat): neutrales Weiss.
+local FALLBACK_DARK = Color3.fromRGB(40, 44, 52)
+local FALLBACK_BRIGHT = Color3.fromRGB(220, 226, 232)
+
+local function deriveColors(model: Model): (Color3, Color3)
+	local accent = model:GetAttribute("AccentColor")
+	if typeof(accent) ~= "Color3" then
+		return FALLBACK_DARK, FALLBACK_BRIGHT
+	end
+	-- Dunkle Variante: stark zu Schwarz gemischt -> klare Pulse-Tiefe.
+	-- Helle Variante: leicht zu Weiss aufgehellt -> Glow ohne Farbverlust.
+	local dark = accent:Lerp(Color3.fromRGB(8, 10, 14), 0.65)
+	local bright = accent:Lerp(Color3.fromRGB(252, 252, 252), 0.18)
+	return dark, bright
+end
 
 local function collectStrips(model: Model): { BasePart }
 	local strips = {}
@@ -38,8 +51,11 @@ local function collectStrips(model: Model): { BasePart }
 end
 
 local function registerOrbit(model: Model)
+	local dark, bright = deriveColors(model)
 	if orbits[model] then
 		orbits[model].strips = collectStrips(model)
+		orbits[model].dark = dark
+		orbits[model].bright = bright
 		return
 	end
 	local speedAttr = model:GetAttribute("FlowSpeed")
@@ -49,7 +65,17 @@ local function registerOrbit(model: Model)
 		strips = collectStrips(model),
 		phase = 0,
 		speed = speed,
+		dark = dark,
+		bright = bright,
 	}
+	model:GetAttributeChangedSignal("AccentColor"):Connect(function()
+		local d, b = deriveColors(model)
+		local state = orbits[model]
+		if state then
+			state.dark = d
+			state.bright = b
+		end
+	end)
 end
 
 local function scanForOrbits()
@@ -92,7 +118,7 @@ function TrainingPadVisuals.start()
 						local wave = math.sin((index * 0.86 - state.phase) * math.pi)
 						local blend = (wave + 1) * 0.5
 						local smoothBlend = blend * blend * (3 - 2 * blend)
-						local color = LED_DARK:Lerp(LED_BRIGHT, smoothBlend)
+						local color = state.dark:Lerp(state.bright, smoothBlend)
 						strip.Color = color
 						strip.Transparency = 0
 					end
