@@ -31,7 +31,11 @@ local AreaConfig = {}
 AreaConfig.Layout = {
 	AreaSpan = 520, -- X-Abstand zwischen zwei Area-Mittelpunkten
 	FirstHallX = 260, -- X der ersten Gegner-Halle (Area 1)
-	EnemySpacing = 32, -- X-Abstand zwischen zwei Gegnern
+	EnemySpacing = 32, -- Alt: X-Abstand zwischen zwei Gegnern (Borders/Decals)
+	-- Neuer Layout-Vertrag: 4 normale Gegner gleichmaessig im vorderen Teil,
+	-- danach eine deutliche Luecke und der Boss in einem eigenen Raum.
+	NormalEnemySpacing = 70, -- X-Abstand zwischen zwei normalen Gegnern (1..4)
+	BossOffsetX = 110, -- zusaetzliche X-Distanz vom letzten Normalen zum Boss
 	EnemiesPerArea = 5,
 	FloorZ = 0, -- Z-Mitte des Laufwegs
 	FloorHalfZ = 70, -- halbe Korridor-Breite (Laufweg)
