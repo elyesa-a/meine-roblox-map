@@ -87,23 +87,38 @@ local function safeOrderedValue(value: number): number
 	return math.clamp(math.floor(value), 0, MAX_ORDERED_VALUE)
 end
 
-local function getZone(): Instance?
+-- Spawn-Zone enthaelt zusaetzlich die Avatar-Podiums. Andere Zonen (z.B. das
+-- End-of-Map-Leaderboard) spiegeln nur die Boards.
+local function getPrimaryZone(): Instance?
 	local map = Workspace:FindFirstChild("Map")
 	local spawnHub = map and map:FindFirstChild("SpawnHub")
 	return spawnHub and spawnHub:FindFirstChild("LeaderboardZone") or nil
 end
 
-local function getBoardSurface(boardKey: string): BasePart?
-	local zone = getZone()
-	if not zone then
-		return nil
+local function getZones(): { Instance }
+	local map = Workspace:FindFirstChild("Map")
+	if not map then
+		return {}
 	end
-	for _, desc in ipairs(zone:GetDescendants()) do
-		if desc:IsA("BasePart") and desc:GetAttribute("BoardKey") == boardKey then
-			return desc
+	local zones = {}
+	for _, desc in ipairs(map:GetDescendants()) do
+		if desc.Name == "LeaderboardZone" or desc.Name == "EndLeaderboardZone" then
+			table.insert(zones, desc)
 		end
 	end
-	return nil
+	return zones
+end
+
+local function getBoardSurfaces(boardKey: string): { BasePart }
+	local surfaces = {}
+	for _, zone in ipairs(getZones()) do
+		for _, desc in ipairs(zone:GetDescendants()) do
+			if desc:IsA("BasePart") and desc:GetAttribute("BoardKey") == boardKey then
+				table.insert(surfaces, desc)
+			end
+		end
+	end
+	return surfaces
 end
 
 local function getPlayerName(userId: number): string
@@ -237,25 +252,27 @@ local function setImage(gui: Instance?, name: string, userId: number?)
 end
 
 local function updateBoard(def: BoardDef, entries)
-	local surface = getBoardSurface(def.key)
-	local gui = surface and surface:FindFirstChild("BoardGui")
-	if not gui then
-		return
-	end
-
-	setText(gui, "BoardTitle", def.title)
-	setText(gui, "UpdatedLabel", "Updates every 60 seconds")
-	for i = 1, MAX_ROWS do
-		local entry = entries[i]
-		setText(gui, "Rank" .. i, "#" .. tostring(i))
-		setText(gui, "Name" .. i, entry and entry.name or "No record yet")
-		setText(gui, "Value" .. i, entry and formatValue(entry.value, def.valueLabel) or "-")
-		setImage(gui, "Avatar" .. i, entry and entry.userId or nil)
+	-- Fan-out: aktualisiert ALLE Zones (Spawn + End-of-Map) gleichzeitig.
+	local surfaces = getBoardSurfaces(def.key)
+	for _, surface in ipairs(surfaces) do
+		local gui = surface:FindFirstChild("BoardGui")
+		if not gui then
+			continue
+		end
+		setText(gui, "BoardTitle", def.title)
+		setText(gui, "UpdatedLabel", "Updates every 60 seconds")
+		for i = 1, MAX_ROWS do
+			local entry = entries[i]
+			setText(gui, "Rank" .. i, "#" .. tostring(i))
+			setText(gui, "Name" .. i, entry and entry.name or "No record yet")
+			setText(gui, "Value" .. i, entry and formatValue(entry.value, def.valueLabel) or "-")
+			setImage(gui, "Avatar" .. i, entry and entry.userId or nil)
+		end
 	end
 end
 
 local function clearPodium(rank: number)
-	local zone = getZone()
+	local zone = getPrimaryZone()
 	local folder = zone and zone:FindFirstChild("AvatarDummies")
 	local model = folder and folder:FindFirstChild("Top" .. tostring(rank))
 	if model then
@@ -292,7 +309,8 @@ local function getPodiumDisplayCFrame(podium: BasePart, height: number, spin: nu
 end
 
 local function updatePodiums(powerEntries)
-	local zone = getZone()
+	-- Podiums gibt es nur in der Spawn-Zone -> Primary verwenden.
+	local zone = getPrimaryZone()
 	if not zone then
 		return
 	end
@@ -376,7 +394,7 @@ local function spinDummies()
 	task.spawn(function()
 		while true do
 			task.wait(0.1)
-			local zone = getZone()
+			local zone = getPrimaryZone()
 			local folder = zone and zone:FindFirstChild("AvatarDummies")
 			if folder then
 				dummySpin = (dummySpin + 0.018) % (math.pi * 2)

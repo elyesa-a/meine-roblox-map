@@ -52,18 +52,19 @@ local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
 end
 
--- Reihenfolge & Farben exakt nach Vorgabe.
+-- Reihenfolge & Farben aus dem Teleport-Menue (TeleportFrame.AREA_ACCENTS).
+-- Jede Area hat eine klar eigene Akzentfarbe -> Tunnel/Walls/Border/Gate.
 local areaData = {
-	{ name = "Bacteria Lab", boss = "Bacteria Overlord", rb = 0, p = rgb(90, 230, 120), s = rgb(190, 255, 205) },
-	{ name = "Infected Cells", boss = "Cell Breaker", rb = 3, p = rgb(80, 220, 235), s = rgb(195, 245, 250) },
-	{ name = "Mutation Sector", boss = "Mutation Brute", rb = 6, p = rgb(175, 110, 245), s = rgb(220, 195, 255) },
-	{ name = "Toxic Storage", boss = "Toxic Crusher", rb = 9, p = rgb(200, 230, 70), s = rgb(235, 250, 170) },
-	{ name = "Virus Chamber", boss = "Virus Reaper", rb = 12, p = rgb(235, 70, 70), s = rgb(255, 185, 185) },
-	{ name = "Corrupted Lab", boss = "Corrupted Beast", rb = 15, p = rgb(255, 150, 55), s = rgb(255, 210, 160) },
-	{ name = "Biohazard Core", boss = "Biohazard Titan", rb = 18, p = rgb(150, 255, 70), s = rgb(210, 255, 170) },
-	{ name = "Dark Mutation", boss = "Dark Mutation King", rb = 21, p = rgb(120, 60, 170), s = rgb(180, 130, 220) },
-	{ name = "Omega Virus Lab", boss = "Omega Virus", rb = 24, p = rgb(200, 45, 55), s = rgb(70, 70, 80) },
-	{ name = "Final Containment", boss = "Final DNA Destroyer", rb = 30, p = rgb(255, 70, 120), s = rgb(90, 230, 245) },
+	{ name = "Bacteria Lab", boss = "Bacteria Overlord", rb = 0, p = rgb(0, 210, 190), s = rgb(170, 245, 235) },
+	{ name = "Infected Cells", boss = "Cell Breaker", rb = 3, p = rgb(255, 190, 40), s = rgb(255, 225, 165) },
+	{ name = "Mutation Sector", boss = "Mutation Brute", rb = 6, p = rgb(80, 255, 120), s = rgb(190, 255, 210) },
+	{ name = "Toxic Storage", boss = "Toxic Crusher", rb = 9, p = rgb(255, 150, 55), s = rgb(255, 210, 160) },
+	{ name = "Virus Chamber", boss = "Virus Reaper", rb = 12, p = rgb(115, 210, 255), s = rgb(200, 235, 255) },
+	{ name = "Corrupted Lab", boss = "Corrupted Beast", rb = 15, p = rgb(170, 255, 70), s = rgb(220, 255, 180) },
+	{ name = "Biohazard Core", boss = "Biohazard Titan", rb = 18, p = rgb(120, 220, 145), s = rgb(210, 245, 220) },
+	{ name = "Dark Mutation", boss = "Dark Mutation King", rb = 21, p = rgb(180, 90, 220), s = rgb(225, 180, 245) },
+	{ name = "Omega Virus Lab", boss = "Omega Virus", rb = 24, p = rgb(255, 220, 80), s = rgb(255, 240, 180) },
+	{ name = "Final Containment", boss = "Final DNA Destroyer", rb = 30, p = rgb(255, 70, 75), s = rgb(255, 180, 185) },
 }
 
 AreaConfig.ZoneRequirements = {
