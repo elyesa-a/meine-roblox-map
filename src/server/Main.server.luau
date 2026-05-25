@@ -47,6 +47,7 @@ local PetConfig = require(Configs:WaitForChild("PetConfig"))
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RequestClick = Remotes:WaitForChild("RequestClick") :: RemoteEvent
 local RequestSettingsChange = Remotes:WaitForChild("RequestSettingsChange") :: RemoteEvent
+local RequestDevUnlockAll = Remotes:WaitForChild("RequestDevUnlockAll") :: RemoteEvent
 local ShowPopup = Remotes:WaitForChild("ShowPopup") :: RemoteEvent
 
 -- 1. Welt.
@@ -249,6 +250,63 @@ AntiExploitService.safeBind(RequestSettingsChange, 5, function(player, key, valu
 	end
 	profile.Settings[key] = value
 	StatService.broadcastProfile(player)
+end)
+
+-- 6d. DEV: Alles freischalten (temporaer fuer die Entwicklungsphase).
+-- Diesen Handler + den dazugehoerigen RemoteEvent + den Client-Button
+-- spaeter wieder entfernen, bevor das Spiel live geht.
+-- ACHTUNG: Studio reload-t Server-Skripte NICHT zur Laufzeit. Wenn du diesen
+-- Block aenderst, musst du in Studio Play STOPPEN und neu starten.
+print("[Main/DEV] DevUnlockAll-Handler registriert.")
+AntiExploitService.safeBind(RequestDevUnlockAll, 5, function(player)
+	print(string.format("[Main/DEV] >>> DevUnlockAll von %s empfangen.", player.Name))
+	local profile = DataService.getProfile(player)
+	if not profile then
+		warn("[Main/DEV] Kein Profil fuer " .. player.Name)
+		return
+	end
+	-- Die Border-Gates skalieren mit 10 * 4^(globalIndex-1) PWR -- der letzte
+	-- Gate vor Gegner 100 verlangt ~4e60. BIG muss DEUTLICH darueber liegen,
+	-- damit jeder Border + jedes Area-Gate freigeschaltet ist.
+	local BIG = 1e62
+	-- Level so hoch, dass LevelConfig.getCost(Level) > BIG ist. Sonst
+	-- wuerde der Level-Up-Loop in StatService.checkLevelUp bei einem spaeteren
+	-- addPower-Call exponentiell hochzaehlen und den Server haengen lassen.
+	-- 100 * L^1.6 > 1e62  <=>  L > 1e(60/1.6) = ~3.16e37  -> sicheres L = 1e40.
+	local SAFE_LEVEL = 1e40
+	profile.Power = BIG
+	profile.HighestPower = BIG
+	profile.DnaCoins = BIG
+	profile.RebirthShards = BIG
+	profile.Rebirths = 100 -- RebirthConfig.MaxRebirth
+	profile.Level = SAFE_LEVEL
+	profile.HighestBossDefeated = 100
+	-- Alle bekannten Zonen als erreicht markieren -> Border/Portal-Logik laesst durch.
+	profile.ZonesReached = profile.ZonesReached or {}
+	profile.ZonesReached["StartZone"] = true
+	for i = 1, 10 do
+		profile.ZonesReached["Area" .. tostring(i)] = true
+	end
+	for _, zoneName in ipairs({
+		"SpawnLab", "BacteriaLab", "InfectedCells", "ToxicSlimeLab", "MutantChamber",
+		"DNAInstabilityLab", "FrostLab", "BiohazardContainment", "VirusCoreSector",
+		"OverlordMutationLab",
+	}) do
+		profile.ZonesReached[zoneName] = true
+	end
+	-- Doppelt broadcasten: einmal sofort, einmal nach kurzer Wartezeit, damit
+	-- die Werte trotz client-seitiger Throttle/Animationen sicher ankommen.
+	StatService.broadcastProfile(player)
+	ShowPopup:FireClient(player, "🔓 DEV: Alles freigeschaltet -- Power/DNA/Rebirths/Zonen")
+	print(string.format(
+		"[Main/DEV] %s -> Power=%g DnaCoins=%g Rebirths=%d Level=%d",
+		player.Name, profile.Power, profile.DnaCoins, profile.Rebirths, profile.Level
+	))
+	task.delay(0.3, function()
+		if DataService.getProfile(player) then
+			StatService.broadcastProfile(player)
+		end
+	end)
 end)
 
 print("[Main] Virus Evolution Simulator -- Phase 5 bereit.")
