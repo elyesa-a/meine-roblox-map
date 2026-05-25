@@ -188,11 +188,11 @@ local function label(adornee, text, color, maxDistance, sizeOffset, studsOffset)
 	return tl
 end
 
-local function makeSurfaceGui(part: BasePart, name: string, canvas: Vector2): SurfaceGui
+local function makeSurfaceGui(part: BasePart, name: string, canvas: Vector2, face: Enum.NormalId?): SurfaceGui
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = name
 	gui.Adornee = part
-	gui.Face = Enum.NormalId.Right
+	gui.Face = face or Enum.NormalId.Right
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
 	gui.CanvasSize = canvas
 	gui.LightInfluence = 0
@@ -3583,19 +3583,24 @@ local function buildBiohazardDrum(parent, name, pos, accent)
 	end
 end
 
-local function buildLeaderboardBoard(parent: Instance, boardKey: string, title: string, pos: Vector3, accent: Color3)
+local function buildLeaderboardBoard(parent: Instance, boardKey: string, title: string, pos: Vector3, accent: Color3, face: Enum.NormalId?)
 	local model = Instance.new("Model")
 	model.Name = "Top" .. boardKey .. "Board"
 	model.Parent = parent
 
+	-- Trim/Rail-Offsets liegen auf der "Rueckseite" der GUI -- bei Face=Left
+	-- spiegeln wir das, sonst stecken sie in der Wand.
+	local guiFace = face or Enum.NormalId.Right
+	local backOffset = if guiFace == Enum.NormalId.Left then -0.06 else 0.06
+
 	local frame = makePart(model, "BoardFrame", Vector3.new(0.85, 14.3, 20), pos, LAB_DARK, Enum.Material.Metal, false)
 	frame:SetAttribute("BoardKey", boardKey)
-	makePart(model, "BoardGlowRailTop", Vector3.new(1, 0.3, 18), pos + Vector3.new(0.06, 6.68, 0), accent, Enum.Material.SmoothPlastic, false).Transparency = 0.2
-	makePart(model, "BoardGlowRailBottom", Vector3.new(1, 0.22, 18), pos + Vector3.new(0.06, -6.68, 0), accent:Lerp(LAB_GREEN, 0.35), Enum.Material.SmoothPlastic, false).Transparency = 0.4
-	makePart(model, "BoardLeftTrim", Vector3.new(1, 13.7, 0.36), pos + Vector3.new(0.06, 0, -9.8), LAB_TRIM, Enum.Material.Metal, false)
-	makePart(model, "BoardRightTrim", Vector3.new(1, 13.7, 0.36), pos + Vector3.new(0.06, 0, 9.8), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(model, "BoardGlowRailTop", Vector3.new(1, 0.3, 18), pos + Vector3.new(backOffset, 6.68, 0), accent, Enum.Material.SmoothPlastic, false).Transparency = 0.2
+	makePart(model, "BoardGlowRailBottom", Vector3.new(1, 0.22, 18), pos + Vector3.new(backOffset, -6.68, 0), accent:Lerp(LAB_GREEN, 0.35), Enum.Material.SmoothPlastic, false).Transparency = 0.4
+	makePart(model, "BoardLeftTrim", Vector3.new(1, 13.7, 0.36), pos + Vector3.new(backOffset, 0, -9.8), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(model, "BoardRightTrim", Vector3.new(1, 13.7, 0.36), pos + Vector3.new(backOffset, 0, 9.8), LAB_TRIM, Enum.Material.Metal, false)
 
-	local gui = makeSurfaceGui(frame, "BoardGui", Vector2.new(520, 420))
+	local gui = makeSurfaceGui(frame, "BoardGui", Vector2.new(520, 420), guiFace)
 	local bg = Instance.new("Frame")
 	bg.Name = "Background"
 	bg.Size = UDim2.fromScale(1, 1)
@@ -3701,6 +3706,77 @@ local function buildLeaderboardZone(parent: Instance, cx: number)
 
 	makeFolder("AvatarDummies", zone)
 	makeFolder("Decor", zone)
+end
+
+-- ---- End-of-Map Leaderboard ---------------------------------------------
+-- Spiegel der Spawn-Ranked-Tabelle auf der FinalWall (hinter Area 10's Boss).
+-- Parameter wallFaceX = X-Koordinate der -X-Seite der FinalWall, also der
+-- Flaeche, vor der die Boards montiert werden. Boards bekommen Face=Left,
+-- damit sie zum Spieler (aus -X kommend) zeigen.
+local function buildEndLeaderboardZone(parent: Instance, wallFaceX: number)
+	local zone = makeFolder("EndLeaderboardZone", parent)
+	clearChildren(zone)
+
+	-- Spawn-Spiegel: Backing leicht IN die Wand versenkt (sichtbar als duenne
+	-- Frontplatte vor der FinalWall), Boards 1 Stud davor in der Luft.
+	-- Player kommt aus -X -> Boards sind das vorderste Element.
+	local boardX = wallFaceX - 1
+	local backingX = wallFaceX + 0.4
+	local centerZ = FLOOR_CENTER_Z
+	local accentPower = Color3.fromRGB(72, 235, 132)
+	local accentCyan = Color3.fromRGB(88, 220, 235)
+	local accentGold = Color3.fromRGB(225, 190, 82)
+	local accentRed = Color3.fromRGB(184, 72, 72)
+
+	makePart(zone, "EndLeaderboardWallBacking", Vector3.new(1.4, 24, 110), Vector3.new(backingX, FLOOR_Y + 12, centerZ), Color3.fromRGB(12, 16, 22), Enum.Material.Metal, false)
+	makePart(zone, "EndLeaderboardWallTopFrame", Vector3.new(2, 1.2, 114), Vector3.new(wallFaceX - 0.1, FLOOR_Y + 23.4, centerZ), LAB_TRIM, Enum.Material.Metal, false)
+	makePart(zone, "EndLeaderboardWallBottomFrame", Vector3.new(2, 0.8, 114), Vector3.new(wallFaceX - 0.1, FLOOR_Y + 1.2, centerZ), LAB_TRIM, Enum.Material.Metal, false)
+
+	local boardY = FLOOR_Y + 11.2
+	buildLeaderboardBoard(zone, "Power", "TOP POWER", Vector3.new(boardX, boardY, centerZ - 38), accentPower, Enum.NormalId.Left)
+	buildLeaderboardBoard(zone, "Mutations", "TOP MUTATIONS", Vector3.new(boardX, boardY, centerZ - 13), accentCyan, Enum.NormalId.Left)
+	buildLeaderboardBoard(zone, "Dna", "TOP DNA", Vector3.new(boardX, boardY, centerZ + 13), accentGold, Enum.NormalId.Left)
+	buildLeaderboardBoard(zone, "BossKills", "TOP BOSS KILLS", Vector3.new(boardX, boardY, centerZ + 38), accentRed, Enum.NormalId.Left)
+
+	-- "CONGRATULATIONS"-Schild oben mittig (ueber den Boards). Sitzt VOR der
+	-- FinalWall, gleiche Flucht wie das Backing.
+	local signHeight = 6
+	local signY = FLOOR_Y + 18 + signHeight / 2 + 4
+	local signPart = makePart(zone, "EndCongratulationsSign", Vector3.new(0.6, signHeight, 96), Vector3.new(wallFaceX - 0.3, signY, centerZ), Color3.fromRGB(14, 18, 24), Enum.Material.Metal, false)
+	local accentMix = Color3.fromRGB(255, 215, 90)
+	makePart(zone, "EndCongratulationsFrameTop", Vector3.new(1.1, 0.7, 100), Vector3.new(wallFaceX - 0.55, signY + signHeight / 2, centerZ), accentMix, Enum.Material.Neon, false).Transparency = 0.18
+	makePart(zone, "EndCongratulationsFrameBottom", Vector3.new(1.1, 0.5, 100), Vector3.new(wallFaceX - 0.55, signY - signHeight / 2, centerZ), accentMix, Enum.Material.SmoothPlastic, false).Transparency = 0.3
+
+	local signGui = makeSurfaceGui(signPart, "EndCongratulationsGui", Vector2.new(1600, 100), Enum.NormalId.Left)
+	local title = Instance.new("TextLabel")
+	title.Name = "Title"
+	title.Size = UDim2.fromScale(1, 1)
+	title.BackgroundTransparency = 1
+	title.Text = "🏆  CONGRATULATIONS, YOU REACHED THE END OF THE MAP  🏆"
+	title.Font = Enum.Font.GothamBlack
+	title.TextColor3 = Color3.fromRGB(255, 232, 130)
+	title.TextStrokeColor3 = Color3.fromRGB(20, 14, 0)
+	title.TextStrokeTransparency = 0.4
+	title.TextSize = 60
+	title.TextScaled = false
+	title.TextXAlignment = Enum.TextXAlignment.Center
+	title.TextYAlignment = Enum.TextYAlignment.Center
+	title.Parent = signGui
+
+	-- Floor-Markierung vor der Wand, damit der Spieler "ankommt".
+	local floorMark = makePart(zone, "EndZoneFloorMark", Vector3.new(28, 0.1, 80), Vector3.new(wallFaceX - 18, LAYER_CONTAM + 0.05, centerZ), Color3.fromRGB(28, 36, 42), Enum.Material.SmoothPlastic, false)
+	floorMark.Transparency = 0.4
+	makePart(zone, "EndZoneFloorTrim", Vector3.new(30, 0.06, 84), Vector3.new(wallFaceX - 18, LAYER_CONTAM + 0.02, centerZ), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false).Transparency = 0.5
+
+	-- Spotlight in Richtung Spieler, damit der Bereich beim Ankommen leuchtet.
+	local lampMount = makePart(zone, "EndZoneLampMount", Vector3.new(2, 0.6, 2), Vector3.new(wallFaceX - 8, FLOOR_Y + L.WallHeight + BACTERIA_CEILING_LIFT - 3, centerZ), LAB_TRIM, Enum.Material.Metal, false)
+	local lamp = makePart(zone, "EndZoneLamp", Vector3.new(1.4, 1.4, 1.4), lampMount.Position - Vector3.new(0, 0.7, 0), Color3.fromRGB(255, 240, 200), Enum.Material.Neon, false)
+	lamp.Shape = Enum.PartType.Ball
+	local pl = Instance.new("PointLight")
+	pl.Brightness = 1.2
+	pl.Range = 36
+	pl.Color = Color3.fromRGB(255, 235, 190)
+	pl.Parent = lamp
 end
 
 local function buildTutorialSign(parent, name, pos, text, accent)
@@ -4457,8 +4533,17 @@ function VirusLabBuilder.build()
 		-- damit die Naht 40 Studs hinter dem Boss liegt (war 100). Der neue
 		-- Area-Farbton ist direkt nach dem Boss sichtbar, statt erst weit
 		-- spaeter im Zwischen-Korridor.
+		-- Sonderfall letzte Area: kein "naechstes Gate", die Shell muss bis
+		-- zur FinalWall reichen, sonst entsteht ein Boden-Loch zwischen Shell-
+		-- Ende (hallX+200) und FinalWall (hallX+260). Wir verlaengern die
+		-- Shell um 60 Studs nach vorne und ruecken den Mittelpunkt entsprechend.
 		local shellCenterX = hallX - 60
-		buildShellSegment(areaModel, shellCenterX, L.AreaSpan, primary, secondary, true, area.id, area.index > 1)
+		local shellLengthX = L.AreaSpan
+		if area.index == AreaConfig.count() then
+			shellCenterX = hallX - 30
+			shellLengthX = L.AreaSpan + 60
+		end
+		buildShellSegment(areaModel, shellCenterX, shellLengthX, primary, secondary, true, area.id, area.index > 1)
 		liftBacteriaLabCeiling(areaModel)
 		addBacteriaLabDetails(areaModel, area, hallX, primary)
 
@@ -4570,15 +4655,23 @@ function VirusLabBuilder.build()
 		-- durch den der Himmel sichtbar wäre.
 		if area.index == AreaConfig.count() then
 			local finalWallHeight = L.WallHeight + BACTERIA_CEILING_LIFT
+			local finalWallX = hallX + L.AreaSpan / 2
 			makePart(
 				areaModel,
 				"FinalWall",
 				Vector3.new(4, finalWallHeight, FLOOR_SIZE_Z),
-				Vector3.new(hallX + L.AreaSpan / 2, FLOOR_Y + finalWallHeight / 2, FLOOR_CENTER_Z),
+				Vector3.new(finalWallX, FLOOR_Y + finalWallHeight / 2, FLOOR_CENTER_Z),
 				LAB_DARK,
 				Enum.Material.Metal,
 				true
 			)
+			-- Spiegel der Spawn-Ranked-Tabelle + Glueckwunsch-Schild auf der
+			-- -X-Seite der FinalWall. LeaderboardService aktualisiert beide
+			-- Zones automatisch (siehe Refactor). Parent ist orgFolders.hub
+			-- (Workspace.Map.SpawnHub), damit die Zone via getZones (sucht in
+			-- Workspace.Map) gefunden wird -- die Welt-Position bleibt am
+			-- Map-Ende, unabhaengig von der Folder-Hierarchie.
+			buildEndLeaderboardZone(orgFolders.hub, finalWallX - 2)
 		end
 	end
 
