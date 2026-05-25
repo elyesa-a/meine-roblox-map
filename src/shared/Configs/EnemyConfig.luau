@@ -1,5 +1,5 @@
 --!strict
--- EnemyConfig: 100 Gegner, datenbasiert erzeugt (10 Areale x 10 Gegner).
+-- EnemyConfig: 50 Gegner, datenbasiert erzeugt (10 Areale x 5 Gegner).
 --
 -- Scaling-Formel (Vorgabe): jeder naechste Gegner ist 4x staerker.
 --   Health   = 100 * 4^(globalIndex-1)
@@ -33,8 +33,8 @@ export type EnemyDef = {
 	RespawnTime: number,
 	AreaName: string, -- = AreaConfig id (z.B. "Area1")
 	AreaIndex: number, -- 1..10
-	EnemyIndex: number, -- 1..10 innerhalb der Area
-	GlobalIndex: number, -- 1..100
+	EnemyIndex: number, -- 1..5 innerhalb der Area
+	GlobalIndex: number, -- 1..50
 	Shape: string, -- Form-Hinweis fuer den Builder (Optik-Variation)
 	IsBoss: boolean,
 }
@@ -55,18 +55,18 @@ EnemyConfig.EnemyBossDamageMultiplier = 1.75
 EnemyConfig.EnemyChaseSpeed = 11
 EnemyConfig.EnemyChaseUpdateInterval = 0.12
 
--- 9 Namen pro Area (Gegner 1..9). Gegner 10 = Boss (AreaConfig.bossName).
+-- 4 Namen pro Area (Gegner 1..4). Gegner 5 = Boss (AreaConfig.bossName).
 local areaEnemyNames = {
-	{ "Petri Microbe", "Lab Germ", "Splitting Cell", "Sticky Spore", "Twin Bacteria", "Acid Microbe", "Gut Flora", "Rod Bacillus", "Coccus Cluster" },
-	{ "Pale Host Cell", "Swollen Cell", "Burst Membrane", "Lysed Cell", "Infected Plasma", "Necrotic Cell", "Fever Cell", "Blistered Cell", "Rupturing Cell" },
-	{ "Splice Error", "Twisted Gene", "Mutagen Blob", "Helix Crawler", "Code Glitch Cell", "Forked Strand", "Warped Nucleus", "Recombinant", "Aberrant Clone" },
-	{ "Leaking Drum", "Sludge Crawler", "Caustic Slime", "Hazmat Leech", "Solvent Worm", "Corrosive Glob", "Spill Creeper", "Acid Pooler", "Barrel Lurker" },
-	{ "Spike Virion", "Capsid Drone", "Envelope Phage", "RNA Stinger", "Budding Virus", "Lytic Phage", "Latent Carrier", "Swarm Virion", "Replicant Phage" },
-	{ "Rogue Sample", "Server Blight", "Faulty Centrifuge", "Broken Incubator", "Tainted Reagent", "Static Specimen", "Glitched Vial", "Corrupt Culture", "Rusted Servo" },
-	{ "Reactor Spore", "Containment Breach", "Plasma Pathogen", "Core Mutagen", "Hazard Sentinel", "Meltdown Cell", "Fission Microbe", "Radiant Phage", "Burning Pathogen" },
-	{ "Shadow Strand", "Void Mutant", "Black Helix", "Umbral Cell", "Night Pathogen", "Dusk Mutant", "Eclipse Spore", "Abyss Crawler", "Dark Splicer" },
-	{ "Omega Spore", "Prime Mutant", "Alpha Virion", "Sigma Pathogen", "Apex Strain", "Hyper Phage", "Titan Microbe", "Overcharged Cell", "Doom Vector" },
-	{ "Sealed Horror", "Last Specimen", "Containment Wraith", "Final Strain", "Vault Mutant", "Endgame Phage", "Terminal Virus", "Lockdown Beast", "Ground Zero Cell" },
+	{ "Petri Microbe", "Lab Germ", "Splitting Cell", "Sticky Spore" },
+	{ "Pale Host Cell", "Swollen Cell", "Burst Membrane", "Lysed Cell" },
+	{ "Splice Error", "Twisted Gene", "Mutagen Blob", "Helix Crawler" },
+	{ "Leaking Drum", "Sludge Crawler", "Caustic Slime", "Hazmat Leech" },
+	{ "Spike Virion", "Capsid Drone", "Envelope Phage", "RNA Stinger" },
+	{ "Rogue Sample", "Server Blight", "Faulty Centrifuge", "Broken Incubator" },
+	{ "Reactor Spore", "Containment Breach", "Plasma Pathogen", "Core Mutagen" },
+	{ "Shadow Strand", "Void Mutant", "Black Helix", "Umbral Cell" },
+	{ "Omega Spore", "Prime Mutant", "Alpha Virion", "Sigma Pathogen" },
+	{ "Sealed Horror", "Last Specimen", "Containment Wraith", "Final Strain" },
 }
 
 local enemyShapes = { "Blob", "Crawler", "Drone", "Slime", "Spiky", "Brute" }

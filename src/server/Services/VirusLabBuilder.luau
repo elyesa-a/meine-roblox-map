@@ -3,7 +3,7 @@
 --
 -- Linearer Parcours entlang +X:
 --   Spawn Lab (hinten) -> Trainingsbereich 1 -> Labor-Luke 1 ->
---   Area 1 (10 Gegner + PWR-Borders + 1 Pet-Egg-Station) -> Luke/Training 2 ->
+--   Area 1 (5 Gegner + PWR-Borders + 1 Pet-Egg-Station) -> Luke/Training 2 ->
 --   Area 2 -> ... -> Area 10 (Final Containment, Final Boss).
 --
 -- Erzeugt exakt die Strukturen, die bestehende Services erwarten:

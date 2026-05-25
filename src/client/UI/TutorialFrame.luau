@@ -262,7 +262,7 @@ local function findWorldTarget(kind: string?): Instance?
 				end
 			end
 		end
-		return findFirstChildByName(Workspace, "A1E10")
+		return findFirstChildByName(Workspace, "A1E5")
 	end
 	return nil
 end

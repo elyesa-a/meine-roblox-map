@@ -329,7 +329,7 @@ local function getLuckMultiplier(player: Player): number
 end
 
 local function parseBossArea(bossId: string): number?
-	local areaText = string.match(bossId, "^A(%d+)E10$")
+	local areaText = string.match(bossId, "^A(%d+)E5$")
 	return areaText and tonumber(areaText) or nil
 end
 
