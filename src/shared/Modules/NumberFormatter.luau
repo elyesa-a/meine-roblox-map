@@ -1,8 +1,8 @@
 --!strict
 -- Kompakte Zahlenformatierung: 1.2K, 3.4M, 2.1B, ...
 --
--- Erweitert fuer das Virus-Labor (100 Gegner, *4 Scaling). Gegner 100 erreicht
--- ~4e61, deshalb reicht die Suffix-Tabelle bis weit ueber Dc hinaus.
+-- Erweitert fuer das Virus-Labor (50 Gegner, *4 Scaling). Gegner 50 erreicht
+-- ~1e31, die Suffix-Tabelle reicht weit darueber hinaus.
 -- WICHTIG: rein additiv -- kleine Zahlen werden exakt wie vorher formatiert,
 -- damit das bestehende UI unveraendert bleibt.
 

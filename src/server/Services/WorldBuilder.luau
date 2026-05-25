@@ -2,7 +2,7 @@
 -- WorldBuilder: schlanker Orchestrator.
 --
 -- Die komplette Map-Geometrie ist in den datenbasierten VirusLabBuilder
--- ausgelagert (10 Areale, 100 Gegner, Borders, Gates, Trainingsbereiche,
+-- ausgelagert (10 Areale, 50 Gegner, Borders, Gates, Trainingsbereiche,
 -- Egg-Catch-Stationen). WorldBuilder bleibt die stabile Schnittstelle fuer
 -- Main.server.luau (build() + .PetEgg), damit das Bootstrap unveraendert
 -- bleibt. UI / RemoteEvents werden NICHT angefasst.

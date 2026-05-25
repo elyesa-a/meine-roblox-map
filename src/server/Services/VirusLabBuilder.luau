@@ -3,7 +3,7 @@
 --
 -- Linearer Parcours entlang +X:
 --   Spawn Lab (hinten) -> Trainingsbereich 1 -> Labor-Luke 1 ->
---   Area 1 (10 Gegner + PWR-Borders + 1 Pet-Egg-Station) -> Luke/Training 2 ->
+--   Area 1 (5 Gegner + PWR-Borders + 1 Pet-Egg-Station) -> Luke/Training 2 ->
 --   Area 2 -> ... -> Area 10 (Final Containment, Final Boss).
 --
 -- Erzeugt exakt die Strukturen, die bestehende Services erwarten:
@@ -844,10 +844,62 @@ local function buildGate(parent, area, x, requiredPower)
 	buildTunnelGate(parent, area, x, requiredPower)
 end
 
+-- ---- Boss-Schwelle: Archway zwischen letztem Normal-Gegner und Boss -------
+-- Klare visuelle Trennung, damit der Spieler weiss: dahinter wartet der Boss.
+-- Schwere Hazard-Pfeiler, gelb-schwarz gestreifte Bodenmarkierung, Warn-Beacon
+-- und ein grosses Schild ("BOSS ZONE" + Boss-Name) in Thema-Akzent.
+local function buildBossThreshold(parent, def, x, theme, accent)
+	local model = Instance.new("Model")
+	model.Name = "BossThreshold_" .. def.Id
+	model.Parent = parent
+
+	local zL, zR = BACTERIA_LEFT_LIMIT_Z + 2, BACTERIA_RIGHT_LIMIT_Z - 2
+	local pillarHeight = 22
+	local pillarWidth = 5
+	local pillarDepth = 5.4
+	local topY = FLOOR_Y + pillarHeight
+
+	-- Schwere Pfeiler links/rechts mit gelb-schwarzen Hazard-Stripes.
+	for _, pz in ipairs({ zL, zR }) do
+		local post = makePart(model, "BossThresholdPost", Vector3.new(pillarWidth, pillarHeight, pillarDepth), Vector3.new(x, FLOOR_Y + pillarHeight / 2, pz), LAB_DARK, Enum.Material.Metal, true)
+		for k = 0, 5 do
+			local stripeColor = if k % 2 == 0 then LAB_WARNING_YELLOW else LAB_DARK
+			makePart(model, "BossThresholdStripe", Vector3.new(pillarWidth + 0.05, 2.6, pillarDepth + 0.05), post.Position + Vector3.new(0, -pillarHeight / 2 + 1.3 + k * 3.4, 0), stripeColor, Enum.Material.SmoothPlastic, false)
+		end
+		makePart(model, "BossThresholdCap", Vector3.new(pillarWidth + 1.2, 1, pillarDepth + 1.2), Vector3.new(x, FLOOR_Y + pillarHeight - 0.5, pz), Color3.fromRGB(28, 30, 32), Enum.Material.Metal, false)
+		makePart(model, "BossThresholdFoot", Vector3.new(pillarWidth + 1.6, 1.4, pillarDepth + 1.6), Vector3.new(x, FLOOR_Y + 0.7, pz), Color3.fromRGB(28, 30, 32), Enum.Material.Metal, false)
+	end
+
+	-- Querbalken ueber dem Laufweg, schwere "BOSS"-Beschilderung.
+	local beam = makePart(model, "BossThresholdBeam", Vector3.new(pillarWidth + 2, 4, zR - zL + pillarDepth), Vector3.new(x, topY + 2, 0), LAB_DARK, Enum.Material.Metal, true)
+	makePart(model, "BossThresholdBeamTop", Vector3.new(pillarWidth + 3, 0.8, zR - zL + pillarDepth + 0.8), Vector3.new(x, topY + 4.4, 0), Color3.fromRGB(18, 20, 22), Enum.Material.Metal, false)
+	neonStrip(model, Vector3.new(0.6, 0.5, zR - zL - 6), Vector3.new(x, topY + 0.3, 0), LAB_WARNING_RED, 0.2)
+
+	-- Grosses Boss-Schild auf Spielrichtung.
+	local signFront = makePart(model, "BossThresholdSignFront", Vector3.new(pillarWidth + 1.4, 3.2, 18), Vector3.new(x - 2.1, topY + 1.5, 0), Color3.fromRGB(14, 16, 18), Enum.Material.Metal, false)
+	label(signFront, "⚠ BOSS ZONE ⚠\n" .. string.upper(def.DisplayName), tint(accent, Color3.fromRGB(245, 248, 244), 0.4), 70, UDim2.fromOffset(420, 90), Vector3.new(-1, 0, 0))
+	local signBack = makePart(model, "BossThresholdSignBack", Vector3.new(pillarWidth + 1.4, 3.2, 18), Vector3.new(x + 2.1, topY + 1.5, 0), Color3.fromRGB(14, 16, 18), Enum.Material.Metal, false)
+	label(signBack, "← " .. string.upper(theme.wallText), Color3.fromRGB(220, 225, 220), 48, UDim2.fromOffset(280, 56), Vector3.new(1, 0, 0))
+
+	-- Warn-Beacon zentral oben.
+	local beacon = makePart(model, "BossThresholdBeacon", Vector3.new(1.6, 1.6, 1.6), Vector3.new(x, topY + 5.5, 0), LAB_WARNING_RED, Enum.Material.Neon, false)
+	beacon.Shape = Enum.PartType.Ball
+	local light = Instance.new("PointLight")
+	light.Brightness = 0.8
+	light.Range = 22
+	light.Color = LAB_WARNING_RED
+	light.Parent = beacon
+
+	-- Boden-Hazardtape unter dem Bogen.
+	local tape = makePart(model, "BossThresholdFloorTape", Vector3.new(3, 0.12, zR - zL), Vector3.new(x, LAYER_CONTAM + 0.05, 0), LAB_WARNING_YELLOW, Enum.Material.SmoothPlastic, false)
+	tape.Transparency = 0.18
+	makePart(model, "BossThresholdFloorEdge", Vector3.new(3.4, 0.08, zR - zL + 1), Vector3.new(x, LAYER_CONTAM + 0.02, 0), LAB_DARK, Enum.Material.SmoothPlastic, false).Transparency = 0.1
+end
+
 -- ---- Gegner-Tunnel Struktur ----------------------------------------------
 
 -- Designt die Wand DIREKT um den Mob/die Gegner-Zelle -- fuer ALLE Areas,
--- mit Thema-Akzent und mit der Tiefe steigender Kontamination. Cell 10
+-- mit Thema-Akzent und mit der Tiefe steigender Kontamination. Cell 5
 -- (Boss) bekommt einen klar staerkeren Containment-Look.
 local function addBacteriaCellWallDetails(parent, def, basePos, primary)
 	local cell = def.EnemyIndex
@@ -961,6 +1013,42 @@ local function buildBacteriaEnemyChamber(parent, def, basePos, primary, secondar
 			for _, czo in ipairs({ -15, 15 }) do
 				makePart(model, "BossCornerPillar", Vector3.new(1.6, 16, 1.6), Vector3.new(basePos.X + cxo, FLOOR_Y + 8, z + czo), LAB_DARK, Enum.Material.Metal, false)
 			end
+		end
+
+		-- Hazard-Streifen am Boden um den Boss-Pad (gelb-schwarz, dramatisch).
+		for k = 0, 5 do
+			local cz = -16 + k * 6.4
+			local stripeColor = if k % 2 == 0 then LAB_WARNING_YELLOW else LAB_DARK
+			makePart(model, "BossPadFloorStripe", Vector3.new(26, 0.08, 1.4), Vector3.new(basePos.X, CHAMBER_TOP + 0.08, z + cz), stripeColor, Enum.Material.SmoothPlastic, false).Transparency = 0.25
+		end
+
+		-- Akzent-Neon-Rahmen um den Boss-Pad (Thema-Akzent).
+		for _, dx in ipairs({ -12, 12 }) do
+			neonStrip(model, Vector3.new(0.5, 0.08, 32), Vector3.new(basePos.X + dx, CHAMBER_TOP + 0.18, z), accent, 0.32)
+		end
+		for _, dz in ipairs({ -16, 16 }) do
+			neonStrip(model, Vector3.new(24, 0.08, 0.5), Vector3.new(basePos.X, CHAMBER_TOP + 0.18, z + dz), accent, 0.32)
+		end
+
+		-- Deckenstrahler ueber dem Boss: heller, breiter Spot.
+		local rig = makePart(model, "BossSpotRig", Vector3.new(8, 0.7, 8), Vector3.new(basePos.X, FLOOR_Y + L.WallHeight + BACTERIA_CEILING_LIFT - 4, z), LAB_DARK, Enum.Material.Metal, false)
+		local spot = makePart(model, "BossSpotLens", Vector3.new(5.4, 0.4, 5.4), rig.Position + Vector3.new(0, -0.55, 0), tint(accent, Color3.fromRGB(248, 248, 230), 0.4), Enum.Material.Neon, false)
+		spot.Transparency = 0.12
+		local spotLight = Instance.new("SpotLight")
+		spotLight.Brightness = 2.4
+		spotLight.Range = 26
+		spotLight.Angle = 70
+		spotLight.Face = Enum.NormalId.Bottom
+		spotLight.Color = tint(accent, Color3.fromRGB(255, 252, 240), 0.5)
+		spotLight.Parent = spot
+
+		-- Heavy-Glas-Seitenwaende (boss-spezifisch breiter und hoeher) ZUSAETZLICH
+		-- zu den normalen Schienen, weiter aussen platziert -> doppelte Hülle.
+		for _, dz in ipairs({ -32, 32 }) do
+			local wall = makePart(model, "BossRoomGlass", Vector3.new(30, 14, 0.5), Vector3.new(basePos.X, FLOOR_Y + 7.5, z + dz), tint(accent, LAB_DARK, 0.35), Enum.Material.Glass, false)
+			wall.Transparency = 0.7
+			makePart(model, "BossRoomGlassFrameTop", Vector3.new(30.6, 0.55, 0.7), Vector3.new(basePos.X, FLOOR_Y + 14.4, z + dz), LAB_DARK, Enum.Material.Metal, false)
+			makePart(model, "BossRoomGlassFrameBottom", Vector3.new(30.6, 0.55, 0.7), Vector3.new(basePos.X, FLOOR_Y + 0.6, z + dz), LAB_DARK, Enum.Material.Metal, false)
 		end
 	end
 
@@ -1786,7 +1874,9 @@ local function addBacteriaLabDetails(parent, area, hallX, primary)
 	local accent = theme.accent
 
 	local wallStartX = hallX + L.GateOffsetX - 10
-	local wallEndX = hallX + (L.EnemySpacing * (L.EnemiesPerArea - 1)) / 2 + 48
+	-- Tunnel-Wand muss bis hinter den Boss-Raum reichen (4 Normale + Boss-Luecke).
+	local normalSpan = (L.EnemiesPerArea - 2) * L.NormalEnemySpacing
+	local wallEndX = hallX + (normalSpan + L.BossOffsetX) / 2 + 48
 	local wallLength = wallEndX - wallStartX
 	local wallCenterX = (wallStartX + wallEndX) / 2
 	local tunnelWallHeight = L.WallHeight + BACTERIA_CEILING_LIFT - 2
@@ -4331,6 +4421,7 @@ function VirusLabBuilder.build()
 		local primary = area.primaryColor
 		local secondary = area.secondaryColor
 		local areaModel = makeFolder(area.id, labFolder)
+		local theme = themeFor(area.index)
 
 		-- Shell-Segment der Area.
 		buildShellSegment(areaModel, hallX, L.AreaSpan, primary, secondary, true, area.id, area.index > 1)
@@ -4340,7 +4431,6 @@ function VirusLabBuilder.build()
 		-- Eigenstaendige Identitaet pro Area 2..10: Eingangsbogen + Hero-Landmark.
 		-- Bewusst NICHT in Area 1 (Bacteria Lab bleibt unangetastet).
 		if area.index > 1 then
-			local theme = themeFor(area.index)
 			buildAreaEntranceArch(areaModel, area, hallX, theme, theme.accent)
 			buildAreaCenterpiece(areaModel, area, hallX, theme, theme.accent)
 		end
@@ -4349,10 +4439,20 @@ function VirusLabBuilder.build()
 		buildTrainingArea(areaModel, bedsFolder, gatesFolder, area, hallX + L.TrainingOffsetX)
 		buildAreaAuraStation(areaModel, area)
 
-		-- Gegner dieser Area.
+		-- Gegner dieser Area. 4 Normal-Slots vorne, dann Luecke + Boss-Raum.
 		local defs = EnemyConfig.getByArea(area.id)
 		local enemyAreaFolder = makeFolder(area.id, enemyFolder)
-		local startX = hallX - (L.EnemySpacing * (L.EnemiesPerArea - 1)) / 2
+		local normalCount = L.EnemiesPerArea - 1
+		local normalSpan = (normalCount - 1) * L.NormalEnemySpacing
+		local totalSpan = normalSpan + L.BossOffsetX
+		local startX = hallX - totalSpan / 2
+
+		local function enemyOffset(index: number, isBoss: boolean): number
+			if isBoss then
+				return normalSpan + L.BossOffsetX
+			end
+			return (index - 1) * L.NormalEnemySpacing
+		end
 
 		-- Labor-Luke: Power-Anforderung aus der zentralen Area-Progression.
 		local gateReq = area.requiredPower
@@ -4374,7 +4474,7 @@ function VirusLabBuilder.build()
 		teleportPoint:SetAttribute("AreaName", area.displayName)
 
 		for i, def in ipairs(defs) do
-			local ex = startX + L.EnemySpacing * (i - 1)
+			local ex = startX + enemyOffset(i, def.IsBoss)
 			local enemyZ = 0
 			buildBacteriaEnemyChamber(enemyAreaFolder, def, Vector3.new(ex, FLOOR_Y, enemyZ), primary, secondary)
 			local em = buildEnemyModel(enemyAreaFolder, def, Vector3.new(ex, FLOOR_Y, enemyZ), primary, secondary)
@@ -4398,8 +4498,14 @@ function VirusLabBuilder.build()
 				pp:SetAttribute("EnemyId", def.Id)
 			end
 			-- PWR-Border VOR jedem Gegner ab dem 2. (Progression).
+			-- Normale Gegner: halber Normal-Abstand davor. Boss: mitten in der
+			-- Boss-Luecke, doppelt als Schwelle ins Boss-Zimmer.
 			if i >= 2 then
-				buildBorder(bordersFolder, def, ex - L.EnemySpacing / 2, primary)
+				local borderOffset = if def.IsBoss then L.BossOffsetX * 0.5 else L.NormalEnemySpacing * 0.5
+				buildBorder(bordersFolder, def, ex - borderOffset, primary)
+				if def.IsBoss then
+					buildBossThreshold(enemyAreaFolder, def, ex - borderOffset + 22, theme, primary)
+				end
 			end
 		end
 

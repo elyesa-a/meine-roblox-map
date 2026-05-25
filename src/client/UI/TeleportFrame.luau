@@ -95,7 +95,7 @@ local function getHighestBossDefeated(state): number
 	if type(state.BossDefeats) == "table" then
 		for bossId, count in pairs(state.BossDefeats) do
 			if type(bossId) == "string" and type(count) == "number" and count > 0 then
-				local areaText = string.match(bossId, "^A(%d+)E10$")
+				local areaText = string.match(bossId, "^A(%d+)E5$")
 				local areaNumber = areaText and tonumber(areaText) or nil
 				if areaNumber then
 					highest = math.max(highest, areaNumber)
