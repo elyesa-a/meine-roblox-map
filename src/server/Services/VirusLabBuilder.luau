@@ -707,451 +707,237 @@ local function buildNorovirusEnemyModel(parent, def, basePos, primary, secondary
     )
 
     return model
-end-- ---- Hantavirus-Set fuer Area 2 -----------------------------------------
--- Ratten-Humanoide in dreckigem Laborkittel mit pinkem Mutationsbefall.
--- Boss bekommt gruene Reagenz-Tubes auf dem Ruecken (Kontrast zu Stage 1-4
--- in pink). Gleiche Stage-Hoehen wie Area 1: 5.0/6.2/7.4/8.6/9.8 Studs.
+end
+-- ---- Lebhaftes Monster Bacillus-Set fuer Area 2 (Optimiert) --------------
+-- Pillenartiges, tiefblaues Bakterium mit fiesen Mandibeln,
+-- dutzenden leuchtenden Flimmerhärchen (Beinen) und glühenden Cyan-Poren.
+
 local function buildHantavirusEnemyModel(parent, def, basePos, primary, secondary)
     local model = Instance.new("Model")
-	model.Name = def.Id
-	model:SetAttribute("EnemyId", def.Id)
-	model:SetAttribute("AreaName", def.AreaName)
-	model:SetAttribute("IsBoss", def.IsBoss)
-	model.Parent = parent
+    model.Name = def.Id
+    model:SetAttribute("EnemyId", def.Id)
+    model:SetAttribute("AreaName", def.AreaName)
+    model:SetAttribute("IsBoss", def.IsBoss)
+    model.Parent = parent
 
-	local stage = def.EnemyIndex
-	local isBoss = def.IsBoss
-	local totalHeights = { 5.0, 6.2, 7.4, 8.6, 9.8 }
-	local totalH = totalHeights[stage] or 5.0
+    local stage = def.EnemyIndex
+    local isBoss = def.IsBoss
+    local totalHeights = { 4.0, 5.0, 6.0, 7.0, 8.5 }
+    local totalH = totalHeights[stage] or 4.0
+    
+    local bodyLength = totalH * 1.8
+    local bodyWidth = totalH * 0.85
+    local groundY = CHAMBER_TOP
+    local cx, cz = basePos.X, basePos.Z
 
-	local legH = 1.6 + (stage - 1) * 0.45
-	local headD = 1.8 + (stage - 1) * 0.28 + (if isBoss then 0.5 else 0)
-	local torsoH = totalH - legH - headD * 0.40
-	if torsoH < 0.8 then
-		torsoH = 0.8
-	end
-	local torsoW = 1.7 + (stage - 1) * 0.38 + (if isBoss then 1.4 else 0)
-	local torsoD = torsoW * 0.58 + (if isBoss then 0.5 else 0)
-	local legW = 0.65 + (stage - 1) * 0.12 + (if isBoss then 0.35 else 0)
+    -- Bounding Box (Länglich für das Assel-Monster)
+    local boxW = bodyLength + (if isBoss then 3.0 else 1.0)
+    local boxH = totalH + (if isBoss then 2.0 else 0.5)
+    local root = makePart(model, "EnemyCore", Vector3.new(boxW, boxH, boxW), Vector3.new(cx, groundY + boxH / 2, cz), Color3.fromRGB(0,0,0), Enum.Material.SmoothPlastic, false)
+    root.CanQuery = true
+    root.Transparency = 1
+    model.PrimaryPart = root
 
-	-- Hantavirus-Farbpalette: dreckiges Labor + pinke Mutation + roter Glow.
-	local furGrey = Color3.fromRGB(96, 84, 78)
-	local furDeep = Color3.fromRGB(58, 48, 44)
-	local coatWhite = Color3.fromRGB(218, 210, 195)
-	local coatShadow = Color3.fromRGB(160, 152, 138)
-	local coatDirty = Color3.fromRGB(132, 116, 96)
-	local mutationPink = Color3.fromRGB(195, 88, 105)
-	local mutationDeep = Color3.fromRGB(140, 50, 60)
-	local mutationGlow = Color3.fromRGB(255, 86, 110)
-	local bossTubeGreen = Color3.fromRGB(86, 230, 96)
-	local armorDark = Color3.fromRGB(45, 38, 35)
-	local armorMetal = Color3.fromRGB(95, 85, 78)
-	local hazardYellow = Color3.fromRGB(225, 195, 70)
-	local tailColor = Color3.fromRGB(160, 75, 90)
-	local noseColor = Color3.fromRGB(28, 22, 22)
+    -- Farb-Palette nach der Area 2 Vorlage
+    local bodyDarkBlue = Color3.fromRGB(15, 25, 75)   -- Tiefes, dunkles Indigo-Blau
+    local bodyMidBlue = Color3.fromRGB(30, 50, 110)   -- Etwas helleres Blau für Akzente
+    local cyanGlow = Color3.fromRGB(0, 255, 255)      -- Grelle Cyan-Leuchtfarbe
+    local darkCyan = Color3.fromRGB(0, 100, 120)      -- Dunkles Cyan für Mandibeln
 
-	local groundY = CHAMBER_TOP
-	local hipY = groundY + legH
-	local torsoCenterY = hipY + torsoH / 2
-	local neckY = hipY + torsoH
-	local headCenterY = neckY + headD / 2 - headD * 0.05
-	local cx, cz = basePos.X, basePos.Z
+    -- 1. Segmentierter, raupenartiger Körper (Bacillus-Form)
+    local segCount = 4 + stage + (if isBoss then 4 else 0)
+    local segSpace = bodyLength / segCount
+    
+    local headPos = Vector3.new(cx, groundY, cz)
+    local headSize = 0
 
-	-- EnemyCore = unsichtbare Bounding-Box (Click-Raycast-Ziel).
-	local boxW = math.max(torsoW + 0.8 + (if isBoss then 2.0 else 0), headD + 0.8)
-	local boxH = totalH
-	local boxD = torsoD + (if stage >= 3 then 0.8 else 0.4) + (if isBoss then 1.4 else 0)
-	local root = makePart(model, "EnemyCore", Vector3.new(boxW, boxH, boxD), Vector3.new(cx, groundY + boxH / 2, cz), furGrey, Enum.Material.SmoothPlastic, false)
-	root.CanQuery = true
-	root.Transparency = 1
-	model.PrimaryPart = root
+    for i = 1, segCount do
+        local t = i / segCount
+        -- Die Segmente werden zur Mitte hin dicker (Pillenform)
+        local currentW = bodyWidth * (math.sin(t * math.pi) * 0.4 + 0.6)
+        local segZ = cz - (bodyLength / 2) + (i * segSpace)
+        local segY = groundY + currentW * 0.6 + (if isBoss then 0.5 else 0.2)
+        local segPos = Vector3.new(cx, segY, segZ)
 
-	-- ---- Beine (Hose/Stiefel) ------------------------------------------
-	local legSpacing = torsoW * 0.32
-	local pantsColor = if stage >= 4 then armorMetal else coatDirty
-	for _, side in ipairs({ -1, 1 }) do
-		makePart(model, "RatLeg", Vector3.new(legW, legH * 0.9, legW), Vector3.new(cx + side * legSpacing, hipY - legH * 0.5, cz), pantsColor, Enum.Material.SmoothPlastic, false)
-		-- dunklerer Stiefel
-		makePart(model, "RatBoot", Vector3.new(legW * 1.3, legH * 0.22, legW * 1.45), Vector3.new(cx + side * legSpacing, groundY + legH * 0.11, cz + legW * 0.1), armorDark, Enum.Material.Metal, false)
-		-- Knie-Akzent (mehr Stage = mehr Sichtbarkeit)
-		if stage >= 3 then
-			local knee = makePart(model, "RatKneePlate", Vector3.new(legW * 1.05, legH * 0.18, legW * 0.7), Vector3.new(cx + side * legSpacing, hipY - legH * 0.45, cz - legW * 0.3), armorDark, Enum.Material.Metal, false)
-		end
-		-- Mutationsflecken auf den Hosen (Stage 2+)
-		if stage >= 2 then
-			for k = 1, 2 do
-				local seed = side * 10 + k * 1.7
-				local px = cx + side * legSpacing + math.sin(seed) * legW * 0.3
-				local py = hipY - legH * (0.3 + (k - 1) * 0.4)
-				local pz = cz - legW * 0.5 + math.cos(seed) * legW * 0.1
-				makePart(model, "RatMutPatch", Vector3.new(legW * 0.5, legH * 0.22, 0.1), Vector3.new(px, py, pz), mutationDeep, Enum.Material.SmoothPlastic, false).Transparency = 0.1
-			end
-		end
-	end
+        -- Haupt-Körpersegment
+        local segment = makePart(model, "BacillusSeg", Vector3.new(currentW*1.2, currentW, segSpace * 1.5), segPos, bodyDarkBlue, Enum.Material.SmoothPlastic, false)
+        local mesh = Instance.new("SpecialMesh", segment); mesh.MeshType = Enum.MeshType.Sphere
 
-	-- ---- Torso: Laborkittel oder Armor ---------------------------------
-	local torsoColor = if stage >= 4 then armorMetal else coatWhite
-	local torso = makePart(model, "RatTorso", Vector3.new(torsoW, torsoH, torsoD), Vector3.new(cx, torsoCenterY, cz), torsoColor, Enum.Material.SmoothPlastic, false)
-	torso.Transparency = 0
-	-- Kittel-V (offene Lapel-Form, vorne) -> klar erkennbarer Laborkittel.
-	if stage < 4 then
-		-- Linkes und rechtes Lapel als angewinkelte Dreiecksstreifen.
-		for _, side in ipairs({ -1, 1 }) do
-			local lapel = makePart(model, "RatCoatLapel", Vector3.new(torsoW * 0.32, torsoH * 0.85, 0.12), Vector3.new(cx + side * torsoW * 0.15, torsoCenterY + torsoH * 0.05, cz - torsoD / 2 - 0.06), coatShadow, Enum.Material.SmoothPlastic, false)
-			lapel.Orientation = Vector3.new(0, 0, side * 12)
-		end
-		-- Dunkles V-Inlay (Hemd/Brust dazwischen sichtbar)
-		local innerShirt = makePart(model, "RatCoatVInner", Vector3.new(torsoW * 0.32, torsoH * 0.55, 0.08), Vector3.new(cx, torsoCenterY - torsoH * 0.08, cz - torsoD / 2 - 0.08), furDeep, Enum.Material.SmoothPlastic, false)
-		-- Kragen
-		makePart(model, "RatCoatCollar", Vector3.new(torsoW * 0.7, 0.28, torsoD * 1.0), Vector3.new(cx, torsoCenterY + torsoH * 0.42, cz), coatShadow, Enum.Material.SmoothPlastic, false)
-		-- Mittlere Knopf-Falte / Saum
-		makePart(model, "RatCoatHem", Vector3.new(torsoW * 0.95, 0.18, torsoD * 1.02), Vector3.new(cx, torsoCenterY - torsoH * 0.42, cz), coatShadow, Enum.Material.SmoothPlastic, false)
-		-- Schmutz/Mutations-Splatter
-		for i = 1, 3 + stage do
-			local seed = i * 1.9
-			local px = math.sin(seed) * 0.42 * torsoW
-			local py = math.cos(seed * 1.1) * 0.4 * torsoH
-			local splatter = makePart(model, "RatMutSplatter", Vector3.new(torsoW * (0.18 + (i % 3) * 0.04), torsoH * 0.18, 0.06), Vector3.new(cx + px, torsoCenterY + py, cz - torsoD / 2 - 0.06), if i % 2 == 0 then mutationPink else mutationDeep, Enum.Material.SmoothPlastic, false)
-			splatter.Transparency = 0.05
-		end
-	end
-	-- Biohazard-Sticker auf der Brust (hell-leuchtend) + dunkler Rand.
-	local hazardSize = torsoW * 0.38
-	local hazardX = cx + (if stage <= 2 then torsoW * 0.22 else 0)
-	-- Dunkler Backing
-	makePart(model, "RatHazardBacking", Vector3.new(hazardSize * 1.15, hazardSize * 1.15, 0.06), Vector3.new(hazardX, torsoCenterY + torsoH * 0.08, cz - torsoD / 2 - 0.10), Color3.fromRGB(28, 24, 18), Enum.Material.SmoothPlastic, false)
-	local hazard = makePart(model, "RatHazardSticker", Vector3.new(hazardSize, hazardSize, 0.06), Vector3.new(hazardX, torsoCenterY + torsoH * 0.08, cz - torsoD / 2 - 0.14), Color3.fromRGB(252, 218, 78), Enum.Material.Neon, false)
-	hazard.Transparency = 0.05
-	-- Stage 4 Armor: groesserer Brustpanzer + Akzente
-	if stage >= 4 then
-		local plate = makePart(model, "RatChestPlate", Vector3.new(torsoW * 0.9, torsoH * 0.7, 0.18), Vector3.new(cx, torsoCenterY, cz - torsoD / 2 - 0.12), armorDark, Enum.Material.Metal, false)
-		hazard.Position = Vector3.new(cx, torsoCenterY + torsoH * 0.05, cz - torsoD / 2 - 0.22)
-	end
+        -- Speichere die Position des letzten Segments als "Kopf"
+        if i == segCount then
+            headPos = segPos
+            headSize = currentW
+        end
 
-	-- ---- Glow-Kern auf Brust (Stage 4+ und Boss, beim Boss gruen) ------
-	if stage >= 4 then
-		local coreColor = if isBoss then bossTubeGreen else mutationGlow
-		local coreSize = if isBoss then headD * 0.7 else headD * 0.42
-		local core = makePart(model, "RatChestCore", Vector3.new(coreSize, coreSize, coreSize * 0.5), Vector3.new(cx, torsoCenterY + torsoH * 0.05, cz - torsoD / 2 - 0.18), coreColor, Enum.Material.Neon, false)
-		core.Shape = Enum.PartType.Ball
-		core.Transparency = 0.1
-		local outerRing = makePart(model, "RatChestCoreOuter", Vector3.new(coreSize * 1.4, coreSize * 1.4, coreSize * 0.3), Vector3.new(cx, torsoCenterY + torsoH * 0.05, cz - torsoD / 2 - 0.07), tint(coreColor, Color3.fromRGB(245, 250, 230), 0.3), Enum.Material.Glass, false)
-		outerRing.Shape = Enum.PartType.Ball
-		outerRing.Transparency = 0.5
-		local pl = Instance.new("PointLight")
-		pl.Brightness = if isBoss then 3 else 1.5
-		pl.Range = if isBoss then 24 else 12
-		pl.Color = coreColor
-		pl.Parent = core
-	end
+        -- 2. Glühende Poren (Cyan-Krater) auf dem Rücken
+        if i % 2 == 0 or isBoss then
+            local poreSize = currentW * 0.4
+            local pore = makePart(model, "BacillusPore", Vector3.new(poreSize, poreSize*0.3, poreSize), segPos + Vector3.new(0, currentW*0.45, 0), cyanGlow, Enum.Material.Neon, false)
+            local pMesh = Instance.new("SpecialMesh", pore); pMesh.MeshType = Enum.MeshType.Sphere
+            
+            -- Dunkler Rand um die Pore
+            local poreRim = makePart(model, "BacillusPoreRim", Vector3.new(poreSize*1.3, poreSize*0.2, poreSize*1.3), segPos + Vector3.new(0, currentW*0.42, 0), bodyMidBlue, Enum.Material.SmoothPlastic, false)
+            local rMesh = Instance.new("SpecialMesh", poreRim); rMesh.MeshType = Enum.MeshType.Sphere
+        end
 
-	-- ---- Rucksack mit Reagenz-Tanks (Stage 2+) ------------------------
-	if stage >= 2 then
-		local backW = torsoW * 0.85
-		local backH = torsoH * 0.75
-		local backD = 0.55 + (stage - 2) * 0.15 + (if isBoss then 0.5 else 0)
-		local backX = cx
-		local backY = torsoCenterY + torsoH * 0.05
-		local backZ = cz + torsoD / 2 + backD * 0.5
-		makePart(model, "RatBackpack", Vector3.new(backW, backH, backD), Vector3.new(backX, backY, backZ), armorDark, Enum.Material.Metal, false)
-		-- Tanks: pink fuer Stages 2-4, gruen fuer Boss. Anzahl waechst.
-		local tankColor = if isBoss then bossTubeGreen else mutationGlow
-		local tankCount = if isBoss then 5 elseif stage == 2 then 1 elseif stage == 3 then 2 else 2
-		local tankRadius = (if isBoss then 0.45 else 0.4) + (stage - 2) * 0.05
-		local tankHeight = if isBoss then totalH * 0.55 else totalH * 0.35 + (stage - 2) * 0.15
-		for i = 1, tankCount do
-			local tx
-			if tankCount == 1 then
-				tx = backX + 0.7
-			else
-				tx = backX + (i - (tankCount + 1) / 2) * (backW / (tankCount + 0.5))
-			end
-			local ty = backY + backH * 0.3 + (if isBoss then tankHeight * 0.3 else 0)
-			local tz = backZ + backD * 0.4
-			-- Tank-Aussenhuelle (Glas mit Fluessigkeit)
-			local tank = makePart(model, "RatTank", Vector3.new(tankRadius * 2, tankHeight, tankRadius * 2), Vector3.new(tx, ty, tz), tint(tankColor, Color3.fromRGB(248, 252, 240), 0.3), Enum.Material.Glass, false)
-			tank.Shape = Enum.PartType.Cylinder
-			tank.Orientation = Vector3.new(0, 0, 90)
-			tank.Transparency = 0.35
-			-- Innen-Fluessigkeit (Neon, leuchtend)
-			local fluid = makePart(model, "RatTankFluid", Vector3.new(tankRadius * 1.7, tankHeight * 0.9, tankRadius * 1.7), Vector3.new(tx, ty, tz), tankColor, Enum.Material.Neon, false)
-			fluid.Shape = Enum.PartType.Cylinder
-			fluid.Orientation = Vector3.new(0, 0, 90)
-			fluid.Transparency = 0.15
-			-- Tank-Kappe oben/unten
-			makePart(model, "RatTankCapTop", Vector3.new(0.25, tankRadius * 2.2, tankRadius * 2.2), Vector3.new(tx, ty + tankHeight * 0.5, tz), armorDark, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
-			makePart(model, "RatTankCapBottom", Vector3.new(0.25, tankRadius * 2.2, tankRadius * 2.2), Vector3.new(tx, ty - tankHeight * 0.5, tz), armorDark, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
-			-- Schlauch nach unten/vorne (rudimentaer)
-			makePart(model, "RatTankTube", Vector3.new(0.18, tankRadius * 1.8, 0.18), Vector3.new(tx - tankRadius * 0.6, ty - tankHeight * 0.65, tz), armorDark, Enum.Material.SmoothPlastic, false)
-			local pl = Instance.new("PointLight")
-			pl.Brightness = 1
-			pl.Range = 10
-			pl.Color = tankColor
-			pl.Parent = fluid
-		end
-	end
+        -- 3. Flimmerhärchen (Beine) - Viele kleine leuchtende Tentakel an der Unterseite!
+        local legPairs = 3 + (stage * 1)
+        for l = 1, legPairs do
+            local lz = segZ - (segSpace/2) + (l * (segSpace/legPairs))
+            for _, side in ipairs({-1, 1}) do
+                local legLen = currentW * 0.6 + (math.random() * 0.3)
+                local legThick = currentW * 0.15
+                
+                local startX = cx + side*currentW*0.4
+                local startY = segY - currentW*0.2
+                local leg = makePart(model, "BacillusCilia", Vector3.new(legThick, legLen, legThick), Vector3.new(startX, startY, lz), cyanGlow, Enum.Material.Neon, false)
+                
+                -- Richte die Beine schräg nach unten/außen aus
+                local targetDir = Vector3.new(side, -1.5, (math.random()-0.5)).Unit
+                leg.CFrame = CFrame.lookAt(leg.Position, leg.Position + targetDir) * CFrame.new(0, 0, -legLen/2)
+            end
+        end
+    end
 
-	-- ---- Schulterpads (Stage 3+) --------------------------------------
-	if stage >= 3 then
-		for _, side in ipairs({ -1, 1 }) do
-			local padW = torsoW * 0.42 + (stage - 3) * 0.18 + (if isBoss then 0.7 else 0)
-			local padH = torsoH * 0.45 + (stage - 3) * 0.1 + (if isBoss then 0.5 else 0)
-			local padX = cx + side * (torsoW * 0.5 + padW * 0.3)
-			local padY = torsoCenterY + torsoH * 0.42
-			local pad = makePart(model, "RatShoulderPad", Vector3.new(padW, padH, torsoD * 1.2), Vector3.new(padX, padY, cz), armorDark, Enum.Material.Metal, false)
-			pad.Orientation = Vector3.new(0, 0, side * -15)
-			-- Stachel auf Schulter (Stage 4+)
-			if stage >= 4 then
-				local spikeCount = 2 + (if isBoss then 2 else 0)
-				for k = 1, spikeCount do
-					local sx = padX + (k - (spikeCount + 1) / 2) * 0.45
-					local spikeLen = 0.7 + (stage - 4) * 0.25 + (if isBoss then 1.0 else 0)
-					makePart(model, "RatShoulderSpike", Vector3.new(0.3, spikeLen, 0.3), Vector3.new(sx, padY + padH * 0.5 + spikeLen * 0.4, cz), tailColor, Enum.Material.Metal, false)
-				end
-			end
-		end
-	end
+    -- 4. Das Monster-Gesicht (Kopf)
+    -- Bulliges Kinn/Kiefer
+    local jaw = makePart(model, "BacillusJaw", Vector3.new(headSize*1.1, headSize*0.5, headSize*0.8), headPos + Vector3.new(0, -headSize*0.2, headSize*0.4), darkCyan, Enum.Material.SmoothPlastic, false)
+    local jMesh = Instance.new("SpecialMesh", jaw); jMesh.MeshType = Enum.MeshType.Sphere
 
-	-- ---- Arme + Klauen -------------------------------------------------
-	local armLen = torsoH * 0.95
-	local armW = torsoW * 0.22 + (stage - 1) * 0.05
-	for _, side in ipairs({ -1, 1 }) do
-		local armX = cx + side * (torsoW * 0.55 + armW * 0.3)
-		local armY = torsoCenterY - torsoH * 0.05
-		local sleeveColor = if stage >= 4 then armorMetal else coatWhite
-		makePart(model, "RatArm", Vector3.new(armW, armLen, armW), Vector3.new(armX, armY, cz), sleeveColor, Enum.Material.SmoothPlastic, false)
-		-- Mutationsfleck auf dem Aermel (Stage 2+)
-		if stage >= 2 and stage < 4 then
-			makePart(model, "RatArmMut", Vector3.new(armW * 1.05, armLen * 0.35, 0.08), Vector3.new(armX, armY - armLen * 0.2, cz - armW * 0.5 - 0.04), mutationDeep, Enum.Material.SmoothPlastic, false).Transparency = 0.1
-		end
-		local handSize = armW * 1.4
-		local handY = armY - armLen * 0.5 - handSize * 0.3
-		-- Klauen ab Stage 2 (Ratten-Krallen)
-		if stage >= 2 then
-			local hand = makePart(model, "RatClawHand", Vector3.new(handSize, handSize * 0.8, handSize), Vector3.new(armX, handY, cz), furDeep, Enum.Material.Metal, false)
-			hand.Shape = Enum.PartType.Ball
-			local clawCount = 3
-			for k = -1, 1 do
-				local cx_claw = armX + k * handSize * 0.32
-				local clawLen = handSize * (0.95 + (stage - 2) * 0.25)
-				local claw = makePart(model, "RatClaw", Vector3.new(0.22, clawLen, 0.22), Vector3.new(cx_claw, handY - clawLen * 0.5, cz + handSize * 0.1), tailColor, Enum.Material.Metal, false)
-				makePart(model, "RatClawTip", Vector3.new(0.25, 0.2, 0.25), Vector3.new(cx_claw, handY - clawLen - 0.05, cz + handSize * 0.1), Color3.fromRGB(220, 200, 175), Enum.Material.SmoothPlastic, false)
-			end
-		else
-			local hand = makePart(model, "RatHand", Vector3.new(handSize, handSize, handSize), Vector3.new(armX, handY, cz), furGrey, Enum.Material.SmoothPlastic, false)
-			hand.Shape = Enum.PartType.Ball
-			-- Mini-Krallen (kleiner Hint)
-			for k = -1, 1 do
-				local cx_claw = armX + k * handSize * 0.32
-				makePart(model, "RatTinyClaw", Vector3.new(0.18, 0.3, 0.18), Vector3.new(cx_claw, handY - handSize * 0.55, cz + handSize * 0.1), tailColor, Enum.Material.Metal, false)
-			end
-		end
-	end
+    -- Aggressive, insektenartige Mandibeln (Zangen)
+    for _, side in ipairs({-1, 1}) do
+        local mandibleLen = headSize * 1.2
+        local mStart = headPos + Vector3.new(side*headSize*0.4, -headSize*0.1, headSize*0.6)
+        
+        local mandible = makePart(model, "BacillusMandible", Vector3.new(headSize*0.25, headSize*0.25, mandibleLen), mStart, cyanGlow, Enum.Material.Neon, false)
+        local mMesh = Instance.new("SpecialMesh", mandible); mMesh.MeshType = Enum.MeshType.Sphere
+        
+        -- Richte die Zangen nach innen aus
+        local mDir = Vector3.new(side * -0.5, 0.2, 1).Unit
+        mandible.CFrame = CFrame.lookAt(mStart, mStart + mDir) * CFrame.new(0, 0, -mandibleLen/2)
+        
+        -- Viele leuchtende Cyan-Augen (Spinnenartig)
+        for eyeIdx = 1, 3 do
+            local eyeSize = headSize * (0.3 - (eyeIdx*0.05))
+            local eY = headSize * (0.1 + (eyeIdx*0.15))
+            local eX = side * headSize * (0.2 + (eyeIdx*0.1))
+            
+            local eye = makePart(model, "BacillusEye", Vector3.new(eyeSize, eyeSize, eyeSize), headPos + Vector3.new(eX, eY, headSize*0.4), cyanGlow, Enum.Material.Neon, false)
+            local eMesh = Instance.new("SpecialMesh", eye); eMesh.MeshType = Enum.MeshType.Sphere
+        end
+    end
 
-	-- ---- Kopf: Ratten-Schaedel + Schnauze + Ohren ---------------------
-	local headBase = makePart(model, "RatHead", Vector3.new(headD * 0.95, headD * 1.0, headD * 1.05), Vector3.new(cx, headCenterY, cz), furGrey, Enum.Material.SmoothPlastic, false)
-	headBase.Shape = Enum.PartType.Ball
+    -- Zentrales Licht am Kopf für extra Grusel
+    local pl = Instance.new("PointLight")
+    pl.Brightness = if isBoss then 3.5 else 1.5
+    pl.Range = if isBoss then 22 else 12
+    pl.Color = cyanGlow
+    pl.Parent = jaw
 
-	-- Schnauze: zwei zylindrische Teile, leicht versetzt nach vorne
-	local snoutLen = headD * 0.55
-	local snout = makePart(model, "RatSnout", Vector3.new(headD * 0.55, headD * 0.55, snoutLen), Vector3.new(cx, headCenterY - headD * 0.1, cz - headD * 0.5 - snoutLen * 0.4), furGrey, Enum.Material.SmoothPlastic, false)
-	-- Nase: dunkler Ball vorne
-	local nose = makePart(model, "RatNose", Vector3.new(headD * 0.22, headD * 0.18, headD * 0.18), Vector3.new(cx, headCenterY - headD * 0.08, cz - headD * 0.55 - snoutLen * 0.85), noseColor, Enum.Material.SmoothPlastic, false)
-	nose.Shape = Enum.PartType.Ball
+    -- ---- BOSS Extras --------------------------
+    if isBoss then
+        -- Boss Krone aus massiven Cyan-Kristallen
+        for k = 1, 7 do
+            local a = (k - 4) * math.rad(25)
+            local dir = Vector3.new(math.sin(a), 0.9, math.cos(a)*-0.3).Unit
+            local crownBase = headPos + Vector3.new(0, headSize*0.6, 0)
+            
+            local crownLen = headSize * 1.5
+            local horn = makePart(model, "BossCyanCrown", Vector3.new(headSize*0.3, crownLen, headSize*0.3), crownBase, cyanGlow, Enum.Material.Neon, false)
+            local upv = if math.abs(dir.Y) > 0.95 then Vector3.new(0, 0, 1) else Vector3.new(0, 1, 0)
+            horn.CFrame = CFrame.lookAt(crownBase, crownBase + dir, upv) * CFrame.Angles(math.rad(90), 0, 0) * CFrame.new(0, crownLen*0.4, 0)
+        end
+        
+        -- Glühende Aura/Plattform
+        local puddle = makePart(model, "BossCyanPuddle", Vector3.new(bodyLength * 1.5, 0.2, bodyLength * 1.5), Vector3.new(cx, groundY + 0.1, cz), cyanGlow, Enum.Material.Neon, false)
+        puddle.Shape = Enum.PartType.Cylinder
+        puddle.Orientation = Vector3.new(0, 0, 90)
+        puddle.Transparency = 0.55
+    end
 
-	-- Ohren: grosse, schuesselfoermige Halbkugeln oben am Kopf.
-	local earSize = headD * 0.62
-	for _, side in ipairs({ -1, 1 }) do
-		local ear = makePart(model, "RatEar", Vector3.new(earSize * 0.9, earSize, 0.25), Vector3.new(cx + side * headD * 0.38, headCenterY + headD * 0.48, cz + headD * 0.02), furGrey, Enum.Material.SmoothPlastic, false)
-		ear.Shape = Enum.PartType.Cylinder
-		ear.Orientation = Vector3.new(90, side * 20, 0)
-		-- Innere Ohrmuschel (rosa, vorne aufgesetzt)
-		local earInner = makePart(model, "RatEarInner", Vector3.new(earSize * 0.65, earSize * 0.75, 0.18), Vector3.new(cx + side * headD * 0.38, headCenterY + headD * 0.46, cz - 0.05), mutationPink, Enum.Material.SmoothPlastic, false)
-		earInner.Shape = Enum.PartType.Cylinder
-		earInner.Orientation = Vector3.new(90, side * 20, 0)
-	end
+    -- ---- Cyan Glow Mist-Partikel ----------------------------------------
+    local mist = Instance.new("ParticleEmitter")
+    mist.Name = "CyanMist"
+    mist.Texture = "rbxasset://textures/particles/smoke_main.dds"
+    mist.Color = ColorSequence.new(cyanGlow, bodyDarkBlue)
+    mist.LightEmission = 0.5
+    mist.Rate = if isBoss then 20 else 6 + stage
+    mist.Lifetime = NumberRange.new(1.0, 2.5)
+    mist.Speed = NumberRange.new(0.5, 1.5)
+    mist.Acceleration = Vector3.new(0, 1, 0)
+    mist.SpreadAngle = Vector2.new(180, 180)
+    mist.Size = NumberSequence.new(0.6, 1.5)
+    mist.Parent = root -- An die Mitte des Körpers hängen
 
-	-- Augen: kleine leuchtende Slit-Augen (rot/pink, beim Boss heller)
-	local eyeColor = if isBoss then mutationGlow else Color3.fromRGB(245, 80, 95)
-	local eyeY = headCenterY + headD * 0.05
-	for _, side in ipairs({ -1, 1 }) do
-		local eyeGlow = makePart(model, "RatEye", Vector3.new(headD * 0.18, headD * 0.10, 0.12), Vector3.new(cx + side * headD * 0.18, eyeY, cz - headD * 0.48), eyeColor, Enum.Material.Neon, false)
-		eyeGlow.Transparency = 0.04
-		eyeGlow.Orientation = Vector3.new(0, 0, side * -25)
-		local pl = Instance.new("PointLight")
-		pl.Brightness = 0.7
-		pl.Range = 6
-		pl.Color = eyeColor
-		pl.Parent = eyeGlow
-	end
+    -- ---- Bewegung -----------------------------------------------------
+    local arche = ENEMY_ARCHETYPE[def.Shape] or ENEMY_ARCHETYPE.Blob
+    local ranges = {
+        Ground = { rx = 6, rz = 9, sp = 3.5, bob = 0.5 },
+        Sway = { rx = 5, rz = 9, sp = 2.0, bob = 0.3 },
+        Hop = { rx = 6, rz = 10, sp = 3.5, bob = 1.8 },
+        Crawl = { rx = 9, rz = 13, sp = 5.5, bob = 0.3 }, -- Schnelles Krabbeln wegen der vielen Beine!
+        Hover = { rx = 5, rz = 8, sp = 2.2, bob = 1.2 },
+        Static = { rx = 0, rz = 0, sp = 0, bob = 0 },
+    }
+    -- Wir forcieren Crawl, da es ein Assel-/Raupenmonster ist
+    local mv = ranges["Crawl"]
+    model:SetAttribute("MoveStyle", "Crawl")
+    model:SetAttribute("HomeX", cx)
+    model:SetAttribute("HomeY", root.Position.Y)
+    model:SetAttribute("HomeZ", cz)
+    model:SetAttribute("MoveRangeX", mv.rx)
+    model:SetAttribute("MoveRangeZ", mv.rz)
+    model:SetAttribute("MoveSpeed", mv.sp)
+    model:SetAttribute("BobAmp", mv.bob)
+    model:SetAttribute("EnemyKind", "BlueBacillusMonster")
 
-	-- Whiskers / Schnurrhaare (3 pro Seite, duenne Boxen)
-	local whiskerLen = headD * 0.85
-	for _, side in ipairs({ -1, 1 }) do
-		for k = 1, 3 do
-			local angle = (k - 2) * math.rad(15)
-			local wx = cx + side * (headD * 0.32 + math.cos(angle) * whiskerLen * 0.5)
-			local wy = headCenterY - headD * 0.1 + math.sin(angle) * 0.15
-			local wz = cz - headD * 0.55 - snoutLen * 0.5
-			local whisker = makePart(model, "RatWhisker", Vector3.new(whiskerLen * 0.9, 0.04, 0.04), Vector3.new(wx, wy, wz), Color3.fromRGB(232, 220, 200), Enum.Material.SmoothPlastic, false)
-			whisker.Orientation = Vector3.new(0, side * (15 + (k - 2) * 8), 0)
-		end
-	end
+    -- ---- Health-Bar ---------------------------------------------------
+    local barScale = if isBoss then 1.5 else 1.1
+    local barY = groundY + totalH + (if isBoss then 3.0 else 1.2)
+    local barBack = makePart(model, "HealthBarBack", Vector3.new(8 * barScale, 0.6, 0.3), Vector3.new(cx, barY, cz), Color3.fromRGB(16, 20, 26), Enum.Material.SmoothPlastic, false)
+    local barFill = makePart(model, "HealthBarFill", Vector3.new(7.6 * barScale, 0.4, 0.4), Vector3.new(cx, barY + 0.02, cz - 0.05), Color3.fromRGB(0, 255, 255), Enum.Material.Neon, false)
+    barFill.Transparency = 0.1
+    barFill:SetAttribute("MaxWidth", 7.6 * barScale)
+    barFill:SetAttribute("FullCenterX", barFill.Position.X)
 
-	-- Mutations-Spikes auf Kopf (Stage 2+, mehr je Stage)
-	if stage >= 2 then
-		local spikeCount = 4 + (stage - 2) * 3 + (if isBoss then 6 else 0)
-		for i = 1, spikeCount do
-			local a = (i / spikeCount) * math.pi * 1.6 - math.pi * 0.3
-			local up = 0.5 + math.abs(math.sin(i * 1.3)) * 0.5
-			local fwd = math.cos(a) * 0.7
-			local dir = Vector3.new(fwd, up, math.sin(a) * 0.7).Unit
-			local spikeLen = headD * 0.35 + (stage - 2) * 0.07
-			local spikeCenter = Vector3.new(cx, headCenterY, cz) + dir * headD * 0.55
-			local spike = makePart(model, "RatHeadSpike", Vector3.new(spikeLen * 0.32, spikeLen, spikeLen * 0.32), spikeCenter, tailColor, Enum.Material.Metal, false)
-			local upv = if math.abs(dir.Y) > 0.95 then Vector3.new(0, 0, 1) else Vector3.new(0, 1, 0)
-			spike.CFrame = CFrame.lookAt(spikeCenter, spikeCenter + dir, upv) * CFrame.Angles(math.rad(90), 0, 0)
-		end
-	end
+    -- ---- AttackClick + Boss-Prompt ------------------------------------
+    local clicker = Instance.new("ClickDetector")
+    clicker.Name = "AttackClick"
+    clicker.MaxActivationDistance = EnemyConfig.AttackDistance
+    clicker.Parent = root
 
-	-- ---- Schwanz mit Spike-Tip ----------------------------------------
-	local tailSegs = 4 + (stage - 1)
-	local tailStartY = torsoCenterY - torsoH * 0.2
-	local tailLen = totalH * 0.7
-	local segLen = tailLen / tailSegs
-	for s = 0, tailSegs - 1 do
-		local t = s / tailSegs
-		local tailX = cx + math.sin(t * math.pi) * 0.4
-		local tailY = tailStartY - t * tailLen * 0.55
-		local tailZ = cz + torsoD / 2 + 0.3 + t * tailLen * 0.85
-		local segR = (1 - t * 0.5) * (legW * 0.35) + (if isBoss then 0.1 else 0)
-		local seg = makePart(model, "RatTailSeg", Vector3.new(segR * 2, segLen, segR * 2), Vector3.new(tailX, tailY, tailZ), tailColor, Enum.Material.SmoothPlastic, false)
-		seg.Orientation = Vector3.new(t * 60, 0, 0)
-	end
-	-- Schwanzspitze: Spike
-	local tipR = legW * 0.22 + (if isBoss then 0.1 else 0)
-	local tipPos = Vector3.new(cx, tailStartY - tailLen * 0.55, cz + torsoD / 2 + 0.3 + tailLen * 0.85)
-	local tailSpike = makePart(model, "RatTailSpike", Vector3.new(tipR * 1.8, segLen * 1.6, tipR * 1.8), tipPos, tailColor, Enum.Material.Metal, false)
-	tailSpike.Orientation = Vector3.new(70, 0, 0)
-	makePart(model, "RatTailSpikeTip", Vector3.new(tipR * 1.4, segLen * 0.5, tipR * 1.4), tipPos + Vector3.new(0, -segLen * 0.4, segLen * 0.4), tint(tailColor, Color3.fromRGB(240, 220, 200), 0.3), Enum.Material.SmoothPlastic, false)
+    if isBoss then
+        local prompt = Instance.new("ProximityPrompt")
+        prompt.Name = "StartBossFight"
+        prompt.KeyboardKeyCode = Enum.KeyCode.E
+        prompt.HoldDuration = 1
+        prompt.ActionText = "Start Boss Fight"
+        prompt.ObjectText = def.DisplayName
+        prompt.MaxActivationDistance = EnemyConfig.BossPromptDistance
+        prompt.RequiresLineOfSight = false
+        prompt.Parent = root
+    end
 
-	-- ---- BOSS Extras: hohe gruene Tubes hinter dem Kopf + Glow ---------
-	if isBoss then
-		-- Glow-Pad (BossPad-Vertrag bleibt)
-		local ring = makePart(model, "BossPad", Vector3.new(0.5, totalH * 1.1, totalH * 1.1), Vector3.new(basePos.X, CHAMBER_TOP + 1.25, basePos.Z), bossTubeGreen, Enum.Material.Neon, false)
-		ring.Shape = Enum.PartType.Cylinder
-		ring.Orientation = Vector3.new(0, 0, 90)
-		ring.Transparency = 0.35
-		-- 3 grosse vertikale Tubes hinter dem Kopf, mit Boegen oben
-		for i = -1, 1 do
-			local tx = cx + i * 1.6
-			local ty = headCenterY + totalH * 0.32
-			local tz = cz + torsoD / 2 + 0.9
-			local tubeH = totalH * 0.85
-			local tubeR = 0.6
-			local tube = makePart(model, "BossRatTube", Vector3.new(tubeR * 2, tubeH, tubeR * 2), Vector3.new(tx, ty, tz), tint(bossTubeGreen, Color3.fromRGB(248, 252, 240), 0.25), Enum.Material.Glass, false)
-			tube.Shape = Enum.PartType.Cylinder
-			tube.Orientation = Vector3.new(0, 0, 90)
-			tube.Transparency = 0.32
-			local fluid = makePart(model, "BossRatTubeFluid", Vector3.new(tubeR * 1.7, tubeH * 0.9, tubeR * 1.7), Vector3.new(tx, ty, tz), bossTubeGreen, Enum.Material.Neon, false)
-			fluid.Shape = Enum.PartType.Cylinder
-			fluid.Orientation = Vector3.new(0, 0, 90)
-			fluid.Transparency = 0.1
-			makePart(model, "BossRatTubeCapTop", Vector3.new(0.3, tubeR * 2.3, tubeR * 2.3), Vector3.new(tx, ty + tubeH * 0.5, tz), armorDark, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
-			makePart(model, "BossRatTubeCapBottom", Vector3.new(0.3, tubeR * 2.3, tubeR * 2.3), Vector3.new(tx, ty - tubeH * 0.5, tz), armorDark, Enum.Material.Metal, false).Shape = Enum.PartType.Cylinder
-			-- Bogen oben
-			makePart(model, "BossRatTubeBend", Vector3.new(0.4, 1.4, 0.4), Vector3.new(tx, ty + tubeH * 0.5 + 0.7, tz - 0.4), armorDark, Enum.Material.Metal, false)
-			local pl = Instance.new("PointLight")
-			pl.Brightness = 2
-			pl.Range = 16
-			pl.Color = bossTubeGreen
-			pl.Parent = fluid
-		end
-	end
+    -- ---- Info-Label ---------------------------------------------------
+    local prefix = if isBoss then "★ BOSS ★\n" else ""
+    label(
+        root,
+        string.format(
+            "%s%s\nHP: %s\nSTR: %s\nDNA: %s",
+            prefix,
+            def.DisplayName,
+            NumberFormatter.format(def.MaxHealth),
+            NumberFormatter.format(def.Strength),
+            NumberFormatter.format(def.DNAReward)
+        ),
+        Color3.fromRGB(255, 255, 255),
+        if isBoss then 60 else 34,
+        UDim2.fromOffset(if isBoss then 280 else 190, if isBoss then 104 else 76),
+        Vector3.new(0, boxH / 2 + 1.5, 0)
+    )
 
-	-- ---- Dampf/Schleim-Partikel ---------------------------------------
-	local steam = Instance.new("ParticleEmitter")
-	steam.Name = "HantavirusSteam"
-	steam.Texture = "rbxasset://textures/particles/smoke_main.dds"
-	steam.Color = ColorSequence.new(if isBoss then bossTubeGreen else mutationPink, tint(mutationDeep, Color3.fromRGB(40, 30, 30), 0.4))
-	steam.LightEmission = 0.2
-	steam.Rate = if isBoss then 10 else 1 + stage
-	steam.Lifetime = NumberRange.new(1.0, 1.8)
-	steam.Speed = NumberRange.new(0.5, 1.4)
-	steam.Acceleration = Vector3.new(0, 2, 0)
-	steam.SpreadAngle = Vector2.new(40, 40)
-	steam.Size = NumberSequence.new(0.5, 0.1)
-	steam.Parent = torso
-
-	-- ---- Bewegung (gleicher Vertrag wie Norovirus) ---------------------
-	local arche = ENEMY_ARCHETYPE[def.Shape] or ENEMY_ARCHETYPE.Blob
-	local ranges = {
-		Ground = { rx = 7, rz = 12, sp = 3.2, bob = 0.45 },
-		Sway = { rx = 5, rz = 14, sp = 2.4, bob = 0.3 },
-		Hop = { rx = 6, rz = 11, sp = 3.6, bob = 2.6 },
-		Crawl = { rx = 9, rz = 15, sp = 6.5, bob = 0.25 },
-		Hover = { rx = 8, rz = 14, sp = 3.4, bob = 1.9 },
-		Static = { rx = 0, rz = 0, sp = 0, bob = 0 },
-	}
-	local mv = ranges[arche.move] or ranges.Ground
-	model:SetAttribute("MoveStyle", arche.move)
-	model:SetAttribute("HomeX", cx)
-	model:SetAttribute("HomeY", root.Position.Y)
-	model:SetAttribute("HomeZ", cz)
-	model:SetAttribute("MoveRangeX", mv.rx)
-	model:SetAttribute("MoveRangeZ", mv.rz)
-	model:SetAttribute("MoveSpeed", mv.sp)
-	model:SetAttribute("BobAmp", mv.bob)
-	model:SetAttribute("EnemyKind", "Hantavirus")
-
-	-- ---- Health-Bar ----------------------------------------------------
-	local barScale = if isBoss then 1.9 else 1
-	local barY = groundY + totalH + (if isBoss then 2.4 else 1.6)
-	local barBack = makePart(model, "HealthBarBack", Vector3.new(13 * barScale, 0.8, 0.4), Vector3.new(cx, barY, cz), Color3.fromRGB(16, 20, 26), Enum.Material.SmoothPlastic, false)
-	local barFill = makePart(model, "HealthBarFill", Vector3.new(12.4 * barScale, 0.5, 0.55), Vector3.new(cx, barY + 0.02, cz - 0.06), Color3.fromRGB(95, 255, 125), Enum.Material.Neon, false)
-	barFill.Transparency = 0.12
-	barFill:SetAttribute("MaxWidth", 12.4 * barScale)
-	barFill:SetAttribute("FullCenterX", barFill.Position.X)
-
-	-- ---- AttackClick + Boss-Prompt ------------------------------------
-	local clicker = Instance.new("ClickDetector")
-	clicker.Name = "AttackClick"
-	clicker.MaxActivationDistance = EnemyConfig.AttackDistance
-	clicker.Parent = root
-
-	if isBoss then
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = "StartBossFight"
-		prompt.KeyboardKeyCode = Enum.KeyCode.E
-		prompt.HoldDuration = 1
-		prompt.ActionText = "Start Boss Fight"
-		prompt.ObjectText = def.DisplayName
-		prompt.MaxActivationDistance = EnemyConfig.BossPromptDistance
-		prompt.RequiresLineOfSight = false
-		prompt.Parent = root
-	end
-
-	-- ---- Info-Label ---------------------------------------------------
-	local prefix = if isBoss then "★ BOSS ★\n" else ""
-	label(
-		root,
-		string.format(
-			"%s%s\nHP: %s\nSTR: %s\nDNA: %s",
-			prefix,
-			def.DisplayName,
-			NumberFormatter.format(def.MaxHealth),
-			NumberFormatter.format(def.Strength),
-			NumberFormatter.format(def.DNAReward)
-		),
-		Color3.fromRGB(255, 255, 255),
-		if isBoss then 60 else 34,
-		UDim2.fromOffset(if isBoss then 280 else 190, if isBoss then 104 else 76),
-		Vector3.new(0, boxH / 2 + 3, 0)
-	)
-
-	return model
+    return model
 end
-
 -- ---- Lebhaftes Monster Ebola-Set fuer Area 3 (Optimiert) -----------------
 -- Schlangenartiges, segmentiertes Tausendfüßler-Monster (Ebola-Stamm)!
 -- Aufgerichteter Körper, spinnenartige Beine, aufgerissenes Maul mit Zähnen,
