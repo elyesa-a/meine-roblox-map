@@ -40,6 +40,7 @@ type MoveState = {
 	phase: number,
 	target: Vector3,
 	pos: Vector3,
+	facing: Vector3,
 	lastAlive: boolean,
 	wasChasing: boolean,
 }
@@ -55,6 +56,24 @@ local function pickTarget(st: MoveState)
 	local nx = st.home.X + rng:NextNumber(-st.rx, st.rx)
 	local nz = st.home.Z + rng:NextNumber(-st.rz, st.rz)
 	st.target = Vector3.new(nx, st.home.Y, nz)
+end
+
+local function flatUnit(v: Vector3, fallback: Vector3): Vector3
+	local flat = Vector3.new(v.X, 0, v.Z)
+	if flat.Magnitude < 0.05 then
+		return fallback
+	end
+	return flat.Unit
+end
+
+local function smoothFacing(current: Vector3, desired: Vector3, alpha: number): Vector3
+	local currentFlat = flatUnit(current, Vector3.new(0, 0, -1))
+	local desiredFlat = flatUnit(desired, currentFlat)
+	local mixed = currentFlat:Lerp(desiredFlat, math.clamp(alpha, 0, 1))
+	if mixed.Magnitude < 0.05 then
+		return currentFlat
+	end
+	return mixed.Unit
 end
 
 local function register(model: Model)
@@ -86,6 +105,7 @@ local function register(model: Model)
 		phase = rng:NextNumber(0, math.pi * 2),
 		target = home,
 		pos = home,
+		facing = flatUnit(model.PrimaryPart.CFrame.LookVector, Vector3.new(0, 0, -1)),
 		lastAlive = true,
 		wasChasing = false,
 	}
@@ -143,6 +163,7 @@ local function stepState(st: MoveState, dt: number)
 
 	local style = st.style
 	local pos = st.pos
+	local previousPos = pos
 	local bobY = 0
 
 	if style == "Hover" then
@@ -180,9 +201,16 @@ local function stepState(st: MoveState, dt: number)
 	local cz = math.clamp(pos.Z, st.home.Z - st.rz, st.home.Z + st.rz)
 	st.pos = Vector3.new(cx, st.home.Y, cz)
 
-	-- Orientierung bewusst unveraendert (Augen/Details zeigen wie gebaut
-	-- nach -Z zum Laufweg); nur Translation + Wippen -> keine Glitches.
-	model:PivotTo(CFrame.new(cx, st.home.Y + bobY, cz))
+	local moved = st.pos - previousPos
+	if moved.Magnitude > 0.03 then
+		st.facing = smoothFacing(st.facing, moved, if style == "Hover" then 0.08 else 0.16)
+	end
+
+	-- Natuerlicher als reines Verschieben: Gegner drehen sanft in ihre
+	-- Bewegungsrichtung und bekommen je nach Stil ein winziges Koerper-Wippen.
+	local pivotPos = Vector3.new(cx, st.home.Y + bobY, cz)
+	local tilt = math.sin((elapsed + st.phase) * 2.3) * math.rad(if style == "Hop" then 2.4 else 1.2)
+	model:PivotTo(CFrame.lookAt(pivotPos, pivotPos + st.facing) * CFrame.Angles(0, 0, tilt))
 end
 
 function EnemyMovementController.start()

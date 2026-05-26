@@ -145,6 +145,26 @@ local function horizontalDistance(a: Vector3, b: Vector3): number
 	return math.sqrt(dx * dx + dz * dz)
 end
 
+local function flatUnit(v: Vector3, fallback: Vector3): Vector3
+	local flat = Vector3.new(v.X, 0, v.Z)
+	if flat.Magnitude < 0.05 then
+		return fallback
+	end
+	return flat.Unit
+end
+
+local function getSmoothFacing(model: Model, desired: Vector3, alpha: number): Vector3
+	local primary = model.PrimaryPart
+	local current = if primary then primary.CFrame.LookVector else Vector3.new(0, 0, -1)
+	local currentFlat = flatUnit(current, Vector3.new(0, 0, -1))
+	local desiredFlat = flatUnit(desired, currentFlat)
+	local mixed = currentFlat:Lerp(desiredFlat, math.clamp(alpha, 0, 1))
+	if mixed.Magnitude < 0.05 then
+		return currentFlat
+	end
+	return mixed.Unit
+end
+
 local function getHomePosition(state: EnemyState): Vector3
 	local hx = state.model:GetAttribute("HomeX")
 	local hy = state.model:GetAttribute("HomeY")
@@ -401,7 +421,14 @@ local function stepEnemyTowardPlayer(state: EnemyState, player: Player, dt: numb
 	local targetPos = hrp.Position
 	local flatDelta = Vector3.new(targetPos.X - enemyPos.X, 0, targetPos.Z - enemyPos.Z)
 	local distance = flatDelta.Magnitude
-	if distance <= EnemyConfig.EnemyAttackRange or distance <= 0.05 then
+	if distance <= 0.05 then
+		return
+	end
+
+	if distance <= EnemyConfig.EnemyAttackRange then
+		local facing = getSmoothFacing(state.model, flatDelta, 0.3)
+		local lookPos = Vector3.new(enemyPos.X, enemyPos.Y, enemyPos.Z)
+		state.model:PivotTo(CFrame.lookAt(lookPos, lookPos + facing))
 		return
 	end
 
@@ -418,7 +445,10 @@ local function stepEnemyTowardPlayer(state: EnemyState, player: Player, dt: numb
 		local clamped = fromOrigin.Unit * leash
 		nextPos = Vector3.new(origin.X + clamped.X, nextPos.Y, origin.Z + clamped.Z)
 	end
-	state.model:PivotTo(CFrame.new(nextPos))
+	local facing = getSmoothFacing(state.model, flatDelta, 0.38)
+	local bob = math.sin(os.clock() * 7) * 0.12
+	local pivotPos = Vector3.new(nextPos.X, nextPos.Y + bob, nextPos.Z)
+	state.model:PivotTo(CFrame.lookAt(pivotPos, pivotPos + facing))
 end
 
 local function startEnemyChaseLoop(state: EnemyState, player: Player, token: number)
