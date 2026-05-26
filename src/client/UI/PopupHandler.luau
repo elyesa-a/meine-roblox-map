@@ -35,27 +35,36 @@ function PopupHandler.start(parent: ScreenGui)
 
 		local toast = Instance.new("Frame")
 		toast.Name = "NotificationToast"
-		toast.Size = UDim2.new(0, 0, 0, 42)
-		toast.BackgroundColor3 = Color3.fromRGB(9, 13, 20)
-		toast.BackgroundTransparency = 0.05
+		toast.Size = UDim2.new(0, 0, 0, 48)
+		toast.BackgroundColor3 = Color3.fromRGB(22, 34, 62)
+		toast.BackgroundTransparency = 0.02
 		toast.BorderSizePixel = 0
 		toast.ClipsDescendants = true
 		toast.ZIndex = 101
 		toast.Parent = container
 
 		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 12)
+		corner.CornerRadius = UDim.new(0, 18)
 		corner.Parent = toast
 
 		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(56, 236, 207)
-		stroke.Thickness = 1.5
-		stroke.Transparency = 0.35
+		stroke.Color = Theme.Colors.Green
+		stroke.Thickness = 3
+		stroke.Transparency = 0.08
 		stroke.Parent = toast
+
+		local gradient = Instance.new("UIGradient")
+		gradient.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Theme.Colors.Green:Lerp(Color3.fromRGB(255, 255, 255), 0.13)),
+			ColorSequenceKeypoint.new(0.35, Color3.fromRGB(28, 44, 76)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 18, 32)),
+		})
+		gradient.Rotation = 90
+		gradient.Parent = toast
 
 		local accent = Instance.new("Frame")
 		accent.Name = "Accent"
-		accent.Size = UDim2.new(0, 5, 1, 0)
+		accent.Size = UDim2.new(0, 8, 1, 0)
 		accent.BackgroundColor3 = Theme.Colors.Green
 		accent.BorderSizePixel = 0
 		accent.ZIndex = 102
@@ -63,15 +72,16 @@ function PopupHandler.start(parent: ScreenGui)
 
 		local label = Instance.new("TextLabel")
 		label.Name = "Message"
-		label.Position = UDim2.new(0, 16, 0, 0)
-		label.Size = UDim2.new(1, -24, 1, 0)
+		label.Position = UDim2.new(0, 22, 0, 0)
+		label.Size = UDim2.new(1, -30, 1, 0)
 		label.BackgroundTransparency = 1
 		label.Font = Theme.Font
 		label.Text = message
 		label.TextColor3 = Theme.Colors.White
-		label.TextSize = 15
+		label.TextSize = 16
 		label.TextScaled = false
-		label.TextStrokeTransparency = 1
+		label.TextStrokeColor3 = Theme.Colors.Black
+		label.TextStrokeTransparency = 0.12
 		label.TextXAlignment = Enum.TextXAlignment.Left
 		label.ZIndex = 102
 		label.Parent = toast
@@ -79,7 +89,7 @@ function PopupHandler.start(parent: ScreenGui)
 		local tweenIn = TweenService:Create(
 			toast,
 			TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ Size = UDim2.new(0, 300, 0, 42) }
+			{ Size = UDim2.new(0, 340, 0, 48) }
 		)
 		tweenIn:Play()
 
@@ -87,7 +97,7 @@ function PopupHandler.start(parent: ScreenGui)
 			local tweenOut = TweenService:Create(
 				toast,
 				TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-				{ Size = UDim2.new(0, 0, 0, 42), BackgroundTransparency = 1 }
+				{ Size = UDim2.new(0, 0, 0, 48), BackgroundTransparency = 1 }
 			)
 			TweenService:Create(label, TweenInfo.new(0.2), { TextTransparency = 1 }):Play()
 			TweenService:Create(stroke, TweenInfo.new(0.2), { Transparency = 1 }):Play()

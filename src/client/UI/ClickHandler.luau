@@ -33,8 +33,10 @@ local AUTO_CLICK_INTERVALS = {
 	Free = 1.5,
 	Premium = 0.35, -- fuer den spaeteren Shop/Gamepass-Autoclicker vorbereitet.
 }
-local AUTO_ON_COLOR = Color3.fromRGB(80, 255, 150)
-local AUTO_OFF_COLOR = Color3.fromRGB(255, 95, 95)
+local AUTO_ON_COLOR = Color3.fromRGB(80, 255, 125)
+local AUTO_OFF_COLOR = Color3.fromRGB(255, 88, 88)
+local AUTO_ON_BACKGROUND = Color3.fromRGB(14, 70, 34)
+local AUTO_OFF_BACKGROUND = Color3.fromRGB(42, 18, 24)
 local MOVEMENT_KEYS = {
 	[Enum.KeyCode.W] = true,
 	[Enum.KeyCode.A] = true,
@@ -197,16 +199,46 @@ end
 local function setAutoButtonState(button: TextButton, enabled: boolean)
 	button.Text = if enabled then "AUTO: ON" else "AUTO: OFF"
 	button.TextColor3 = if enabled then AUTO_ON_COLOR else AUTO_OFF_COLOR
+	button.BackgroundColor3 = if enabled then AUTO_ON_BACKGROUND else AUTO_OFF_BACKGROUND
+	local stroke = button:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = if enabled then AUTO_ON_COLOR else AUTO_OFF_COLOR
+		stroke.Transparency = 0.08
+	end
+	button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextStrokeTransparency = 0
+	button.TextTransparency = 0
+	button.Font = Enum.Font.GothamBlack
 end
 
 local function setAutoFightButtonState(button: TextButton, enabled: boolean)
 	button.Text = if enabled then "AUTO FIGHT: ON" else "AUTO FIGHT: OFF"
 	button.TextColor3 = if enabled then AUTO_ON_COLOR else AUTO_OFF_COLOR
+	button.BackgroundColor3 = if enabled then AUTO_ON_BACKGROUND else AUTO_OFF_BACKGROUND
+	local stroke = button:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = if enabled then AUTO_ON_COLOR else AUTO_OFF_COLOR
+		stroke.Transparency = 0.08
+	end
+	button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextStrokeTransparency = 0
+	button.TextTransparency = 0
+	button.Font = Enum.Font.GothamBlack
 end
 
 local function setAutoTrainingButtonState(button: TextButton, enabled: boolean)
 	button.Text = if enabled then "AUTO TRAIN: ON" else "AUTO TRAIN: OFF"
 	button.TextColor3 = if enabled then AUTO_ON_COLOR else AUTO_OFF_COLOR
+	button.BackgroundColor3 = if enabled then AUTO_ON_BACKGROUND else AUTO_OFF_BACKGROUND
+	local stroke = button:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = if enabled then AUTO_ON_COLOR else AUTO_OFF_COLOR
+		stroke.Transparency = 0.08
+	end
+	button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextStrokeTransparency = 0
+	button.TextTransparency = 0
+	button.Font = Enum.Font.GothamBlack
 end
 
 local function showAutoMessage(screen: ScreenGui, button: TextButton, text: string)

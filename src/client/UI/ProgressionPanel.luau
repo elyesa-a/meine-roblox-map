@@ -31,20 +31,29 @@ type Refs = {
 }
 
 local function stylePanel(frame: Frame, accent: Color3)
-	frame.BackgroundColor3 = Color3.fromRGB(13, 18, 26)
-	frame.BackgroundTransparency = 0.08
+	frame.BackgroundColor3 = accent:Lerp(Color3.fromRGB(18, 26, 46), 0.68)
+	frame.BackgroundTransparency = 0.02
 	frame.BorderSizePixel = 0
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 14)
+	corner.CornerRadius = UDim.new(0, 18)
 	corner.Parent = frame
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = accent
-	stroke.Thickness = 1.25
-	stroke.Transparency = 0.38
+	stroke.Thickness = 3
+	stroke.Transparency = 0.1
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = frame
+
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, accent:Lerp(Color3.fromRGB(255, 255, 255), 0.14)),
+		ColorSequenceKeypoint.new(0.28, Color3.fromRGB(34, 46, 76)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 18, 32)),
+	})
+	gradient.Rotation = 90
+	gradient.Parent = frame
 end
 
 local function makeLabel(parent: Instance, name: string, textSize: number, color: Color3?, bold: boolean?): TextLabel
@@ -53,7 +62,8 @@ local function makeLabel(parent: Instance, name: string, textSize: number, color
 	label.BackgroundTransparency = 1
 	label.Font = if bold == false then Enum.Font.GothamMedium else Theme.Font
 	label.TextColor3 = color or Theme.Colors.White
-	label.TextStrokeTransparency = 1
+	label.TextStrokeColor3 = Theme.Colors.Black
+	label.TextStrokeTransparency = if bold == false then 0.68 else 0.14
 	label.TextSize = textSize
 	label.TextScaled = false
 	label.TextXAlignment = Enum.TextXAlignment.Left
@@ -65,8 +75,8 @@ local function makeProgress(parent: Frame, y: number, color: Color3): Frame
 	local bg = Instance.new("Frame")
 	bg.Name = "ProgressTrack"
 	bg.Position = UDim2.new(0, 10, 0, y)
-	bg.Size = UDim2.new(1, -20, 0, 5)
-	bg.BackgroundColor3 = Color3.fromRGB(4, 8, 12)
+	bg.Size = UDim2.new(1, -20, 0, 8)
+	bg.BackgroundColor3 = Color3.fromRGB(5, 8, 18)
 	bg.BorderSizePixel = 0
 	bg.Parent = parent
 
@@ -85,7 +95,42 @@ local function makeProgress(parent: Frame, y: number, color: Color3): Frame
 	fillCorner.CornerRadius = UDim.new(1, 0)
 	fillCorner.Parent = fill
 
+	local fillGradient = Instance.new("UIGradient")
+	fillGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, color:Lerp(Color3.fromRGB(255, 255, 255), 0.28)),
+		ColorSequenceKeypoint.new(1, color:Lerp(Color3.fromRGB(0, 0, 0), 0.18)),
+	})
+	fillGradient.Parent = fill
+
 	return fill
+end
+
+local function makeCardIcon(parent: Frame, text: string, accent: Color3)
+	local icon = Instance.new("TextLabel")
+	icon.Name = "CardIcon"
+	icon.Position = UDim2.new(0, 8, 0, 7)
+	icon.Size = UDim2.new(0, 26, 0, 26)
+	icon.BackgroundColor3 = accent
+	icon.BorderSizePixel = 0
+	icon.Font = Enum.Font.GothamBlack
+	icon.Text = text
+	icon.TextColor3 = Theme.Colors.White
+	icon.TextStrokeColor3 = Theme.Colors.Black
+	icon.TextStrokeTransparency = 0.12
+	icon.TextSize = if #text <= 1 then 17 else 9
+	icon.TextScaled = false
+	icon.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 11)
+	corner.Parent = icon
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Theme.Colors.White
+	stroke.Thickness = 1.5
+	stroke.Transparency = 0.38
+	stroke.Parent = icon
+	return icon
 end
 
 local function rewardText(reward): string
@@ -185,8 +230,8 @@ function ProgressionPanel.create(parent: ScreenGui): Refs
 	local root = Instance.new("Frame")
 	root.Name = "RightObjectivePanel"
 	root.AnchorPoint = Vector2.new(1, 0)
-	root.Position = UDim2.new(1, -12, 0, 78)
-	root.Size = UDim2.new(0, 300, 0, 190)
+	root.Position = UDim2.new(1, -12, 0, 74)
+	root.Size = UDim2.new(0, 252, 0, 154)
 	root.BackgroundTransparency = 1
 	root.Parent = parent
 
@@ -197,12 +242,13 @@ function ProgressionPanel.create(parent: ScreenGui): Refs
 
 	local mission = Instance.new("Frame")
 	mission.Name = "CurrentMissionPanel"
-	mission.Size = UDim2.new(1, 0, 0, 88)
+	mission.Size = UDim2.new(1, 0, 0, 72)
 	stylePanel(mission, Theme.Colors.Green)
 	mission.Parent = root
+	makeCardIcon(mission, "!", Theme.Colors.Green)
 
-	local missionHeader = makeLabel(mission, "Header", 11, Color3.fromRGB(123, 255, 224), true)
-	missionHeader.Position = UDim2.new(0, 10, 0, 8)
+	local missionHeader = makeLabel(mission, "Header", 10, Color3.fromRGB(195, 255, 140), true)
+	missionHeader.Position = UDim2.new(0, 42, 0, 6)
 	missionHeader.Size = UDim2.new(1, -46, 0, 14)
 	missionHeader.Text = "CURRENT MISSION"
 
@@ -210,13 +256,13 @@ function ProgressionPanel.create(parent: ScreenGui): Refs
 	missionCollapse.Name = "CollapseButton"
 	missionCollapse.AnchorPoint = Vector2.new(1, 0)
 	missionCollapse.Position = UDim2.new(1, -8, 0, 6)
-	missionCollapse.Size = UDim2.new(0, 22, 0, 18)
-	missionCollapse.BackgroundColor3 = Color3.fromRGB(19, 27, 36)
+	missionCollapse.Size = UDim2.new(0, 20, 0, 16)
+	missionCollapse.BackgroundColor3 = Theme.Colors.Green
 	missionCollapse.BorderSizePixel = 0
 	missionCollapse.Font = Theme.Font
 	missionCollapse.Text = "-"
-	missionCollapse.TextColor3 = Color3.fromRGB(123, 255, 224)
-	missionCollapse.TextSize = 13
+	missionCollapse.TextColor3 = Theme.Colors.White
+	missionCollapse.TextSize = 12
 	missionCollapse.TextScaled = false
 	missionCollapse.TextStrokeTransparency = 1
 	missionCollapse.Parent = mission
@@ -224,54 +270,55 @@ function ProgressionPanel.create(parent: ScreenGui): Refs
 	collapseCorner.CornerRadius = UDim.new(0, 6)
 	collapseCorner.Parent = missionCollapse
 
-	local missionTitle = makeLabel(mission, "MissionTitle", 15, Theme.Colors.White, true)
-	missionTitle.Position = UDim2.new(0, 10, 0, 24)
-	missionTitle.Size = UDim2.new(1, -20, 0, 18)
+	local missionTitle = makeLabel(mission, "MissionTitle", 13, Theme.Colors.White, true)
+	missionTitle.Position = UDim2.new(0, 42, 0, 20)
+	missionTitle.Size = UDim2.new(1, -52, 0, 16)
 	missionTitle.Text = "Collect DNA"
 
-	local missionDesc = makeLabel(mission, "MissionDesc", 12, Color3.fromRGB(195, 224, 230), false)
-	missionDesc.Position = UDim2.new(0, 10, 0, 43)
-	missionDesc.Size = UDim2.new(1, -20, 0, 15)
+	local missionDesc = makeLabel(mission, "MissionDesc", 10, Color3.fromRGB(195, 224, 230), false)
+	missionDesc.Position = UDim2.new(0, 42, 0, 37)
+	missionDesc.Size = UDim2.new(1, -52, 0, 12)
 	missionDesc.Text = "Collect 100 DNA"
 
-	local missionFill = makeProgress(mission, 61, Color3.fromRGB(56, 236, 207))
+	local missionFill = makeProgress(mission, 51, Color3.fromRGB(94, 255, 126))
 
-	local missionProgress = makeLabel(mission, "MissionProgress", 11, Color3.fromRGB(175, 255, 230), false)
-	missionProgress.Position = UDim2.new(0, 10, 0, 72)
+	local missionProgress = makeLabel(mission, "MissionProgress", 9, Color3.fromRGB(175, 255, 230), false)
+	missionProgress.Position = UDim2.new(0, 10, 0, 62)
 	missionProgress.Size = UDim2.new(0.5, -10, 0, 12)
 	missionProgress.Text = "0 / 100"
 
-	local missionReward = makeLabel(mission, "MissionReward", 11, Theme.Colors.Yellow, true)
-	missionReward.Position = UDim2.new(0.5, 0, 0, 72)
+	local missionReward = makeLabel(mission, "MissionReward", 9, Theme.Colors.Yellow, true)
+	missionReward.Position = UDim2.new(0.5, 0, 0, 62)
 	missionReward.Size = UDim2.new(0.5, -10, 0, 12)
 	missionReward.TextXAlignment = Enum.TextXAlignment.Right
 	missionReward.Text = "Reward: +50 DNA"
 
 	local nextZone = Instance.new("Frame")
 	nextZone.Name = "NextZonePanel"
-	nextZone.Size = UDim2.new(1, 0, 0, 88)
-	stylePanel(nextZone, Color3.fromRGB(56, 236, 207))
+	nextZone.Size = UDim2.new(1, 0, 0, 72)
+	stylePanel(nextZone, Theme.Colors.Cyan)
 	nextZone.Parent = root
+	makeCardIcon(nextZone, "TP", Theme.Colors.Cyan)
 
-	local zoneHeader = makeLabel(nextZone, "Header", 11, Color3.fromRGB(123, 255, 224), true)
-	zoneHeader.Position = UDim2.new(0, 10, 0, 8)
+	local zoneHeader = makeLabel(nextZone, "Header", 10, Color3.fromRGB(160, 245, 255), true)
+	zoneHeader.Position = UDim2.new(0, 42, 0, 6)
 	zoneHeader.Size = UDim2.new(1, -20, 0, 14)
 	zoneHeader.Text = "NEXT ZONE"
 
-	local zoneName = makeLabel(nextZone, "ZoneName", 16, Theme.Colors.White, true)
-	zoneName.Position = UDim2.new(0, 10, 0, 24)
-	zoneName.Size = UDim2.new(1, -20, 0, 18)
+	local zoneName = makeLabel(nextZone, "ZoneName", 13, Theme.Colors.White, true)
+	zoneName.Position = UDim2.new(0, 42, 0, 20)
+	zoneName.Size = UDim2.new(1, -52, 0, 16)
 	zoneName.Text = "Toxic Cell Zone"
 
-	local zoneReq = makeLabel(nextZone, "RequiredPower", 12, Color3.fromRGB(195, 224, 230), false)
-	zoneReq.Position = UDim2.new(0, 10, 0, 43)
-	zoneReq.Size = UDim2.new(1, -20, 0, 15)
+	local zoneReq = makeLabel(nextZone, "RequiredPower", 10, Color3.fromRGB(195, 224, 230), false)
+	zoneReq.Position = UDim2.new(0, 42, 0, 37)
+	zoneReq.Size = UDim2.new(1, -52, 0, 12)
 	zoneReq.Text = "Required: 500 PWR"
 
-	local zoneFill = makeProgress(nextZone, 59, Theme.Colors.Green)
+	local zoneFill = makeProgress(nextZone, 51, Theme.Colors.Cyan)
 
-	local zoneCurrent = makeLabel(nextZone, "CurrentPower", 11, Color3.fromRGB(175, 255, 230), false)
-	zoneCurrent.Position = UDim2.new(0, 10, 0, 70)
+	local zoneCurrent = makeLabel(nextZone, "CurrentPower", 9, Color3.fromRGB(175, 255, 230), false)
+	zoneCurrent.Position = UDim2.new(0, 10, 0, 62)
 	zoneCurrent.Size = UDim2.new(1, -20, 0, 12)
 	zoneCurrent.Text = "0 / 500"
 
@@ -283,16 +330,16 @@ function ProgressionPanel.create(parent: ScreenGui): Refs
 		missionReward.Visible = not collapsed
 		missionFill.Parent.Visible = not collapsed
 		missionProgress.Visible = true
-		missionTitle.Position = if collapsed then UDim2.new(0, 10, 0, 24) else UDim2.new(0, 10, 0, 24)
-		missionTitle.Size = if collapsed then UDim2.new(0.6, -10, 0, 18) else UDim2.new(1, -20, 0, 18)
-		missionProgress.Position = if collapsed then UDim2.new(0.6, 0, 0, 27) else UDim2.new(0, 10, 0, 72)
-		missionProgress.Size = if collapsed then UDim2.new(0.4, -10, 0, 14) else UDim2.new(0.5, -10, 0, 12)
+		missionTitle.Position = if collapsed then UDim2.new(0, 42, 0, 20) else UDim2.new(0, 42, 0, 20)
+		missionTitle.Size = if collapsed then UDim2.new(0.6, -20, 0, 16) else UDim2.new(1, -52, 0, 16)
+		missionProgress.Position = if collapsed then UDim2.new(0.62, 0, 0, 24) else UDim2.new(0, 10, 0, 62)
+		missionProgress.Size = if collapsed then UDim2.new(0.4, -10, 0, 12) else UDim2.new(0.5, -10, 0, 12)
 		missionProgress.TextXAlignment = if collapsed then Enum.TextXAlignment.Right else Enum.TextXAlignment.Left
 		TweenService:Create(mission, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Size = if collapsed then UDim2.new(1, 0, 0, 52) else UDim2.new(1, 0, 0, 88),
+			Size = if collapsed then UDim2.new(1, 0, 0, 46) else UDim2.new(1, 0, 0, 72),
 		}):Play()
 		TweenService:Create(root, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Size = if collapsed then UDim2.new(0, 300, 0, 146) else UDim2.new(0, 300, 0, 190),
+			Size = if collapsed then UDim2.new(0, 252, 0, 124) else UDim2.new(0, 252, 0, 154),
 		}):Play()
 	end
 

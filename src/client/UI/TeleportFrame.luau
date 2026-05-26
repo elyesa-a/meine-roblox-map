@@ -2,6 +2,7 @@
 -- Teleport menu: displays boss-gated area travel without trusting the client.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Theme = require(script.Parent:WaitForChild("Theme"))
 local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
@@ -39,6 +40,8 @@ local TEXT_MUTED = Color3.fromRGB(110, 120, 135)
 local DNA_GREEN = Color3.fromRGB(0, 220, 120)
 local AMBER = Color3.fromRGB(255, 190, 40)
 local DANGER_RED = Color3.fromRGB(255, 70, 75)
+local BUTTON_ACTIVE = Color3.fromRGB(62, 255, 145)
+local BUTTON_LOCKED = Color3.fromRGB(96, 110, 136)
 
 local AREA_ACCENTS = {
 	Color3.fromRGB(0, 210, 190),
@@ -67,6 +70,76 @@ local function addStroke(gui: GuiObject, color: Color3, thickness: number?, tran
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = gui
 	return stroke
+end
+
+local function ensureGradient(gui: GuiObject): UIGradient
+	local gradient = gui:FindFirstChildOfClass("UIGradient")
+	if not gradient then
+		gradient = Instance.new("UIGradient")
+		gradient.Parent = gui
+	end
+	return gradient
+end
+
+local function bindPopupButtonFeedback(button: TextButton)
+	if button:GetAttribute("PopupReadableFeedback") == true then
+		return
+	end
+	button:SetAttribute("PopupReadableFeedback", true)
+
+	local scale = Instance.new("UIScale")
+	scale.Name = "PopupButtonScale"
+	scale.Parent = button
+
+	button.MouseEnter:Connect(function()
+		local enabled = button:GetAttribute("PopupButtonEnabled") == true
+		local accent = button:GetAttribute("PopupButtonAccent")
+		local color = if typeof(accent) == "Color3" then accent else BUTTON_LOCKED
+		TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Scale = if enabled then 1.045 else 1.015,
+		}):Play()
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = if enabled then color:Lerp(Color3.fromRGB(255, 255, 255), 0.08) else BUTTON_LOCKED:Lerp(Color3.fromRGB(255, 255, 255), 0.06),
+		}):Play()
+	end)
+
+	button.MouseLeave:Connect(function()
+		local enabled = button:GetAttribute("PopupButtonEnabled") == true
+		local accent = button:GetAttribute("PopupButtonAccent")
+		local color = if typeof(accent) == "Color3" then accent else BUTTON_LOCKED
+		TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Scale = 1,
+		}):Play()
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = if enabled then color:Lerp(Color3.fromRGB(20, 28, 38), 0.08) else BUTTON_LOCKED,
+		}):Play()
+	end)
+end
+
+local function stylePopupButton(button: TextButton, accent: Color3, enabled: boolean)
+	button:SetAttribute("PopupButtonAccent", accent)
+	button:SetAttribute("PopupButtonEnabled", enabled)
+	button.BackgroundColor3 = if enabled then accent:Lerp(Color3.fromRGB(20, 28, 38), 0.08) else BUTTON_LOCKED
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextStrokeTransparency = if enabled then 0.04 else 0.1
+	button.Font = Enum.Font.GothamBlack
+	button.TextSize = if enabled then 14 else 13
+
+	local stroke = button:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = if enabled then accent:Lerp(Color3.fromRGB(255, 255, 255), 0.22) else Color3.fromRGB(190, 205, 230)
+		stroke.Thickness = if enabled then 3 else 2.6
+		stroke.Transparency = if enabled then 0.02 else 0.08
+	end
+
+	local gradient = ensureGradient(button)
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, (if enabled then accent else BUTTON_LOCKED):Lerp(Color3.fromRGB(255, 255, 255), if enabled then 0.22 else 0.14)),
+		ColorSequenceKeypoint.new(1, (if enabled then accent else BUTTON_LOCKED):Lerp(Color3.fromRGB(0, 0, 0), if enabled then 0.2 else 0.12)),
+	})
+	gradient.Rotation = 90
+	bindPopupButtonFeedback(button)
 end
 
 local function makeLabel(parent: Instance, name: string, text: string, pos: UDim2, size: UDim2, textSize: number, color: Color3, bold: boolean?): TextLabel
@@ -150,12 +223,7 @@ local function buildCard(parent: ScrollingFrame, area): CardRefs
 	button.TextScaled = false
 	button.ZIndex = 8
 	button.Parent = card
-	local buttonStroke = button:FindFirstChildOfClass("UIStroke")
-	if buttonStroke then
-		buttonStroke.Color = accent
-		buttonStroke.Thickness = 1.2
-		buttonStroke.Transparency = 0.45
-	end
+	stylePopupButton(button, accent, false)
 
 	button.MouseButton1Click:Connect(function()
 		RequestTeleportArea:FireServer(area.index)
@@ -282,8 +350,7 @@ function TeleportFrame.update(refs: Refs, state)
 			card.requirement.Text = "Ready to travel"
 			card.requirement.TextColor3 = TEXT_SECONDARY
 			card.button.Text = "TELEPORT"
-			card.button.BackgroundColor3 = DNA_GREEN
-			card.button.TextColor3 = TEXT_MAIN
+			stylePopupButton(card.button, BUTTON_ACTIVE, true)
 		else
 			card.card.BackgroundColor3 = Color3.fromRGB(14, 17, 24)
 			if card.stroke then
@@ -295,8 +362,7 @@ function TeleportFrame.update(refs: Refs, state)
 			card.requirement.Text = "Beat Area " .. tostring(area.index - 1) .. " Boss"
 			card.requirement.TextColor3 = AMBER
 			card.button.Text = "LOCKED"
-			card.button.BackgroundColor3 = LAB_PANEL_2
-			card.button.TextColor3 = TEXT_MUTED
+			stylePopupButton(card.button, DANGER_RED, false)
 		end
 	end
 end

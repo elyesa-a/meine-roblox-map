@@ -60,8 +60,8 @@ local CYAN = Color3.fromRGB(0, 210, 190)
 local GREEN = Color3.fromRGB(35, 220, 95)
 local GOLD = Color3.fromRGB(255, 220, 80)
 local RED = Color3.fromRGB(255, 70, 75)
-local TEXT = Color3.fromRGB(245, 248, 255)
-local MUTED = Color3.fromRGB(175, 185, 200)
+local TEXT = Color3.fromRGB(255, 255, 255)
+local MUTED = Color3.fromRGB(255, 255, 255)
 
 local STEPS: { StepDef } = {
 	{
@@ -163,8 +163,8 @@ local function addCornerStroke(gui: GuiObject, radius: number, strokeColor: Colo
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = strokeColor
-	stroke.Thickness = 1.5
-	stroke.Transparency = strokeTransparency or 0.25
+	stroke.Thickness = 3
+	stroke.Transparency = strokeTransparency or 0.12
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = gui
 end
@@ -175,7 +175,8 @@ local function makeLabel(parent: Instance, name: string, textSize: number, color
 	label.BackgroundTransparency = 1
 	label.Font = font or Enum.Font.GothamMedium
 	label.TextColor3 = color
-	label.TextStrokeTransparency = 1
+	label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	label.TextStrokeTransparency = 0.02
 	label.TextSize = textSize
 	label.TextWrapped = true
 	label.TextXAlignment = Enum.TextXAlignment.Left
@@ -191,13 +192,21 @@ local function makeButton(parent: Instance, text: string, color: Color3): TextBu
 	button.BackgroundColor3 = color
 	button.BorderSizePixel = 0
 	button.AutoButtonColor = false
-	button.Font = Theme.Font
-	button.TextColor3 = TEXT
-	button.TextSize = 14
+	button.Font = Enum.Font.GothamBlack
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextSize = 17
 	button.TextScaled = false
-	button.TextStrokeTransparency = 1
+	button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextStrokeTransparency = 0
 	button.ZIndex = 83
 	addCornerStroke(button, 10, color:Lerp(Color3.new(0, 0, 0), 0.35), 0.25)
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, color:Lerp(Color3.fromRGB(255, 255, 255), 0.16)),
+		ColorSequenceKeypoint.new(1, color:Lerp(Color3.fromRGB(0, 0, 0), 0.28)),
+	})
+	gradient.Rotation = 90
+	gradient.Parent = button
 	button.Parent = parent
 	return button
 end
@@ -454,47 +463,87 @@ function TutorialFrame.create(parent: ScreenGui): Refs
 	panel.Name = "TutorialPanel"
 	panel.AnchorPoint = Vector2.new(0.5, 1)
 	panel.Position = UDim2.new(0.5, 0, 1, -22)
-	panel.Size = UDim2.new(0.92, 0, 0, 190)
-	panel.BackgroundColor3 = PANEL
-	panel.BackgroundTransparency = 0.04
+	panel.Size = UDim2.new(0.92, 0, 0, 206)
+	panel.BackgroundColor3 = Color3.fromRGB(19, 30, 56)
+	panel.BackgroundTransparency = 0.01
 	panel.BorderSizePixel = 0
 	panel.ZIndex = 81
 	panel.Parent = layer
-	addCornerStroke(panel, 18, CYAN, 0.22)
+	addCornerStroke(panel, 24, CYAN, 0.08)
+	local panelGradient = Instance.new("UIGradient")
+	panelGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(52, 94, 122)),
+		ColorSequenceKeypoint.new(0.34, PANEL),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 14, 26)),
+	})
+	panelGradient.Rotation = 90
+	panelGradient.Parent = panel
 	local panelConstraint = Instance.new("UISizeConstraint")
-	panelConstraint.MaxSize = Vector2.new(640, 190)
-	panelConstraint.MinSize = Vector2.new(320, 190)
+	panelConstraint.MaxSize = Vector2.new(720, 206)
+	panelConstraint.MinSize = Vector2.new(340, 206)
 	panelConstraint.Parent = panel
 
+	local mascot = Instance.new("TextLabel")
+	mascot.Name = "MascotIcon"
+	mascot.Position = UDim2.new(0, 18, 0, 18)
+	mascot.Size = UDim2.new(0, 58, 0, 58)
+	mascot.BackgroundColor3 = GREEN
+	mascot.BorderSizePixel = 0
+	mascot.Font = Enum.Font.GothamBlack
+	mascot.Text = "AI"
+	mascot.TextColor3 = TEXT
+	mascot.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	mascot.TextStrokeTransparency = 0.1
+	mascot.TextSize = 23
+	mascot.ZIndex = 82
+	mascot.Parent = panel
+	addCornerStroke(mascot, 18, Color3.fromRGB(190, 255, 210), 0.2)
+	local mascotGradient = Instance.new("UIGradient")
+	mascotGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(130, 255, 90)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 170, 105)),
+	})
+	mascotGradient.Parent = mascot
+
 	local progressLabel = makeLabel(panel, "ProgressLabel", 12, MUTED, Enum.Font.GothamBold)
-	progressLabel.Position = UDim2.new(0, 18, 0, 12)
+	progressLabel.Position = UDim2.new(0, 88, 0, 13)
 	progressLabel.Size = UDim2.new(0, 180, 0, 18)
+	progressLabel.TextColor3 = GOLD
+	progressLabel.TextStrokeTransparency = 0
 
 	local speakerLabel = makeLabel(panel, "SpeakerLabel", 13, GREEN, Enum.Font.GothamBlack)
-	speakerLabel.Position = UDim2.new(0, 18, 0, 34)
+	speakerLabel.Position = UDim2.new(0, 88, 0, 35)
 	speakerLabel.Size = UDim2.new(0, 190, 0, 18)
+	speakerLabel.TextStrokeTransparency = 0
 
 	local titleLabel = makeLabel(panel, "TitleLabel", 21, TEXT, Enum.Font.GothamBlack)
-	titleLabel.Position = UDim2.new(0, 18, 0, 56)
+	titleLabel.Position = UDim2.new(0, 88, 0, 57)
 	titleLabel.Size = UDim2.new(1, -36, 0, 26)
+	titleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	titleLabel.TextStrokeTransparency = 0
 
-	local bodyLabel = makeLabel(panel, "BodyLabel", 15, Color3.fromRGB(218, 230, 238), Enum.Font.GothamMedium)
-	bodyLabel.Position = UDim2.new(0, 18, 0, 88)
-	bodyLabel.Size = UDim2.new(1, -210, 0, 64)
+	local bodyLabel = makeLabel(panel, "BodyLabel", 15, Color3.fromRGB(246, 252, 255), Enum.Font.GothamBold)
+	bodyLabel.Position = UDim2.new(0, 88, 0, 90)
+	bodyLabel.Size = UDim2.new(1, -284, 0, 66)
+	bodyLabel.TextStrokeTransparency = 0.04
 
 	local objectiveLabel = makeLabel(panel, "ObjectiveLabel", 13, GOLD, Enum.Font.GothamBold)
-	objectiveLabel.Position = UDim2.new(0, 18, 1, -30)
-	objectiveLabel.Size = UDim2.new(1, -240, 0, 20)
+	objectiveLabel.Position = UDim2.new(0, 88, 1, -32)
+	objectiveLabel.Size = UDim2.new(1, -300, 0, 22)
+	objectiveLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	objectiveLabel.TextStrokeTransparency = 0
 
 	local skipButton = makeButton(panel, "Skip Tutorial", RED)
 	skipButton.AnchorPoint = Vector2.new(1, 0)
 	skipButton.Position = UDim2.new(1, -14, 0, 12)
-	skipButton.Size = UDim2.new(0, 126, 0, 30)
+	skipButton.Size = UDim2.new(0, 148, 0, 38)
+	skipButton.TextSize = 16
 
 	local continueButton = makeButton(panel, "Continue", GREEN)
 	continueButton.AnchorPoint = Vector2.new(1, 1)
 	continueButton.Position = UDim2.new(1, -14, 1, -14)
-	continueButton.Size = UDim2.new(0, 132, 0, 38)
+	continueButton.Size = UDim2.new(0, 146, 0, 44)
+	continueButton.TextSize = 18
 
 	local confirmPanel = Instance.new("Frame")
 	confirmPanel.Name = "SkipConfirm"
@@ -531,6 +580,8 @@ function TutorialFrame.create(parent: ScreenGui): Refs
 	local confirmNo = makeButton(confirmPanel, "Continue tutorial", GREEN)
 	confirmNo.Position = UDim2.new(1, -174, 1, -48)
 	confirmNo.Size = UDim2.new(0, 140, 0, 34)
+	confirmYes.TextSize = 15
+	confirmNo.TextSize = 14
 
 	local uiHighlight = Instance.new("Frame")
 	uiHighlight.Name = "TutorialUIHighlight"

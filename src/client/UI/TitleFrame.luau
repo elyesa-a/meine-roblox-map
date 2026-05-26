@@ -2,6 +2,7 @@
 -- Titles menu: owned/locked/equipped state, rarity, unlock text, bonuses.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Theme = require(script.Parent:WaitForChild("Theme"))
 local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
@@ -25,6 +26,7 @@ local DNA_GREEN = Color3.fromRGB(0, 220, 120)
 local CYAN = Color3.fromRGB(0, 190, 255)
 local REWARD_GOLD = Color3.fromRGB(255, 220, 80)
 local DANGER_RED = Color3.fromRGB(255, 70, 75)
+local BUTTON_LOCKED = Color3.fromRGB(96, 110, 136)
 
 local function restyleStroke(gui: GuiObject, color: Color3, thickness: number?, transparency: number?)
 	local stroke = gui:FindFirstChildOfClass("UIStroke")
@@ -33,6 +35,79 @@ local function restyleStroke(gui: GuiObject, color: Color3, thickness: number?, 
 		stroke.Thickness = thickness or 1.5
 		stroke.Transparency = transparency or 0.35
 	end
+end
+
+local function ensureGradient(gui: GuiObject): UIGradient
+	local gradient = gui:FindFirstChildOfClass("UIGradient")
+	if not gradient then
+		gradient = Instance.new("UIGradient")
+		gradient.Parent = gui
+	end
+	return gradient
+end
+
+local function bindTitleButtonFeedback(button: TextButton)
+	if button:GetAttribute("TitleReadableFeedback") == true then
+		return
+	end
+	button:SetAttribute("TitleReadableFeedback", true)
+
+	local scale = Instance.new("UIScale")
+	scale.Name = "TitleButtonScale"
+	scale.Parent = button
+
+	button.MouseEnter:Connect(function()
+		local state = button:GetAttribute("ReadableState")
+		local accent = button:GetAttribute("ReadableAccent")
+		local color = if typeof(accent) == "Color3" then accent else BUTTON_LOCKED
+		local locked = state == "Locked"
+		TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Scale = if locked then 1.015 else 1.045,
+		}):Play()
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = if locked then BUTTON_LOCKED:Lerp(Color3.fromRGB(255, 255, 255), 0.06) else color:Lerp(Color3.fromRGB(255, 255, 255), 0.08),
+		}):Play()
+	end)
+
+	button.MouseLeave:Connect(function()
+		local state = button:GetAttribute("ReadableState")
+		local accent = button:GetAttribute("ReadableAccent")
+		local color = if typeof(accent) == "Color3" then accent else BUTTON_LOCKED
+		local locked = state == "Locked"
+		TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Scale = 1,
+		}):Play()
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = if locked then BUTTON_LOCKED else color:Lerp(Color3.fromRGB(18, 26, 38), 0.08),
+		}):Play()
+	end)
+end
+
+local function styleTitleButton(button: TextButton, accent: Color3, state: "Active" | "Equipped" | "Locked")
+	local isLocked = state == "Locked"
+	local fill = if isLocked then BUTTON_LOCKED else accent:Lerp(Color3.fromRGB(18, 26, 38), 0.08)
+	button:SetAttribute("ReadableAccent", accent)
+	button:SetAttribute("ReadableState", state)
+	button.BackgroundColor3 = fill
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	button.TextStrokeTransparency = if isLocked then 0.1 else 0.04
+	button.Font = Enum.Font.GothamBlack
+
+	local stroke = button:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = if isLocked then Color3.fromRGB(190, 205, 230) else accent:Lerp(Color3.fromRGB(255, 255, 255), 0.24)
+		stroke.Thickness = if isLocked then 2.6 else 3
+		stroke.Transparency = if isLocked then 0.08 else 0.02
+	end
+
+	local gradient = ensureGradient(button)
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, fill:Lerp(Color3.fromRGB(255, 255, 255), if isLocked then 0.14 else 0.22)),
+		ColorSequenceKeypoint.new(1, fill:Lerp(Color3.fromRGB(0, 0, 0), if isLocked then 0.12 else 0.2)),
+	})
+	gradient.Rotation = 90
+	bindTitleButtonFeedback(button)
 end
 
 local RARITY_ORDER = {
@@ -218,6 +293,7 @@ local function makeCard(parent: ScrollingFrame, def): CardRefs
 	button.TextScaled = false
 	button.ZIndex = 9
 	button.Parent = card
+	styleTitleButton(button, def.color, "Locked")
 	button.MouseButton1Click:Connect(function()
 		if button:GetAttribute("Action") == "Equip" then
 			UIAnimator.buttonPunch(button)
@@ -344,24 +420,21 @@ function TitleFrame.update(refs: Refs, state)
 			card.status.Text = "EQUIPPED"
 			card.status.TextColor3 = DNA_GREEN
 			card.button.Text = "EQUIPPED"
-			card.button.BackgroundColor3 = DNA_GREEN
-			card.button.TextColor3 = TEXT_MAIN
+			styleTitleButton(card.button, DNA_GREEN, "Equipped")
 			restyleStroke(card.card, CYAN, 2, 0.08)
 			card.button:SetAttribute("Action", "None")
 		elseif owned then
 			card.status.Text = "UNLOCKED"
 			card.status.TextColor3 = CYAN
 			card.button.Text = "EQUIP"
-			card.button.BackgroundColor3 = CYAN
-			card.button.TextColor3 = TEXT_MAIN
+			styleTitleButton(card.button, CYAN, "Active")
 			restyleStroke(card.card, def.color, 1.4, 0.24)
 			card.button:SetAttribute("Action", "Equip")
 		else
 			card.status.Text = "LOCKED"
-			card.status.TextColor3 = TEXT_MUTED
+			card.status.TextColor3 = Color3.fromRGB(205, 216, 230)
 			card.button.Text = "LOCKED"
-			card.button.BackgroundColor3 = LAB_PANEL_2
-			card.button.TextColor3 = TEXT_MUTED
+			styleTitleButton(card.button, def.color, "Locked")
 			restyleStroke(card.card, def.color, 1.1, 0.55)
 			card.button:SetAttribute("Action", "None")
 		end

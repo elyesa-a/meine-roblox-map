@@ -56,10 +56,10 @@ function CurrentAreaLabel.create(parent: ScreenGui): Refs
 	local root = Instance.new("Frame")
 	root.Name = "CurrentAreaLabel"
 	root.AnchorPoint = Vector2.new(0.5, 0)
-	root.Position = UDim2.new(0.5, 0, 0, 70)
-	root.Size = UDim2.new(0, 320, 0, 34)
-	root.BackgroundColor3 = Color3.fromRGB(9, 13, 20)
-	root.BackgroundTransparency = 0.1
+	root.Position = UDim2.new(0.5, 0, 0, 78)
+	root.Size = UDim2.new(0, 360, 0, 42)
+	root.BackgroundColor3 = Color3.fromRGB(20, 32, 58)
+	root.BackgroundTransparency = 0.02
 	root.BorderSizePixel = 0
 	root.Parent = parent
 
@@ -68,22 +68,50 @@ function CurrentAreaLabel.create(parent: ScreenGui): Refs
 	corner.Parent = root
 
 	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(56, 236, 207)
-	stroke.Thickness = 1.25
-	stroke.Transparency = 0.35
+	stroke.Color = Theme.Colors.Cyan
+	stroke.Thickness = 3
+	stroke.Transparency = 0.08
 	stroke.Parent = root
+
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Theme.Colors.Cyan:Lerp(Color3.fromRGB(255, 255, 255), 0.15)),
+		ColorSequenceKeypoint.new(0.45, Color3.fromRGB(30, 44, 72)),
+		ColorSequenceKeypoint.new(1, Theme.Colors.Green:Lerp(Color3.fromRGB(0, 0, 0), 0.35)),
+	})
+	gradient.Rotation = 90
+	gradient.Parent = root
+
+	local icon = Instance.new("TextLabel")
+	icon.Name = "AreaIcon"
+	icon.Position = UDim2.new(0, 10, 0.5, -14)
+	icon.Size = UDim2.new(0, 30, 0, 28)
+	icon.BackgroundColor3 = Theme.Colors.Green
+	icon.BorderSizePixel = 0
+	icon.Font = Enum.Font.GothamBlack
+	icon.Text = "LAB"
+	icon.TextColor3 = Theme.Colors.White
+	icon.TextStrokeColor3 = Theme.Colors.Black
+	icon.TextStrokeTransparency = 0.1
+	icon.TextSize = 10
+	icon.Parent = root
+	local iconCorner = Instance.new("UICorner")
+	iconCorner.CornerRadius = UDim.new(1, 0)
+	iconCorner.Parent = icon
 
 	local label = Instance.new("TextLabel")
 	label.Name = "AreaText"
-	label.Size = UDim2.new(1, -24, 1, 0)
-	label.Position = UDim2.new(0, 12, 0, 0)
+	label.Size = UDim2.new(1, -56, 1, 0)
+	label.Position = UDim2.new(0, 48, 0, 0)
 	label.BackgroundTransparency = 1
 	label.Font = Theme.Font
 	label.Text = "AREA: SPAWN LAB"
 	label.TextColor3 = Theme.Colors.White
-	label.TextSize = 14
+	label.TextSize = 16
 	label.TextScaled = false
-	label.TextStrokeTransparency = 1
+	label.TextStrokeColor3 = Theme.Colors.Black
+	label.TextStrokeTransparency = 0.12
+	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = root
 
 	return { root = root, label = label, currentArea = "Spawn Lab" }
