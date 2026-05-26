@@ -7048,6 +7048,35 @@ local function buildStationKiosk(parent, name, pos, accent, title, hint, menuTar
 	return model
 end
 
+local function polishAreaAuraStationLabels(model: Model)
+	for _, descendant in ipairs(model:GetDescendants()) do
+		if not descendant:IsA("BillboardGui") or descendant.Name ~= "Label" then
+			continue
+		end
+
+		local adornee = descendant.Adornee or descendant.Parent
+		local textLabel = descendant:FindFirstChildOfClass("TextLabel")
+		local adorneeName = adornee and adornee.Name or ""
+
+		if adorneeName == "StationMarquee" then
+			descendant:Destroy()
+		elseif adorneeName == "KioskScreen" then
+			descendant.MaxDistance = 34
+			descendant.Size = UDim2.fromOffset(150, 38)
+			if textLabel then
+				textLabel.Text = "AURA SHOP"
+			end
+		elseif adorneeName == "KioskSubPanel" then
+			descendant.MaxDistance = 20
+			descendant.Size = UDim2.fromOffset(150, 24)
+		elseif adorneeName == "Head" then
+			descendant.MaxDistance = 16
+			descendant.Size = UDim2.fromOffset(100, 20)
+			descendant.StudsOffset = Vector3.new(0, 1.5, 0)
+		end
+	end
+end
+
 local function buildBiohazardDrum(parent, name, pos, accent)
 	local model = Instance.new("Model")
 	model.Name = name
@@ -7832,14 +7861,14 @@ local function buildAreaAuraStation(parent: Instance, area)
 
 	local eggShopX = area.hallCenterX + L.GateOffsetX - (L.EnemySpacing + 12)
 	local eggShopZ = BACTERIA_RIGHT_LIMIT_Z + math.min(30, (CORRIDOR_MAX_Z - BACTERIA_RIGHT_LIMIT_Z) * 0.35)
-	local stationX = eggShopX - 52
+	local stationX = eggShopX - 64
 	local stationZ = eggShopZ
 	local accent = area.primaryColor:Lerp(Color3.fromRGB(132, 116, 170), 0.3)
 	local station = Instance.new("Folder")
 	station.Name = "AreaAuraStation_" .. tostring(area.index)
 	station.Parent = parent
 
-	buildStationKiosk(
+	local kiosk = buildStationKiosk(
 		station,
 		"AuraStation_Area" .. tostring(area.index),
 		Vector3.new(stationX, FLOOR_Y, stationZ),
@@ -7853,6 +7882,7 @@ local function buildAreaAuraStation(parent: Instance, area)
 		-1,
 		area.index
 	)
+	polishAreaAuraStationLabels(kiosk)
 
 	station:SetAttribute("AreaIndex", area.index)
 	station:SetAttribute("AuraTier", area.index)
