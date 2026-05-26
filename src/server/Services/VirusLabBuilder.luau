@@ -5822,7 +5822,7 @@ local function buildEggStation(parent, areaIndex, stationIndex, eggDef, pos)
 		makePart(model, "PetEggThroneFrontStep", Vector3.new(34, 0.35, 5.5), pos + Vector3.new(0, 0.18, -13.8), stepColor, Enum.Material.SmoothPlastic, true)
 
 		local backPanel = makePart(model, "PetShopBackPanel", Vector3.new(26, 8, 0.55), pos + Vector3.new(0, 6, 10.6), signColor, Enum.Material.Metal, false)
-		label(backPanel, string.format("PET SHOP\nAREA %d", areaIndex), accent:Lerp(Color3.fromRGB(245, 248, 240), 0.35), 95, UDim2.fromOffset(280, 72), Vector3.new(0, 1.2, 0))
+		label(backPanel, string.format("PET SHOP\nAREA %d", areaIndex), accent:Lerp(Color3.fromRGB(245, 248, 240), 0.35), 42, UDim2.fromOffset(190, 46), Vector3.new(0, 0.8, 0))
 		neonStrip(model, Vector3.new(21, 0.18, 0.36), backPanel.Position + Vector3.new(0, -3.4, -0.38), accent, 0.28)
 
 		for _, sideX in ipairs({ -15.5, 15.5 }) do
@@ -5875,9 +5875,9 @@ local function buildEggStation(parent, areaIndex, stationIndex, eggDef, pos)
 			capsule,
 			string.format("%s\nCost: %s DNA", eggName, NumberFormatter.format(eggDef.cost)),
 			accent:Lerp(Color3.fromRGB(245, 248, 240), 0.2),
-			95,
-			UDim2.fromOffset(320, 86),
-			Vector3.new(0, 7, 0)
+			36,
+			UDim2.fromOffset(230, 54),
+			Vector3.new(0, 6.2, 0)
 		)
 		return
 	end
@@ -7048,6 +7048,38 @@ local function buildStationKiosk(parent, name, pos, accent, title, hint, menuTar
 	return model
 end
 
+local function polishAreaAuraStationLabels(model: Model, accent: Color3)
+	for _, descendant in ipairs(model:GetDescendants()) do
+		if not descendant:IsA("BillboardGui") or descendant.Name ~= "Label" then
+			continue
+		end
+
+		local adornee = descendant.Adornee or descendant.Parent
+		local textLabel = descendant:FindFirstChildOfClass("TextLabel")
+		local adorneeName = adornee and adornee.Name or ""
+
+		if adorneeName == "StationMarquee" then
+			descendant:Destroy()
+		elseif adorneeName == "KioskScreen" then
+			descendant.MaxDistance = 36
+			descendant.Size = UDim2.fromOffset(170, 42)
+			descendant.StudsOffset = Vector3.new(0, 0.8, 0)
+			if textLabel then
+				textLabel.Text = "AURA SHOP"
+				textLabel.TextColor3 = accent:Lerp(Color3.fromRGB(248, 242, 255), 0.42)
+				textLabel.TextStrokeTransparency = 0.12
+			end
+		elseif adorneeName == "KioskSubPanel" then
+			descendant.MaxDistance = 20
+			descendant.Size = UDim2.fromOffset(150, 24)
+		elseif adorneeName == "Head" then
+			descendant.MaxDistance = 16
+			descendant.Size = UDim2.fromOffset(100, 20)
+			descendant.StudsOffset = Vector3.new(0, 1.5, 0)
+		end
+	end
+end
+
 local function buildBiohazardDrum(parent, name, pos, accent)
 	local model = Instance.new("Model")
 	model.Name = name
@@ -7830,15 +7862,16 @@ local function buildAreaAuraStation(parent: Instance, area)
 		return
 	end
 
-	local gateX = area.hallCenterX + L.GateOffsetX
-	local stationX = gateX - 34
-	local stationZ = 25
+	local eggShopX = area.hallCenterX + L.GateOffsetX - (L.EnemySpacing + 12)
+	local eggShopZ = BACTERIA_RIGHT_LIMIT_Z + math.min(30, (CORRIDOR_MAX_Z - BACTERIA_RIGHT_LIMIT_Z) * 0.35)
+	local stationX = eggShopX - 72
+	local stationZ = eggShopZ
 	local accent = area.primaryColor:Lerp(Color3.fromRGB(132, 116, 170), 0.3)
 	local station = Instance.new("Folder")
 	station.Name = "AreaAuraStation_" .. tostring(area.index)
 	station.Parent = parent
 
-	buildStationKiosk(
+	local kiosk = buildStationKiosk(
 		station,
 		"AuraStation_Area" .. tostring(area.index),
 		Vector3.new(stationX, FLOOR_Y, stationZ),
@@ -7852,6 +7885,7 @@ local function buildAreaAuraStation(parent: Instance, area)
 		-1,
 		area.index
 	)
+	polishAreaAuraStationLabels(kiosk, accent)
 
 	station:SetAttribute("AreaIndex", area.index)
 	station:SetAttribute("AuraTier", area.index)

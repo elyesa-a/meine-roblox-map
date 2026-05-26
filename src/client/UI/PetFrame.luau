@@ -56,12 +56,14 @@ type Refs = {
 	selectedDeletePets: { [string]: boolean },
 	deleteConfirmUntil: number?,
 	lastState: { [string]: any }?,
+	petGridSignature: string?,
 	previewSpin: number,
 	previewModel: Model?,
 	eggOnlyMode: boolean,
 }
 
-local PET_CARD_SIZE = Vector2.new(152, 124)
+local PET_CARD_SIZE = Vector2.new(168, 130)
+local PET_PREVIEW_SIZE = 62
 local EGG_CARD_SIZE = Vector2.new(332, 96)
 local LAB_BASE = Color3.fromRGB(10, 14, 22)
 local LAB_PANEL = Color3.fromRGB(18, 24, 35)
@@ -123,6 +125,67 @@ local function makeSmallLabel(parent: Instance, text: string, pos: UDim2, size: 
 	label.ZIndex = 8
 	label.Parent = parent
 	return label
+end
+
+local function toneDownPetCardPreview(model: Model)
+	for _, descendant in ipairs(model:GetDescendants()) do
+		if descendant:IsA("ParticleEmitter") then
+			descendant.Enabled = false
+		elseif descendant:IsA("PointLight") then
+			descendant.Brightness *= 0.65
+			descendant.Range = math.min(descendant.Range, 9)
+		end
+	end
+end
+
+local function createPetCardPreview(parent: Instance, def, petColor: Color3): ViewportFrame
+	local preview = Instance.new("ViewportFrame")
+	preview.Name = "PetPreview"
+	preview.Position = UDim2.new(0, 8, 0, 10)
+	preview.Size = UDim2.fromOffset(PET_PREVIEW_SIZE, PET_PREVIEW_SIZE)
+	preview.BackgroundColor3 = petColor:Lerp(LAB_BASE, 0.84)
+	preview.BorderSizePixel = 0
+	preview.LightDirection = Vector3.new(-0.35, -1, -0.45).Unit
+	preview.Ambient = Color3.fromRGB(170, 180, 195)
+	preview.LightColor = Color3.fromRGB(255, 250, 240)
+	preview.Active = false
+	preview.Selectable = false
+	preview.ZIndex = 8
+	preview.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 7)
+	corner.Parent = preview
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 1.1
+	stroke.Transparency = 0.34
+	stroke.Color = petColor:Lerp(Color3.fromRGB(255, 255, 255), 0.18)
+	stroke.Parent = preview
+
+	local world = Instance.new("WorldModel")
+	world.Name = "PreviewWorld"
+	world.Parent = preview
+
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = 46
+	camera.Parent = preview
+	preview.CurrentCamera = camera
+
+	local previewModel = Instance.new("Model")
+	previewModel.Name = "PetPreviewModel"
+	PetVisualBuilder.build(previewModel, def)
+	toneDownPetCardPreview(previewModel)
+	previewModel.Parent = world
+	if previewModel.PrimaryPart then
+		previewModel:PivotTo(CFrame.new(0, -0.05, 0) * CFrame.Angles(0, math.rad(-20), 0))
+	end
+
+	local rank = PetVisualBuilder.getRank(def.rarity)
+	local distance = 4.8 + math.min(rank, 6) * 0.42
+	camera.CFrame = CFrame.lookAt(Vector3.new(0.45, 0.95, -distance), Vector3.new(0, 0.35, 0))
+
+	return preview
 end
 
 local function eggRequirementText(egg): string
@@ -286,6 +349,19 @@ local function toggleDeleteSelection(refs: Refs, instanceId: string, equipped: b
 	refreshAfterDeleteSelectionChange(refs)
 end
 
+local function makePetGridSignature(refs: Refs, sortedPets): string
+	local parts = { if refs.deleteMode then "delete" else "normal" }
+	for _, entry in ipairs(sortedPets) do
+		table.insert(parts, entry.instanceId)
+		table.insert(parts, entry.def.id)
+		table.insert(parts, if entry.equipped then "equipped" else "stored")
+		if refs.deleteMode then
+			table.insert(parts, if refs.selectedDeletePets[entry.instanceId] then "selected" else "clear")
+		end
+	end
+	return table.concat(parts, "|")
+end
+
 local function buildEggCard(parent: ScrollingFrame, refs: Refs, egg, state): TextButton
 	local unlocked = canAccessEgg(state, egg)
 	local selected = refs.selectedEggId == egg.id
@@ -360,28 +436,36 @@ local function buildPetCard(parent: ScrollingFrame, refs: Refs, instanceId: stri
 		if selectedForDelete then 0.05 else (if equipped then 0.12 else 0.35)
 	)
 
-	local name = makeSmallLabel(card, def.displayName, UDim2.new(0, 4, 0, 4), UDim2.new(1, -8, 0, 20), 13)
-	name.TextColor3 = TEXT_MAIN
-	name.TextXAlignment = Enum.TextXAlignment.Center
+	createPetCardPreview(card, def, petColor)
 
-	local rarity = makeSmallLabel(card, def.rarity, UDim2.new(0, 4, 0, 26), UDim2.new(1, -8, 0, 16), 11, petColor)
-	rarity.TextXAlignment = Enum.TextXAlignment.Center
+	local textX = PET_PREVIEW_SIZE + 16
+	local textWidth = PET_CARD_SIZE.X - textX - 8
+
+	local name = makeSmallLabel(card, def.displayName, UDim2.new(0, textX, 0, 7), UDim2.new(0, textWidth, 0, 34), 12)
+	name.TextColor3 = TEXT_MAIN
+	name.TextWrapped = true
+	name.TextTruncate = Enum.TextTruncate.AtEnd
+	name.TextXAlignment = Enum.TextXAlignment.Left
+	name.TextYAlignment = Enum.TextYAlignment.Center
+
+	local rarity = makeSmallLabel(card, def.rarity, UDim2.new(0, textX, 0, 44), UDim2.new(0, textWidth, 0, 16), 11, petColor)
+	rarity.TextXAlignment = Enum.TextXAlignment.Left
 
 	local multi = makeSmallLabel(
 		card,
 		"x" .. formatPetMultiplier(petMultiplier(def)) .. " Power",
-		UDim2.new(0, 4, 0, 45),
-		UDim2.new(1, -8, 0, 22),
-		16
+		UDim2.new(0, textX, 0, 62),
+		UDim2.new(0, textWidth, 0, 18),
+		12
 	)
 	multi.TextColor3 = REWARD_GOLD
-	multi.TextXAlignment = Enum.TextXAlignment.Center
+	multi.TextXAlignment = Enum.TextXAlignment.Left
 
 	if refs.deleteMode then
 		local selectButton = Instance.new("TextButton")
 		selectButton.Name = "DeleteSelect"
-		selectButton.Size = UDim2.new(1, -8, 0, 30)
-		selectButton.Position = UDim2.new(0, 4, 1, -34)
+		selectButton.Size = UDim2.new(1, -8, 0, 28)
+		selectButton.Position = UDim2.new(0, 4, 1, -32)
 		Theme.applyButtonStyle(
 			selectButton,
 			if equipped then Color3.fromRGB(48, 55, 64) else (if selectedForDelete then DANGER_RED else SELECT_BLUE)
@@ -407,8 +491,8 @@ local function buildPetCard(parent: ScrollingFrame, refs: Refs, instanceId: stri
 
 	local action = Instance.new("TextButton")
 	action.Name = "Action"
-	action.Size = UDim2.new(1, -8, 0, 26)
-	action.Position = UDim2.new(0, 4, 1, -30)
+	action.Size = UDim2.new(1, -8, 0, 28)
+	action.Position = UDim2.new(0, 4, 1, -32)
 	Theme.applyButtonStyle(action, if equipped then DANGER_RED else DNA_GREEN)
 	action.Text = if equipped then "UNEQUIP" else "EQUIP"
 	action.TextSize = 13
@@ -716,6 +800,7 @@ function PetFrame.create(parent: ScreenGui): Refs
 		selectedDeletePets = {},
 		deleteConfirmUntil = nil,
 		lastState = nil,
+		petGridSignature = nil,
 		previewSpin = 0,
 		previewModel = nil,
 		eggOnlyMode = false,
@@ -920,6 +1005,9 @@ end
 
 function PetFrame.show(refs: Refs, eggOnly: boolean?)
 	setEggOnlyMode(refs, eggOnly == true)
+	if refs.lastState then
+		PetFrame.update(refs, refs.lastState)
+	end
 	UIAnimator.framePopIn(refs.backdrop, refs.root)
 end
 
@@ -979,12 +1067,6 @@ function PetFrame.update(refs: Refs, state)
 	refs.multLabel.Text = "Pet Power: " .. formatPetMultiplier(petMult) .. "x"
 	updateDeleteModeButtons(refs, pets, equipped)
 
-	for _, child in ipairs(refs.scroll:GetChildren()) do
-		if child:IsA("GuiObject") and child.Name:sub(1, 4) == "Pet_" then
-			child:Destroy()
-		end
-	end
-
 	local sorted = {}
 	for instanceId, entry in pairs(pets) do
 		local def = PetConfig.getById(entry.id)
@@ -1000,11 +1082,27 @@ function PetFrame.update(refs: Refs, state)
 		if a.equipped ~= b.equipped then
 			return a.equipped
 		end
-		return petMultiplier(a.def) > petMultiplier(b.def)
+		local aMult = petMultiplier(a.def)
+		local bMult = petMultiplier(b.def)
+		if aMult ~= bMult then
+			return aMult > bMult
+		end
+		return a.instanceId < b.instanceId
 	end)
 
-	for _, entry in ipairs(sorted) do
-		buildPetCard(refs.scroll, refs, entry.instanceId, entry.def, entry.equipped)
+	local petGridSignature = makePetGridSignature(refs, sorted)
+	if refs.petGridSignature ~= petGridSignature then
+		refs.petGridSignature = petGridSignature
+		-- Destroying the card also removes its ViewportFrame WorldModel.
+		for _, child in ipairs(refs.scroll:GetChildren()) do
+			if child:IsA("GuiObject") and child.Name:sub(1, 4) == "Pet_" then
+				child:Destroy()
+			end
+		end
+
+		for _, entry in ipairs(sorted) do
+			buildPetCard(refs.scroll, refs, entry.instanceId, entry.def, entry.equipped)
+		end
 	end
 end
 
