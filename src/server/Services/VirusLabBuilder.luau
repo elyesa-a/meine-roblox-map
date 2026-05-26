@@ -1152,381 +1152,274 @@ local function buildHantavirusEnemyModel(parent, def, basePos, primary, secondar
 	return model
 end
 
--- ---- Ebola-Set fuer Area 3 ----------------------------------------------
--- Schwarzer Koerper mit gluehenden roten Rissen, Tentakeln statt Kopf
--- (Stage 2+), rotes Biohazard auf der Brust. Boss bekommt grosse Tentakel-
--- Anordnung + leuchtende rote Scheibe ueber dem Kopf + Glow-Plattform.
-local function buildEbolaTentacle(parent, startPos, lookForward, length, baseR, segCount, color, glowColor, archDeg)
-	-- Baut eine gekruemmte Tentakel aus Ueberlapp-Kugeln. archDeg < 0 -> die
-	-- Tentakel kruemmt sich nach oben/hinten. archDeg > 0 -> nach unten/vorne.
-	local segLen = length / segCount
-	local cf = CFrame.lookAt(startPos, startPos + lookForward)
-	local stepAngle = math.rad(archDeg / segCount)
-	local lastPos = startPos
-	for i = 1, segCount do
-		local t = (i - 0.5) / segCount
-		local r = baseR * (1 - t * 0.55) + 0.06
-		local segPos = (cf * CFrame.new(0, 0, -segLen / 2)).Position
-		local ball = makePart(parent, "EbolaTentacleSeg", Vector3.new(r * 2, r * 2, r * 2), segPos, color, Enum.Material.SmoothPlastic, false)
-		ball.Shape = Enum.PartType.Ball
-		-- Roter Glow-Riss auf jedem zweiten Segment
-		if i % 2 == 0 then
-			local crack = makePart(parent, "EbolaTentacleCrack", Vector3.new(r * 1.2, r * 0.4, r * 1.2), segPos, glowColor, Enum.Material.Neon, false)
-			crack.Shape = Enum.PartType.Ball
-			crack.Transparency = 0.35
-		end
-		-- Spike auf einem Tentakelteil (Stage-spezifisch -> Caller fuegt das hinzu)
-		lastPos = segPos
-		cf = cf * CFrame.new(0, 0, -segLen) * CFrame.Angles(stepAngle, 0, 0)
-	end
-	-- Glow-"Auge" am Ende der Tentakel
-	local tipPos = (cf * CFrame.new(0, 0, -segLen * 0.2)).Position
-	local eye = makePart(parent, "EbolaTentacleEye", Vector3.new(baseR * 1.6, baseR * 1.6, baseR * 1.6), tipPos, glowColor, Enum.Material.Neon, false)
-	eye.Shape = Enum.PartType.Ball
-	eye.Transparency = 0.05
-	local pl = Instance.new("PointLight")
-	pl.Brightness = 1.5
-	pl.Range = 8
-	pl.Color = glowColor
-	pl.Parent = eye
-	return tipPos
+-- ---- Lebhaftes Monster Ebola-Set fuer Area 3 (Optimiert) -----------------
+-- Schlangenartiges, segmentiertes Tausendfüßler-Monster (Ebola-Stamm)!
+-- Aufgerichteter Körper, spinnenartige Beine, aufgerissenes Maul mit Zähnen,
+-- glühende rote Knotenpunkte und peitschende Tentakel.
+
+local function buildMonsterEbolaTentacle(parent, startPos, lookForward, length, baseR, segCount, archDeg)
+    local segLen = length / segCount
+    local cf = CFrame.lookAt(startPos, startPos + lookForward)
+    local stepAngle = math.rad(archDeg / segCount)
+    
+    for i = 1, segCount do
+        local t = (i - 0.5) / segCount
+        local r = baseR * (1 - t * 0.7) + 0.05
+        local segPos = (cf * CFrame.new(0, 0, -segLen / 2)).Position
+        
+        -- Schwarzes, ledriges Fleisch
+        local flesh = makePart(parent, "EbolaTentacle", Vector3.new(r * 2, r * 2, r * 2), segPos, Color3.fromRGB(20, 20, 22), Enum.Material.SmoothPlastic, false)
+        local mesh = Instance.new("SpecialMesh", flesh); mesh.MeshType = Enum.MeshType.Sphere
+        
+        -- Roter, glühender Kern in jedem Segment
+        if i % 2 == 1 then
+            local glow = makePart(parent, "EbolaTentGlow", Vector3.new(r * 1.5, r * 0.8, r * 1.5), segPos, Color3.fromRGB(255, 30, 40), Enum.Material.Neon, false)
+            local gMesh = Instance.new("SpecialMesh", glow); gMesh.MeshType = Enum.MeshType.Sphere
+        end
+        
+        cf = cf * CFrame.new(0, 0, -segLen) * CFrame.Angles(stepAngle, 0, 0)
+    end
+    
+    -- Spitze: Harte, rote Klaue
+    local tipPos = (cf * CFrame.new(0, 0, -segLen * 0.2)).Position
+    local tip = makePart(parent, "EbolaTentTip", Vector3.new(baseR, baseR, baseR * 3), tipPos, Color3.fromRGB(150, 20, 20), Enum.Material.SmoothPlastic, false)
+    tip.CFrame = cf
 end
 
 local function buildEbolaEnemyModel(parent, def, basePos, primary, secondary)
-	local model = Instance.new("Model")
-	model.Name = def.Id
-	model:SetAttribute("EnemyId", def.Id)
-	model:SetAttribute("AreaName", def.AreaName)
-	model:SetAttribute("IsBoss", def.IsBoss)
-	model.Parent = parent
+    local model = Instance.new("Model")
+    model.Name = def.Id
+    model:SetAttribute("EnemyId", def.Id)
+    model:SetAttribute("AreaName", def.AreaName)
+    model:SetAttribute("IsBoss", def.IsBoss)
+    model.Parent = parent
 
-	local stage = def.EnemyIndex
-	local isBoss = def.IsBoss
-	local totalHeights = { 5.0, 6.2, 7.4, 8.6, 9.8 }
-	local totalH = totalHeights[stage] or 5.0
+    local stage = def.EnemyIndex
+    local isBoss = def.IsBoss
+    local totalHeights = { 4.5, 5.5, 6.5, 7.5, 9.0 }
+    local totalH = totalHeights[stage] or 4.5
 
-	-- Proportionen (Boss deutlich breiter und gewichtiger).
-	local legH = 1.6 + (stage - 1) * 0.45
-	-- Ab Stage 2 hat der Charakter KEINEN richtigen Kopf -> Kopfteil
-	-- schrumpft, dafuer wird die Haupt-Tentakel laenger.
-	local headD = if stage == 1 then 1.8 else 1.1
-	if isBoss then
-		headD = 2.2
-	end
-	local torsoH = totalH - legH - (if stage == 1 then headD * 0.4 else 0.2)
-	if torsoH < 0.8 then
-		torsoH = 0.8
-	end
-	local torsoW = 1.7 + (stage - 1) * 0.38 + (if isBoss then 1.6 else 0)
-	local torsoD = torsoW * 0.6 + (if isBoss then 0.6 else 0)
-	local legW = 0.7 + (stage - 1) * 0.12 + (if isBoss then 0.35 else 0)
+    local groundY = CHAMBER_TOP
+    local cx, cz = basePos.X, basePos.Z
 
-	-- Ebola-Farbpalette: fast schwarz + rot leuchtende Risse.
-	local bodyBlack = Color3.fromRGB(20, 20, 22)
-	local bodyDark = Color3.fromRGB(40, 38, 40)
-	local crackRed = Color3.fromRGB(225, 30, 40)
-	local crackGlow = Color3.fromRGB(255, 70, 80)
-	local biohazardOrange = Color3.fromRGB(255, 110, 70)
-	local armorMetal = Color3.fromRGB(58, 52, 55)
-	local spikeColor = Color3.fromRGB(15, 14, 16)
-	local clawColor = Color3.fromRGB(180, 30, 40)
+    -- Bounding Box (Kalkuliert für ein langes Monster)
+    local boxW = totalH * 0.8 + (if isBoss then 2.0 else 0)
+    local boxH = totalH + (if isBoss then 2.0 else 0.5)
+    local root = makePart(model, "EnemyCore", Vector3.new(boxW, boxH, boxW), Vector3.new(cx, groundY + boxH / 2, cz), Color3.fromRGB(0,0,0), Enum.Material.SmoothPlastic, false)
+    root.CanQuery = true
+    root.Transparency = 1
+    model.PrimaryPart = root
 
-	local groundY = CHAMBER_TOP
-	local hipY = groundY + legH
-	local torsoCenterY = hipY + torsoH / 2
-	local neckY = hipY + torsoH
-	local headCenterY = neckY + headD / 2 - headD * 0.1
-	local cx, cz = basePos.X, basePos.Z
+    -- Farb-Palette
+    local bodyDark = Color3.fromRGB(20, 20, 22)      -- Fast Schwarz
+    local crackRed = Color3.fromRGB(180, 20, 30)     -- Dunkelrot (Fleisch)
+    local neonRed = Color3.fromRGB(255, 40, 50)      -- Grelle rote Energie
+    local toothColor = Color3.fromRGB(220, 220, 200) -- Knochenweiß
 
-	-- EnemyCore = unsichtbare Bounding-Box.
-	local boxW = math.max(torsoW + 0.8 + (if isBoss then 2.4 else 0), headD + 1.0)
-	local boxH = totalH + (if isBoss then 2.5 else 1.2) -- Tentakeln bzw. Scheibe oben
-	local boxD = torsoD + 0.8 + (if isBoss then 1.4 else 0)
-	local root = makePart(model, "EnemyCore", Vector3.new(boxW, boxH, boxD), Vector3.new(cx, groundY + boxH / 2, cz), bodyBlack, Enum.Material.SmoothPlastic, false)
-	root.CanQuery = true
-	root.Transparency = 1
-	model.PrimaryPart = root
+    -- 1. Schlangenartiger Körper (Mehrere Segmente, die sich wie eine Kobra aufrichten)
+    local segCount = 4 + stage + (if isBoss then 3 else 0)
+    local segRadius = totalH * 0.15
+    local headPos = Vector3.new(cx, groundY, cz)
+    local headDir = Vector3.new(0, 0, -1) -- Schaut nach vorne
+    
+    for i = 1, segCount do
+        local t = i / segCount
+        -- Berechne eine S-Kurve für die Aufrichtung
+        local segY = groundY + (t * totalH * 0.8) + segRadius
+        local segZ = cz + math.sin(t * math.pi) * (totalH * 0.3)
+        local segPos = Vector3.new(cx, segY, segZ)
+        
+        -- Speichere die Position für den Kopf (oberstes Segment)
+        if i == segCount then headPos = segPos; headDir = Vector3.new(0, 0.2, -1).Unit end
+        
+        -- Körper-Segment (Blob)
+        local segSize = segRadius * (1.2 - math.abs(t - 0.5) * 0.4)
+        local segment = makePart(model, "EbolaSeg", Vector3.new(segSize*2.2, segSize*1.8, segSize*2.2), segPos, bodyDark, Enum.Material.SmoothPlastic, false)
+        local mesh = Instance.new("SpecialMesh", segment); mesh.MeshType = Enum.MeshType.Sphere
+        
+        -- Glühende Adern im Segment
+        local glow = makePart(model, "EbolaSegGlow", Vector3.new(segSize*1.5, segSize*2.0, segSize*1.5), segPos, neonRed, Enum.Material.Neon, false)
+        local gMesh = Instance.new("SpecialMesh", glow); gMesh.MeshType = Enum.MeshType.Sphere
+        glow.Transparency = 0.2
+        
+        -- 2. Beine (ab den unteren Segmenten)
+        if i < segCount - 1 then
+            for _, side in ipairs({-1, 1}) do
+                local legLen = segSize * 1.8
+                local legX = cx + side * (segSize * 0.8)
+                local legPos = Vector3.new(legX, segY - segSize*0.5, segZ)
+                
+                -- Oberschenkel
+                local leg = makePart(model, "EbolaLeg", Vector3.new(segSize*0.5, legLen, segSize*0.5), legPos, bodyDark, Enum.Material.SmoothPlastic, false)
+                leg.CFrame = CFrame.lookAt(legPos, legPos + Vector3.new(side, -0.8, -0.2)) * CFrame.new(0, 0, -legLen*0.4)
+                
+                -- Unterschenkel / Spitze Klaue (berührt den Boden)
+                local kneePos = (leg.CFrame * CFrame.new(0, 0, -legLen*0.5)).Position
+                local clawLen = legLen * 0.8
+                local claw = makePart(model, "EbolaClaw", Vector3.new(segSize*0.3, segSize*0.3, clawLen), kneePos, crackRed, Enum.Material.SmoothPlastic, false)
+                claw.CFrame = CFrame.lookAt(kneePos, Vector3.new(kneePos.X + side*0.5, groundY, kneePos.Z)) * CFrame.new(0, 0, -clawLen*0.5)
+            end
+        end
+    end
 
-	-- Helper: schwarze Box mit rotem Glow-Riss-Akzent.
-	local function blackBox(name, size, pos)
-		local p = makePart(model, name, size, pos, bodyBlack, Enum.Material.SmoothPlastic, false)
-		return p
-	end
-	local function redCrack(parent_inst, parentSize, parentPos, axis, lengthFrac, offset)
-		-- Setzt einen schmalen roten Glow-Streifen "auf" eine Box (subtle Riss-Look).
-		local crackSize
-		if axis == "Y" then
-			crackSize = Vector3.new(parentSize.X * 0.12, parentSize.Y * lengthFrac, 0.12)
-		elseif axis == "X" then
-			crackSize = Vector3.new(parentSize.X * lengthFrac, parentSize.Y * 0.12, 0.12)
-		else
-			crackSize = Vector3.new(0.12, parentSize.Y * 0.12, parentSize.Z * lengthFrac)
-		end
-		local crack = makePart(model, "EbolaCrack", crackSize, parentPos + offset, crackGlow, Enum.Material.Neon, false)
-		crack.Transparency = 0.25
-		return crack
-	end
+    -- 3. Kopf (Riesiges Monster-Gesicht auf dem letzten Segment)
+    local headSize = segRadius * 2.5
+    local head = makePart(model, "EbolaHead", Vector3.new(headSize*1.2, headSize*0.9, headSize*1.1), headPos, bodyDark, Enum.Material.SmoothPlastic, false)
+    local headMesh = Instance.new("SpecialMesh", head); headMesh.MeshType = Enum.MeshType.Sphere
+    head.CFrame = CFrame.lookAt(headPos, headPos + headDir)
 
-	-- ---- Beine ---------------------------------------------------------
-	local legSpacing = torsoW * 0.32
-	for _, side in ipairs({ -1, 1 }) do
-		local leg = blackBox("EbolaLeg", Vector3.new(legW, legH * 0.9, legW), Vector3.new(cx + side * legSpacing, hipY - legH * 0.5, cz))
-		-- Rote Riss-Streifen vorne
-		redCrack(leg, leg.Size, leg.Position, "Y", 0.7, Vector3.new(side * legW * 0.3, 0, -legW * 0.5 - 0.02))
-		redCrack(leg, leg.Size, leg.Position, "Y", 0.5, Vector3.new(-side * legW * 0.2, legH * 0.1, -legW * 0.5 - 0.02))
-		-- Schwerer Stiefel
-		blackBox("EbolaBoot", Vector3.new(legW * 1.35, legH * 0.22, legW * 1.45), Vector3.new(cx + side * legSpacing, groundY + legH * 0.11, cz + legW * 0.1))
-		-- Kniepanzer ab Stage 3
-		if stage >= 3 then
-			blackBox("EbolaKneePlate", Vector3.new(legW * 1.05, legH * 0.22, legW * 0.7), Vector3.new(cx + side * legSpacing, hipY - legH * 0.45, cz - legW * 0.35))
-		end
-	end
+    -- Furchteinflößendes Maul
+    local mouthW = headSize * 0.8
+    local mouthH = headSize * 0.5
+    local mouthPos = headPos + headDir * (headSize * 0.4) - Vector3.new(0, headSize*0.1, 0)
+    local mouth = makePart(model, "EbolaMouth", Vector3.new(mouthW, mouthH, headSize*0.4), mouthPos, crackRed, Enum.Material.SmoothPlastic, false)
+    local mouthMesh = Instance.new("SpecialMesh", mouth); mouthMesh.MeshType = Enum.MeshType.Sphere
+    mouth.CFrame = CFrame.lookAt(mouthPos, mouthPos + headDir)
 
-	-- ---- Torso (schwerer Brustpanzer) ---------------------------------
-	local torso = blackBox("EbolaTorso", Vector3.new(torsoW, torsoH, torsoD), Vector3.new(cx, torsoCenterY, cz))
-	-- Vertikales Riss-Muster auf Brust
-	redCrack(torso, torso.Size, torso.Position, "Y", 0.7, Vector3.new(-torsoW * 0.28, 0, -torsoD * 0.55))
-	redCrack(torso, torso.Size, torso.Position, "Y", 0.5, Vector3.new(torsoW * 0.32, torsoH * 0.1, -torsoD * 0.55))
-	redCrack(torso, torso.Size, torso.Position, "X", 0.6, Vector3.new(0, -torsoH * 0.28, -torsoD * 0.55))
-	-- Schulterpanzer (alle Stages, mehr Stage = groesser)
-	for _, side in ipairs({ -1, 1 }) do
-		local padW = torsoW * 0.32 + (stage - 1) * 0.1 + (if isBoss then 0.6 else 0)
-		local padH = torsoH * 0.35 + (stage - 1) * 0.08
-		local padX = cx + side * (torsoW * 0.5 + padW * 0.3)
-		local padY = torsoCenterY + torsoH * 0.42
-		local pad = blackBox("EbolaShoulderPad", Vector3.new(padW, padH, torsoD * 1.15), Vector3.new(padX, padY, cz))
-		pad.Orientation = Vector3.new(0, 0, side * -12)
-		-- Glow-Punkt mittig auf Schulter (Reference: kleines rotes "Auge" auf Schulter)
-		if stage >= 2 then
-			local glowDot = makePart(model, "EbolaShoulderGlow", Vector3.new(padW * 0.35, padH * 0.5, padH * 0.5), Vector3.new(padX, padY, cz - torsoD * 0.55), crackGlow, Enum.Material.Neon, false)
-			glowDot.Shape = Enum.PartType.Ball
-			glowDot.Transparency = 0.1
-		end
-		-- Schulter-Spikes ab Stage 3 (rot leuchtende Spitzen)
-		if stage >= 3 then
-			local spikeCount = stage - 1 + (if isBoss then 2 else 0)
-			for k = 1, spikeCount do
-				local sx = padX + (k - (spikeCount + 1) / 2) * 0.45
-				local spikeLen = 0.7 + (stage - 3) * 0.25 + (if isBoss then 0.8 else 0)
-				makePart(model, "EbolaShoulderSpike", Vector3.new(0.34, spikeLen, 0.34), Vector3.new(sx, padY + padH * 0.5 + spikeLen * 0.4, cz), spikeColor, Enum.Material.Metal, false)
-				makePart(model, "EbolaShoulderSpikeTip", Vector3.new(0.4, 0.25, 0.4), Vector3.new(sx, padY + padH * 0.5 + spikeLen * 0.85, cz), crackGlow, Enum.Material.Neon, false)
-			end
-		end
-	end
+    -- Scharfe Zähne (Chaotisch platziert)
+    local toothCount = if stage >= 3 then 10 else 6
+    for i = 1, toothCount do
+        local tPos = (i - (toothCount+1)/2) / toothCount
+        local toothX = tPos * mouthW * 0.8
+        local isUpper = (i % 2 == 0)
+        local toothY = if isUpper then mouthH*0.2 else -mouthH*0.2
+        local tLen = headSize * (0.2 + math.random()*0.15)
+        
+        local tooth = makePart(model, "EbolaTooth", Vector3.new(headSize*0.1, tLen, headSize*0.15), mouthPos, toothColor, Enum.Material.SmoothPlastic, false)
+        tooth.CFrame = mouth.CFrame * CFrame.new(toothX, toothY, -headSize*0.1) * CFrame.Angles(math.rad(if isUpper then 20 else -20), 0, 0)
+    end
 
-	-- ---- Biohazard auf der Brust (gross, hell leuchtend rot-orange) ----
-	local hazardSize = torsoW * 0.42 + (if isBoss then 0.6 else 0)
-	local hazardBacking = makePart(model, "EbolaHazardBacking", Vector3.new(hazardSize * 1.18, hazardSize * 1.18, 0.05), Vector3.new(cx, torsoCenterY, cz - torsoD / 2 - 0.08), bodyBlack, Enum.Material.SmoothPlastic, false)
-	local hazard = makePart(model, "EbolaHazard", Vector3.new(hazardSize, hazardSize, 0.06), Vector3.new(cx, torsoCenterY, cz - torsoD / 2 - 0.12), biohazardOrange, Enum.Material.Neon, false)
-	hazard.Transparency = 0.05
-	local hazardLight = Instance.new("PointLight")
-	hazardLight.Brightness = if isBoss then 2.5 else 1.2
-	hazardLight.Range = if isBoss then 18 else 10
-	hazardLight.Color = biohazardOrange
-	hazardLight.Parent = hazard
+    -- Asymmetrische, glühende Augen
+    for i, side in ipairs({-1, 1}) do
+        local eyeSize = headSize * (if i == 1 then 0.25 else 0.4) -- Rechts ist deutlich größer
+        local eyeY = headSize * 0.25
+        local eyeX = side * headSize * 0.35
+        
+        local eye = makePart(model, "EbolaEye", Vector3.new(eyeSize, eyeSize, eyeSize), headPos, neonRed, Enum.Material.Neon, false)
+        local eyeMesh = Instance.new("SpecialMesh", eye); eyeMesh.MeshType = Enum.MeshType.Sphere
+        eye.CFrame = head.CFrame * CFrame.new(eyeX, eyeY, -headSize*0.35)
+        
+        -- Pupille (Schlitz)
+        local pupil = makePart(model, "EbolaPupil", Vector3.new(eyeSize*0.2, eyeSize*0.8, eyeSize*0.2), eye.Position, Color3.fromRGB(0,0,0), Enum.Material.SmoothPlastic, false)
+        pupil.CFrame = eye.CFrame * CFrame.new(0, 0, -eyeSize*0.4)
+    end
+    
+    -- PointLight für die Augen/Kopf
+    local pl = Instance.new("PointLight")
+    pl.Brightness = if isBoss then 3 else 1.5
+    pl.Range = if isBoss then 20 else 12
+    pl.Color = neonRed
+    pl.Parent = head
 
-	-- ---- Arme + Klauen -------------------------------------------------
-	local armLen = torsoH * 0.95
-	local armW = torsoW * 0.22 + (stage - 1) * 0.05
-	for _, side in ipairs({ -1, 1 }) do
-		local armX = cx + side * (torsoW * 0.55 + armW * 0.3)
-		local armY = torsoCenterY - torsoH * 0.05
-		local arm = blackBox("EbolaArm", Vector3.new(armW, armLen, armW), Vector3.new(armX, armY, cz))
-		-- Rote Risse auf Arm
-		redCrack(arm, arm.Size, arm.Position, "Y", 0.6, Vector3.new(0, 0, -armW * 0.55))
-		-- Hand: schwarze Faust + 3 rote Klauen ab Stage 2
-		local handSize = armW * 1.4
-		local handY = armY - armLen * 0.5 - handSize * 0.3
-		local hand = blackBox("EbolaHand", Vector3.new(handSize, handSize * 0.85, handSize), Vector3.new(armX, handY, cz))
-		hand.Shape = Enum.PartType.Ball
-		if stage >= 2 then
-			local clawCount = 3
-			for k = -1, 1 do
-				local cxx = armX + k * handSize * 0.32
-				local clawLen = handSize * (0.85 + (stage - 2) * 0.25)
-				makePart(model, "EbolaClaw", Vector3.new(0.24, clawLen, 0.24), Vector3.new(cxx, handY - clawLen * 0.5, cz + handSize * 0.1), clawColor, Enum.Material.Metal, false)
-				makePart(model, "EbolaClawTip", Vector3.new(0.28, 0.22, 0.28), Vector3.new(cxx, handY - clawLen - 0.05, cz + handSize * 0.1), crackGlow, Enum.Material.Neon, false)
-			end
-		end
-	end
+    -- 4. Peitschende Tentakel (Aus dem Rücken / den Seiten)
+    local tentCount = 2 + stage + (if isBoss then 6 else 0)
+    for i = 1, tentCount do
+        local tAngle = (i / tentCount) * math.pi * 2
+        local tDir = Vector3.new(math.cos(tAngle), 0.5, math.sin(tAngle)).Unit
+        local startP = headPos - headDir*(headSize*0.3) + tDir*(headSize*0.5)
+        
+        buildMonsterEbolaTentacle(model, startP, tDir, totalH * 0.6, segRadius * 0.6, 6, 45)
+    end
 
-	-- ---- Kopf-Bereich --------------------------------------------------
-	-- Stage 1: hat noch einen blocky Kopf (mit roten Augen) + 1 Tentakel hinten
-	-- Stage 2+: Kopf wird durch Tentakel ersetzt (kleiner Stumpf am Hals)
-	if stage == 1 then
-		local head = blackBox("EbolaHead", Vector3.new(headD * 0.9, headD * 0.95, headD * 0.95), Vector3.new(cx, headCenterY, cz))
-		-- Rote Risse auf Stirn/Wangen
-		redCrack(head, head.Size, head.Position, "Y", 0.6, Vector3.new(-headD * 0.2, 0, -headD * 0.48))
-		redCrack(head, head.Size, head.Position, "Y", 0.5, Vector3.new(headD * 0.2, -headD * 0.1, -headD * 0.48))
-		-- Augen
-		for _, side in ipairs({ -1, 1 }) do
-			local eye = makePart(model, "EbolaEye", Vector3.new(headD * 0.16, headD * 0.16, 0.12), Vector3.new(cx + side * headD * 0.22, headCenterY + headD * 0.05, cz - headD * 0.48), crackGlow, Enum.Material.Neon, false)
-			eye.Shape = Enum.PartType.Ball
-		end
-	else
-		-- Kragen / Hals-Stumpf
-		blackBox("EbolaNeckStump", Vector3.new(headD * 1.1, headD * 0.7, headD * 1.1), Vector3.new(cx, neckY + headD * 0.15, cz))
-	end
+    -- ---- BOSS Extras --------------------------
+    if isBoss then
+        -- Gewaltige "Biohazard" Tentakel-Krone
+        for k = 1, 8 do
+            local a = (k / 8) * math.pi * 2
+            local dir = Vector3.new(math.sin(a), 1.2, math.cos(a)).Unit
+            buildMonsterEbolaTentacle(model, headPos + Vector3.new(0, headSize*0.4, 0), dir, totalH * 0.8, segRadius * 0.8, 8, -60)
+        end
+        
+        -- Glühende Area unter dem Boss
+        local puddle = makePart(model, "BossEbolaPuddle", Vector3.new(totalH * 2.5, 0.2, totalH * 2.5), Vector3.new(cx, groundY + 0.1, cz), neonRed, Enum.Material.Neon, false)
+        puddle.Shape = Enum.PartType.Cylinder
+        puddle.Orientation = Vector3.new(0, 0, 90)
+        puddle.Transparency = 0.6
+    end
 
-	-- ---- Tentakel (Hauptarchitektur ab Stage 1) -----------------------
-	-- Jede Tentakel: Position + Anfangsrichtung + Laenge + Bogenwinkel.
-	local tentacleConfigs = {}
-	local mainTentLen = totalH * (0.55 + (stage - 1) * 0.07) + (if isBoss then totalH * 0.2 else 0)
-	if stage == 1 then
-		-- 1 Tentakel: aus dem Oberruecken, ueber den Kopf gebogen.
-		table.insert(tentacleConfigs, { startPos = Vector3.new(cx, neckY + 0.2, cz + 0.2), dir = Vector3.new(0, 1, -0.1).Unit, length = mainTentLen, baseR = 0.32, segs = 8, arch = 120 })
-	elseif stage == 2 then
-		-- 1 grosse Tentakel statt Kopf + 1 kleinere aus dem Ruecken.
-		table.insert(tentacleConfigs, { startPos = Vector3.new(cx, neckY + 0.2, cz - 0.1), dir = Vector3.new(0, 1, -0.2).Unit, length = mainTentLen, baseR = 0.38, segs = 9, arch = 140 })
-		table.insert(tentacleConfigs, { startPos = Vector3.new(cx - torsoW * 0.3, neckY + 0.1, cz + torsoD * 0.4), dir = Vector3.new(-0.3, 1, 0.2).Unit, length = mainTentLen * 0.5, baseR = 0.22, segs = 5, arch = 70 })
-	elseif stage == 3 then
-		-- 1 Haupt-Kopftentakel + 2 Schulter-Tentakel.
-		table.insert(tentacleConfigs, { startPos = Vector3.new(cx, neckY + 0.2, cz - 0.1), dir = Vector3.new(0, 1, -0.15).Unit, length = mainTentLen, baseR = 0.4, segs = 10, arch = 110 })
-		for _, side in ipairs({ -1, 1 }) do
-			table.insert(tentacleConfigs, { startPos = Vector3.new(cx + side * torsoW * 0.45, torsoCenterY + torsoH * 0.4, cz + torsoD * 0.3), dir = Vector3.new(side * 0.4, 1, 0.1).Unit, length = mainTentLen * 0.7, baseR = 0.26, segs = 7, arch = 80 })
-		end
-	elseif stage == 4 then
-		-- 1 Haupt + 4 Seiten-Tentakel im Faecher.
-		table.insert(tentacleConfigs, { startPos = Vector3.new(cx, neckY + 0.2, cz - 0.05), dir = Vector3.new(0, 1, -0.1).Unit, length = mainTentLen * 1.05, baseR = 0.42, segs = 10, arch = 130 })
-		for _, side in ipairs({ -1, 1 }) do
-			table.insert(tentacleConfigs, { startPos = Vector3.new(cx + side * torsoW * 0.45, torsoCenterY + torsoH * 0.45, cz + torsoD * 0.3), dir = Vector3.new(side * 0.5, 0.9, 0.2).Unit, length = mainTentLen * 0.75, baseR = 0.28, segs = 7, arch = 90 })
-			table.insert(tentacleConfigs, { startPos = Vector3.new(cx + side * torsoW * 0.35, torsoCenterY + torsoH * 0.15, cz + torsoD * 0.4), dir = Vector3.new(side * 0.7, 0.5, 0.4).Unit, length = mainTentLen * 0.55, baseR = 0.22, segs = 5, arch = 60 })
-		end
-	else -- Boss
-		-- Massive Tentakel-Anordnung (6 Stueck) hinter und ueber dem Boss.
-		for k = 1, 6 do
-			local angle = (k - 3.5) / 5 * math.rad(110)
-			local dir = Vector3.new(math.sin(angle), 0.8, math.cos(angle) * 0.3 + 0.4).Unit
-			local startX = cx + math.sin(angle) * torsoW * 0.45
-			local startY = neckY + 0.2 + math.cos(angle * 0.5) * 0.3
-			local startZ = cz + torsoD * 0.25
-			table.insert(tentacleConfigs, { startPos = Vector3.new(startX, startY, startZ), dir = dir, length = mainTentLen * (0.85 + math.cos(angle) * 0.15), baseR = 0.42, segs = 11, arch = 100 + math.abs(angle) * 25 })
-		end
-	end
-	for _, tc in ipairs(tentacleConfigs) do
-		buildEbolaTentacle(model, tc.startPos, tc.dir, tc.length, tc.baseR, tc.segs, bodyDark, crackGlow, tc.arch)
-	end
+    -- ---- Bloody Mist-Partikel ----------------------------------------
+    local mist = Instance.new("ParticleEmitter")
+    mist.Name = "BloodMist"
+    mist.Texture = "rbxasset://textures/particles/smoke_main.dds"
+    mist.Color = ColorSequence.new(neonRed, crackRed)
+    mist.LightEmission = 0.4
+    mist.Rate = if isBoss then 25 else 8 + stage
+    mist.Lifetime = NumberRange.new(1.0, 2.0)
+    mist.Speed = NumberRange.new(0.5, 1.5)
+    mist.Acceleration = Vector3.new(0, 1, 0)
+    mist.SpreadAngle = Vector2.new(90, 90)
+    mist.Size = NumberSequence.new(0.8, 1.5)
+    mist.Parent = head
 
-	-- ---- BOSS Extras: leuchtende rote Halo-Scheibe + Glow-Plattform ----
-	if isBoss then
-		local haloY = headCenterY + 4.5
-		-- Aussenring
-		local haloOuter = makePart(model, "BossEbolaHaloOuter", Vector3.new(0.5, 5.4, 5.4), Vector3.new(cx, haloY, cz + 0.2), spikeColor, Enum.Material.Metal, false)
-		haloOuter.Shape = Enum.PartType.Cylinder
-		haloOuter.Orientation = Vector3.new(0, 0, 90)
-		-- Innenscheibe (Neon)
-		local haloDisc = makePart(model, "BossEbolaHaloDisc", Vector3.new(0.6, 4.4, 4.4), Vector3.new(cx, haloY, cz + 0.2), crackGlow, Enum.Material.Neon, false)
-		haloDisc.Shape = Enum.PartType.Cylinder
-		haloDisc.Orientation = Vector3.new(0, 0, 90)
-		haloDisc.Transparency = 0.1
-		-- Zacken um den Halo (12 Stueck)
-		for k = 0, 11 do
-			local a = (k / 12) * math.pi * 2
-			local zx = cx + math.cos(a) * 2.8
-			local zy = haloY + math.sin(a) * 2.8
-			local zack = makePart(model, "BossEbolaHaloSpike", Vector3.new(0.45, 0.9, 0.45), Vector3.new(zx, zy, cz + 0.2), bodyBlack, Enum.Material.Metal, false)
-			zack.Orientation = Vector3.new(0, 0, math.deg(a) + 90)
-		end
-		local haloLight = Instance.new("PointLight")
-		haloLight.Brightness = 3
-		haloLight.Range = 30
-		haloLight.Color = crackGlow
-		haloLight.Parent = haloDisc
-		-- Glow-Plattform unter dem Boss (BossPad-Vertrag)
-		local ring = makePart(model, "BossPad", Vector3.new(0.5, totalH * 1.15, totalH * 1.15), Vector3.new(basePos.X, CHAMBER_TOP + 1.25, basePos.Z), crackGlow, Enum.Material.Neon, false)
-		ring.Shape = Enum.PartType.Cylinder
-		ring.Orientation = Vector3.new(0, 0, 90)
-		ring.Transparency = 0.3
-		-- Aeusserer Ring-Glow auf dem Boden
-		local floor1 = makePart(model, "BossEbolaFloorGlow", Vector3.new(0.25, totalH * 1.6, totalH * 1.6), Vector3.new(basePos.X, CHAMBER_TOP + 0.18, basePos.Z), crackRed, Enum.Material.Neon, false)
-		floor1.Shape = Enum.PartType.Cylinder
-		floor1.Orientation = Vector3.new(0, 0, 90)
-		floor1.Transparency = 0.5
-	end
+    -- ---- Bewegung -----------------------------------------------------
+    local arche = ENEMY_ARCHETYPE[def.Shape] or ENEMY_ARCHETYPE.Blob
+    local ranges = {
+        Ground = { rx = 6, rz = 9, sp = 3.5, bob = 0.5 },
+        Sway = { rx = 5, rz = 9, sp = 2.0, bob = 0.3 },
+        Hop = { rx = 6, rz = 10, sp = 3.5, bob = 1.8 },
+        Crawl = { rx = 8, rz = 12, sp = 5.0, bob = 0.3 }, -- Crawl ist perfekt für Tausendfüßler!
+        Hover = { rx = 5, rz = 8, sp = 2.2, bob = 1.2 },
+        Static = { rx = 0, rz = 0, sp = 0, bob = 0 },
+    }
+    -- Forciere krabbelnde Bewegung
+    local mv = ranges["Crawl"]
+    model:SetAttribute("MoveStyle", "Crawl")
+    model:SetAttribute("HomeX", cx)
+    model:SetAttribute("HomeY", root.Position.Y)
+    model:SetAttribute("HomeZ", cz)
+    model:SetAttribute("MoveRangeX", mv.rx)
+    model:SetAttribute("MoveRangeZ", mv.rz)
+    model:SetAttribute("MoveSpeed", mv.sp)
+    model:SetAttribute("BobAmp", mv.bob)
+    model:SetAttribute("EnemyKind", "EbolaCentipedeMonster")
 
-	-- ---- Roter Rauch / Aura Partikel ----------------------------------
-	local steam = Instance.new("ParticleEmitter")
-	steam.Name = "EbolaAura"
-	steam.Texture = "rbxasset://textures/particles/smoke_main.dds"
-	steam.Color = ColorSequence.new(crackGlow, tint(crackRed, bodyBlack, 0.6))
-	steam.LightEmission = 0.25
-	steam.Rate = if isBoss then 14 else 2 + stage
-	steam.Lifetime = NumberRange.new(1.0, 1.8)
-	steam.Speed = NumberRange.new(0.6, 1.4)
-	steam.Acceleration = Vector3.new(0, 1.5, 0)
-	steam.SpreadAngle = Vector2.new(40, 40)
-	steam.Size = NumberSequence.new(0.5, 0.1)
-	steam.Parent = torso
+    -- ---- Health-Bar ---------------------------------------------------
+    local barScale = if isBoss then 1.6 else 1.2
+    local barY = groundY + totalH + (if isBoss then 3.5 else 1.5)
+    local barBack = makePart(model, "HealthBarBack", Vector3.new(8 * barScale, 0.6, 0.3), Vector3.new(cx, barY, cz), Color3.fromRGB(16, 20, 26), Enum.Material.SmoothPlastic, false)
+    local barFill = makePart(model, "HealthBarFill", Vector3.new(7.6 * barScale, 0.4, 0.4), Vector3.new(cx, barY + 0.02, cz - 0.05), Color3.fromRGB(255, 60, 70), Enum.Material.Neon, false)
+    barFill.Transparency = 0.1
+    barFill:SetAttribute("MaxWidth", 7.6 * barScale)
+    barFill:SetAttribute("FullCenterX", barFill.Position.X)
 
-	-- ---- Bewegung -----------------------------------------------------
-	local arche = ENEMY_ARCHETYPE[def.Shape] or ENEMY_ARCHETYPE.Blob
-	local ranges = {
-		Ground = { rx = 7, rz = 12, sp = 3.2, bob = 0.45 },
-		Sway = { rx = 5, rz = 14, sp = 2.4, bob = 0.3 },
-		Hop = { rx = 6, rz = 11, sp = 3.6, bob = 2.6 },
-		Crawl = { rx = 9, rz = 15, sp = 6.5, bob = 0.25 },
-		Hover = { rx = 8, rz = 14, sp = 3.4, bob = 1.9 },
-		Static = { rx = 0, rz = 0, sp = 0, bob = 0 },
-	}
-	local mv = ranges[arche.move] or ranges.Ground
-	model:SetAttribute("MoveStyle", arche.move)
-	model:SetAttribute("HomeX", cx)
-	model:SetAttribute("HomeY", root.Position.Y)
-	model:SetAttribute("HomeZ", cz)
-	model:SetAttribute("MoveRangeX", mv.rx)
-	model:SetAttribute("MoveRangeZ", mv.rz)
-	model:SetAttribute("MoveSpeed", mv.sp)
-	model:SetAttribute("BobAmp", mv.bob)
-	model:SetAttribute("EnemyKind", "Ebola")
+    -- ---- AttackClick + Boss-Prompt ------------------------------------
+    local clicker = Instance.new("ClickDetector")
+    clicker.Name = "AttackClick"
+    clicker.MaxActivationDistance = EnemyConfig.AttackDistance
+    clicker.Parent = root
 
-	-- ---- Health-Bar ---------------------------------------------------
-	local barScale = if isBoss then 1.9 else 1
-	local barY = groundY + totalH + (if isBoss then 3.4 else 1.8)
-	local barBack = makePart(model, "HealthBarBack", Vector3.new(13 * barScale, 0.8, 0.4), Vector3.new(cx, barY, cz), Color3.fromRGB(16, 20, 26), Enum.Material.SmoothPlastic, false)
-	local barFill = makePart(model, "HealthBarFill", Vector3.new(12.4 * barScale, 0.5, 0.55), Vector3.new(cx, barY + 0.02, cz - 0.06), Color3.fromRGB(95, 255, 125), Enum.Material.Neon, false)
-	barFill.Transparency = 0.12
-	barFill:SetAttribute("MaxWidth", 12.4 * barScale)
-	barFill:SetAttribute("FullCenterX", barFill.Position.X)
+    if isBoss then
+        local prompt = Instance.new("ProximityPrompt")
+        prompt.Name = "StartBossFight"
+        prompt.KeyboardKeyCode = Enum.KeyCode.E
+        prompt.HoldDuration = 1
+        prompt.ActionText = "Start Boss Fight"
+        prompt.ObjectText = def.DisplayName
+        prompt.MaxActivationDistance = EnemyConfig.BossPromptDistance
+        prompt.RequiresLineOfSight = false
+        prompt.Parent = root
+    end
 
-	-- ---- AttackClick + Boss-Prompt ------------------------------------
-	local clicker = Instance.new("ClickDetector")
-	clicker.Name = "AttackClick"
-	clicker.MaxActivationDistance = EnemyConfig.AttackDistance
-	clicker.Parent = root
+    -- ---- Info-Label ---------------------------------------------------
+    local prefix = if isBoss then "★ BOSS ★\n" else ""
+    label(
+        root,
+        string.format(
+            "%s%s\nHP: %s\nSTR: %s\nDNA: %s",
+            prefix,
+            def.DisplayName,
+            NumberFormatter.format(def.MaxHealth),
+            NumberFormatter.format(def.Strength),
+            NumberFormatter.format(def.DNAReward)
+        ),
+        Color3.fromRGB(255, 255, 255),
+        if isBoss then 60 else 34,
+        UDim2.fromOffset(if isBoss then 280 else 190, if isBoss then 104 else 76),
+        Vector3.new(0, boxH / 2 + 1.5, 0)
+    )
 
-	if isBoss then
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = "StartBossFight"
-		prompt.KeyboardKeyCode = Enum.KeyCode.E
-		prompt.HoldDuration = 1
-		prompt.ActionText = "Start Boss Fight"
-		prompt.ObjectText = def.DisplayName
-		prompt.MaxActivationDistance = EnemyConfig.BossPromptDistance
-		prompt.RequiresLineOfSight = false
-		prompt.Parent = root
-	end
-
-	-- ---- Info-Label ---------------------------------------------------
-	local prefix = if isBoss then "★ BOSS ★\n" else ""
-	label(
-		root,
-		string.format(
-			"%s%s\nHP: %s\nSTR: %s\nDNA: %s",
-			prefix,
-			def.DisplayName,
-			NumberFormatter.format(def.MaxHealth),
-			NumberFormatter.format(def.Strength),
-			NumberFormatter.format(def.DNAReward)
-		),
-		Color3.fromRGB(255, 255, 255),
-		if isBoss then 60 else 34,
-		UDim2.fromOffset(if isBoss then 280 else 190, if isBoss then 104 else 76),
-		Vector3.new(0, boxH / 2 + 3, 0)
-	)
-
-	return model
+    return model
 end
-
 -- ---- Influenza-Set fuer Area 4 -------------------------------------------
 -- Humanoide Wesen mit Virus-Spikeprotein-Kopf (rundlich-knubblige Spikes).
 -- Progressive Mutation: Stage 1 simpel gruen, ab Stage 2 lila Federbuesche,
