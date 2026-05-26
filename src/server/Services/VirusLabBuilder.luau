@@ -7830,9 +7830,10 @@ local function buildAreaAuraStation(parent: Instance, area)
 		return
 	end
 
-	local gateX = area.hallCenterX + L.GateOffsetX
-	local stationX = gateX - 34
-	local stationZ = 25
+	local eggShopX = area.hallCenterX + L.GateOffsetX - (L.EnemySpacing + 12)
+	local eggShopZ = BACTERIA_RIGHT_LIMIT_Z + math.min(30, (CORRIDOR_MAX_Z - BACTERIA_RIGHT_LIMIT_Z) * 0.35)
+	local stationX = eggShopX - 28
+	local stationZ = eggShopZ
 	local accent = area.primaryColor:Lerp(Color3.fromRGB(132, 116, 170), 0.3)
 	local station = Instance.new("Folder")
 	station.Name = "AreaAuraStation_" .. tostring(area.index)
