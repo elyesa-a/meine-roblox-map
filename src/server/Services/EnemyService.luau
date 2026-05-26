@@ -427,8 +427,13 @@ local function stepEnemyTowardPlayer(state: EnemyState, player: Player, dt: numb
 
 	if distance <= EnemyConfig.EnemyAttackRange then
 		local facing = getSmoothFacing(state.model, flatDelta, 0.3)
-		local lookPos = Vector3.new(enemyPos.X, enemyPos.Y, enemyPos.Z)
-		state.model:PivotTo(CFrame.lookAt(lookPos, lookPos + facing))
+		local t = os.clock() + (state.def.GlobalIndex or 0) * 0.17
+		local baseY = getHomePosition(state).Y
+		local isStageOne = state.def.AreaIndex == 1
+		local lookPos = Vector3.new(enemyPos.X, baseY + (if isStageOne then 0 else math.sin(t * 3.4) * 0.08), enemyPos.Z)
+		local breathing = math.sin(t * 2.2) * math.rad(if isStageOne then 0.7 else 1.6)
+		local readyLean = math.cos(t * 1.7) * math.rad(if isStageOne then 0.5 else 1.2)
+		state.model:PivotTo(CFrame.lookAt(lookPos, lookPos + facing) * CFrame.Angles(breathing, 0, readyLean))
 		return
 	end
 
@@ -446,9 +451,15 @@ local function stepEnemyTowardPlayer(state: EnemyState, player: Player, dt: numb
 		nextPos = Vector3.new(origin.X + clamped.X, nextPos.Y, origin.Z + clamped.Z)
 	end
 	local facing = getSmoothFacing(state.model, flatDelta, 0.38)
-	local bob = math.sin(os.clock() * 7) * 0.12
-	local pivotPos = Vector3.new(nextPos.X, nextPos.Y + bob, nextPos.Z)
-	state.model:PivotTo(CFrame.lookAt(pivotPos, pivotPos + facing))
+	local t = os.clock() + (state.def.GlobalIndex or 0) * 0.17
+	local baseY = getHomePosition(state).Y
+	local runPulse = math.sin(t * 8.5)
+	local isStageOne = state.def.AreaIndex == 1
+	local bob = if isStageOne then 0 else math.abs(runPulse) * 0.16
+	local pitch = -math.abs(runPulse) * math.rad(if isStageOne then 0.8 else 2.6)
+	local roll = math.sin(t * 5.8) * math.rad(if isStageOne then 1.2 else 3.4)
+	local pivotPos = Vector3.new(nextPos.X, baseY + bob, nextPos.Z)
+	state.model:PivotTo(CFrame.lookAt(pivotPos, pivotPos + facing) * CFrame.Angles(pitch, 0, roll))
 end
 
 local function startEnemyChaseLoop(state: EnemyState, player: Player, token: number)
