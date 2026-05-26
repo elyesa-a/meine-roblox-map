@@ -3,7 +3,6 @@
 -- Server hat trotzdem das letzte Wort (AntiExploit hartet auf 10/s).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
 
 local Modules = ReplicatedStorage:WaitForChild("Modules")
@@ -182,7 +181,13 @@ local function isOverBlockingGui(inputPosition: Vector2, allowedButton: TextButt
 	if not screenGui then
 		return false
 	end
-	for _, guiObject in ipairs(GuiService:GetGuiObjectsAtPosition(inputPosition.X, inputPosition.Y)) do
+	-- GetGuiObjectsAtPosition lebt auf PlayerGui (LayerCollector), NICHT auf
+	-- GuiService. Wir greifen ueber das ScreenGui des Buttons zur PlayerGui.
+	local playerGui = screenGui:FindFirstAncestorOfClass("PlayerGui")
+	if not playerGui then
+		return false
+	end
+	for _, guiObject in ipairs(playerGui:GetGuiObjectsAtPosition(inputPosition.X, inputPosition.Y)) do
 		if guiObject.Name == "FloatingText" then
 			continue
 		end
