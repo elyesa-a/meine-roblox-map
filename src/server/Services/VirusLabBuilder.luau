@@ -4073,463 +4073,290 @@ local function buildCytokineStormEnemyModel(parent, def, basePos, primary, secon
 	return model
 end
 
--- ---- Crimson Maw-Set fuer Area 10 (Final-Endgame) -----------------------
--- Schwarzer Koerper mit crimson roten Glow-Rissen. Charakter-Highlight: das
--- riesige zaehnige Demon-Maul auf dem Kopf, sun-ray Brust-Core, Tentakel.
--- Boss = absolute Endgame-Optik mit Krone, Tentakelschwarm und Ketten.
-local function buildCrimsonTentacle(parent, startPos, lookForward, length, baseR, segCount, archDeg)
-	-- Schwarzer Tentakel mit roten Glow-Risse-Knoten, kleiner Glow-Tip.
-	local bodyDark = Color3.fromRGB(35, 18, 22)
-	local glowRed = Color3.fromRGB(255, 58, 65)
-	local segLen = length / segCount
-	local cf = CFrame.lookAt(startPos, startPos + lookForward)
-	local stepAngle = math.rad(archDeg / segCount)
-	for i = 1, segCount do
-		local t = (i - 0.5) / segCount
-		local r = baseR * (1 - t * 0.5) + 0.05
-		local segPos = (cf * CFrame.new(0, 0, -segLen / 2)).Position
-		local ball = makePart(parent, "CrimsonTentSeg", Vector3.new(r * 2, r * 2, r * 2), segPos, bodyDark, Enum.Material.SmoothPlastic, false)
-		ball.Shape = Enum.PartType.Ball
-		if i % 2 == 0 then
-			local crack = makePart(parent, "CrimsonTentGlow", Vector3.new(r * 1.2, r * 0.4, r * 1.2), segPos, glowRed, Enum.Material.Neon, false)
-			crack.Shape = Enum.PartType.Ball
-			crack.Transparency = 0.3
-		end
-		cf = cf * CFrame.new(0, 0, -segLen) * CFrame.Angles(stepAngle, 0, 0)
-	end
-	-- Tip: kleine Glow-Spitze
-	local tipPos = (cf * CFrame.new(0, 0, -segLen * 0.3)).Position
-	local tip = makePart(parent, "CrimsonTentTip", Vector3.new(baseR * 1.4, baseR * 1.4, baseR * 1.4), tipPos, glowRed, Enum.Material.Neon, false)
-	tip.Shape = Enum.PartType.Ball
-	tip.Transparency = 0.1
+-- ---- Biomecha Hive-Lord Set fuer Area 10 (Optimiertes Final-Endgame) ----
+-- Biomechanische Verschmelzung: Fleischige Tentakel mit Metall-Panzerung,
+-- pulsierender Kern, mechanische Krone und schwebende konzentrische Ringe.
+
+local function buildBiomechaTentacle(parent, startPos, lookForward, length, baseR, segCount, archDeg, isBoss)
+    local fleshColor = Color3.fromRGB(130, 40, 50) -- Dunkles Fleisch/Blut
+    local armorColor = Color3.fromRGB(30, 35, 40)  -- Dunkles Metall
+    
+    local segLen = length / segCount
+    local cf = CFrame.lookAt(startPos, startPos + lookForward)
+    local stepAngle = math.rad(archDeg / segCount)
+    
+    for i = 1, segCount do
+        local t = (i - 0.5) / segCount
+        local r = baseR * (1 - t * 0.5) + 0.05
+        local segPos = (cf * CFrame.new(0, 0, -segLen / 2)).Position
+        
+        -- Organisches Fleisch-Segment des Tentakels
+        -- Wir nutzen hier makePart, da dies die Hilfsfunktion deines Skripts zu sein scheint
+        local flesh = makePart(parent, "BiomechaTentFlesh", Vector3.new(r * 2, r * 2.2, r * 2), segPos, fleshColor, Enum.Material.CorrodedMetal, false)
+        flesh.Shape = Enum.PartType.Ball
+        
+        -- Mechanische Panzerung an der Oberseite (wächst heraus)
+        if i % 2 == 1 then
+            local armor = makePart(parent, "BiomechaTentArmor", Vector3.new(r * 2.2, r * 0.8, r * 2.2), segPos, armorColor, Enum.Material.Metal, false)
+            armor.CFrame = cf * CFrame.new(0, r * 0.8, -segLen / 2)
+            
+            -- Cyan Tech-Glow Linien in der Rüstung
+            local glow = makePart(parent, "BiomechaTentGlow", Vector3.new(r * 0.4, r * 0.9, r * 1.5), armor.Position, Color3.fromRGB(0, 255, 255), Enum.Material.Neon, false)
+            glow.CFrame = armor.CFrame
+        end
+        
+        -- Schwarm-Dronen/Käfer auf den Tentakeln (Boss-Exklusiv)
+        if isBoss and i % 3 == 0 then
+            local bugPos = (cf * CFrame.new(r * 0.8, r * 0.5, -segLen / 2) * CFrame.Angles(0, math.rad(45), 0)).Position
+            local bug = makePart(parent, "SwarmDrone", Vector3.new(r * 0.8, r * 0.4, r * 1.2), bugPos, Color3.fromRGB(20, 20, 25), Enum.Material.Metal, false)
+            bug.CFrame = cf * CFrame.new(r * 0.8, r * 0.5, -segLen / 2) * CFrame.Angles(0, math.rad(45), 0)
+            
+            local bugEye = makePart(parent, "SwarmDroneEye", Vector3.new(r * 0.2, r * 0.2, r * 0.2), bug.Position, Color3.fromRGB(255, 0, 50), Enum.Material.Neon, false)
+            bugEye.CFrame = bug.CFrame * CFrame.new(0, 0, -r * 0.6)
+        end
+        
+        cf = cf * CFrame.new(0, 0, -segLen) * CFrame.Angles(stepAngle, 0, 0)
+    end
+    
+    -- Spitze: Harte Metall-Klaue
+    local tipPos = (cf * CFrame.new(0, 0, -segLen * 0.3)).Position
+    local tip = makePart(parent, "BiomechaTentTip", Vector3.new(baseR * 0.8, baseR * 0.8, baseR * 2), tipPos, armorColor, Enum.Material.Metal, false)
+    tip.CFrame = cf
 end
 
 local function buildCrimsonMawEnemyModel(parent, def, basePos, primary, secondary)
-	local model = Instance.new("Model")
-	model.Name = def.Id
-	model:SetAttribute("EnemyId", def.Id)
-	model:SetAttribute("AreaName", def.AreaName)
-	model:SetAttribute("IsBoss", def.IsBoss)
-	model.Parent = parent
+    local model = Instance.new("Model")
+    model.Name = def.Id
+    model:SetAttribute("EnemyId", def.Id)
+    model:SetAttribute("AreaName", def.AreaName)
+    model:SetAttribute("IsBoss", def.IsBoss)
+    model.Parent = parent
 
-	local stage = def.EnemyIndex
-	local isBoss = def.IsBoss
-	local totalHeights = { 5.0, 6.2, 7.4, 8.6, 9.8 }
-	local totalH = totalHeights[stage] or 5.0
+    local stage = def.EnemyIndex
+    local isBoss = def.IsBoss
+    local totalHeights = { 5.0, 6.2, 7.4, 8.6, 9.8 }
+    local totalH = totalHeights[stage] or 5.0
+    
+    local legH = 1.6 + (stage - 1) * 0.45
+    local headD = 2.0 + (stage - 1) * 0.32 + (if isBoss then 0.8 else 0)
+    local torsoH = totalH - legH - headD * 0.40
+    if torsoH < 0.8 then torsoH = 0.8 end
+    local torsoW = 1.7 + (stage - 1) * 0.38 + (if isBoss then 1.8 else 0)
+    local torsoD = torsoW * 0.6 + (if isBoss then 0.65 else 0)
+    
+    local groundY = CHAMBER_TOP
+    local hipY = groundY + legH
+    local torsoCenterY = hipY + torsoH / 2
+    local neckY = hipY + torsoH
+    local headCenterY = neckY + headD / 2 - headD * 0.05
+    local cx, cz = basePos.X, basePos.Z
 
-	local legH = 1.6 + (stage - 1) * 0.45
-	local headD = 2.0 + (stage - 1) * 0.32 + (if isBoss then 0.8 else 0)
-	local torsoH = totalH - legH - headD * 0.40
-	if torsoH < 0.8 then
-		torsoH = 0.8
-	end
-	local torsoW = 1.7 + (stage - 1) * 0.38 + (if isBoss then 1.8 else 0)
-	local torsoD = torsoW * 0.6 + (if isBoss then 0.65 else 0)
-	local legW = 0.7 + (stage - 1) * 0.12 + (if isBoss then 0.4 else 0)
+    local boxW = math.max(torsoW + 0.8 + (if isBoss then 5.0 else 0), headD + 1.2)
+    local boxH = totalH + (if isBoss then 4.0 else 1.5)
+    local boxD = torsoD + 0.8 + (if isBoss then 3.0 else 0)
 
-	-- Crimson Maw-Palette: schwarz + crimson roter Glow.
-	local bodyBlack = Color3.fromRGB(18, 18, 22)
-	local bodyDark = Color3.fromRGB(36, 32, 36)
-	local crimsonRed = Color3.fromRGB(200, 25, 38)
-	local crimsonGlow = Color3.fromRGB(255, 58, 70)
-	local crimsonDeep = Color3.fromRGB(140, 18, 25)
-	local toothCream = Color3.fromRGB(228, 218, 200)
-	local toothShadow = Color3.fromRGB(150, 130, 110)
-	local mawInner = Color3.fromRGB(45, 12, 14)
-	local armorMetal = Color3.fromRGB(48, 44, 48)
+    -- Farb-Konfiguration
+    local bodyBlack = Color3.fromRGB(15, 15, 18)
+    local armorDark = Color3.fromRGB(30, 35, 40)
+    local fleshRed = Color3.fromRGB(150, 20, 40)
+    local coreGlow = Color3.fromRGB(220, 0, 100) -- Deep Crimson/Violet
+    local cyanGlow = Color3.fromRGB(0, 255, 255)
+    
+    -- EnemyCore (Wichtig für Klicks & Raycasts!)
+    local root = makePart(model, "EnemyCore", Vector3.new(boxW, boxH, boxD), Vector3.new(cx, groundY + boxH / 2, cz), bodyBlack, Enum.Material.SmoothPlastic, false)
+    root.CanQuery = true
+    root.Transparency = 1
+    model.PrimaryPart = root
 
-	local groundY = CHAMBER_TOP
-	local hipY = groundY + legH
-	local torsoCenterY = hipY + torsoH / 2
-	local neckY = hipY + torsoH
-	local headCenterY = neckY + headD / 2 - headD * 0.05
-	local cx, cz = basePos.X, basePos.Z
+    -- Basis Torso (Fleisch)
+    local torso = makePart(model, "BiomechaTorso", Vector3.new(torsoW, torsoH, torsoD), Vector3.new(cx, torsoCenterY, cz), fleshRed, Enum.Material.CorrodedMetal, false)
 
-	-- EnemyCore = unsichtbare Bounding-Box.
-	local boxW = math.max(torsoW + 0.8 + (if isBoss then 4.5 else if stage >= 3 then 2.6 else 0.6), headD + 1.2)
-	local boxH = totalH + (if isBoss then 3.0 else if stage >= 3 then 1.4 else 0.8)
-	local boxD = torsoD + (if isBoss then 2.8 else if stage >= 3 then 1.8 else 0.8)
-	local root = makePart(model, "EnemyCore", Vector3.new(boxW, boxH, boxD), Vector3.new(cx, groundY + boxH / 2, cz), bodyBlack, Enum.Material.SmoothPlastic, false)
-	root.CanQuery = true
-	root.Transparency = 1
-	model.PrimaryPart = root
+    -- Brutale Brustpanzerung
+    local chestArmor = makePart(model, "BiomechaChestArmor", Vector3.new(torsoW * 1.1, torsoH * 0.8, torsoD * 0.5), Vector3.new(cx, torsoCenterY, cz - torsoD * 0.4), armorDark, Enum.Material.Metal, false)
 
-	-- Helper: rote Glow-Risse auf Body-Parts.
-	local function crackOn(parentPos, parentSize, axis, lengthFrac, offset)
-		local crackSize
-		if axis == "Y" then
-			crackSize = Vector3.new(parentSize.X * 0.12, parentSize.Y * lengthFrac, 0.12)
-		elseif axis == "X" then
-			crackSize = Vector3.new(parentSize.X * lengthFrac, parentSize.Y * 0.12, 0.12)
-		else
-			crackSize = Vector3.new(0.12, parentSize.Y * 0.12, parentSize.Z * lengthFrac)
-		end
-		local crack = makePart(model, "CrimsonCrack", crackSize, parentPos + offset, crimsonGlow, Enum.Material.Neon, false)
-		crack.Transparency = 0.2
-		return crack
-	end
+    -- Zentralkern (Biomechanisches Herz)
+    local coreSize = if isBoss then torsoW * 0.8 else torsoW * 0.45
+    local chestCore = makePart(model, "BiomechaHeart", Vector3.new(coreSize, coreSize * 1.2, coreSize * 0.5), Vector3.new(cx, torsoCenterY, cz - torsoD * 0.5), coreGlow, Enum.Material.Neon, false)
+    chestCore.Shape = Enum.PartType.Ball
+    
+    local pl = Instance.new("PointLight")
+    pl.Brightness = if isBoss then 4 else 2
+    pl.Range = if isBoss then 30 else 15
+    pl.Color = coreGlow
+    pl.Parent = chestCore
 
-	-- ---- Beine ---------------------------------------------------------
-	local legSpacing = torsoW * 0.32
-	for _, side in ipairs({ -1, 1 }) do
-		local leg = makePart(model, "CrimsonLeg", Vector3.new(legW, legH * 0.9, legW), Vector3.new(cx + side * legSpacing, hipY - legH * 0.5, cz), bodyBlack, Enum.Material.SmoothPlastic, false)
-		crackOn(leg.Position, leg.Size, "Y", 0.7, Vector3.new(side * legW * 0.3, 0, -legW * 0.5 - 0.02))
-		crackOn(leg.Position, leg.Size, "Y", 0.5, Vector3.new(-side * legW * 0.25, legH * 0.05, -legW * 0.5 - 0.02))
-		crackOn(leg.Position, leg.Size, "X", 0.6, Vector3.new(0, -legH * 0.2, -legW * 0.5 - 0.02))
-		makePart(model, "CrimsonBoot", Vector3.new(legW * 1.35, legH * 0.22, legW * 1.45), Vector3.new(cx + side * legSpacing, groundY + legH * 0.11, cz + legW * 0.1), bodyDark, Enum.Material.Metal, false)
-		-- Knee-Plate ab Stage 3
-		if stage >= 3 then
-			makePart(model, "CrimsonKneePlate", Vector3.new(legW * 1.05, legH * 0.22, legW * 0.7), Vector3.new(cx + side * legSpacing, hipY - legH * 0.45, cz - legW * 0.35), bodyDark, Enum.Material.Metal, false)
-		end
-	end
+    -- Kopf (Mechanische Basis)
+    local head = makePart(model, "BiomechaHead", Vector3.new(headD, headD, headD), Vector3.new(cx, headCenterY, cz), armorDark, Enum.Material.Metal, false)
+    head.Shape = Enum.PartType.Ball
 
-	-- ---- Torso ---------------------------------------------------------
-	local torso = makePart(model, "CrimsonTorso", Vector3.new(torsoW, torsoH, torsoD), Vector3.new(cx, torsoCenterY, cz), bodyBlack, Enum.Material.SmoothPlastic, false)
-	-- Sehr viele rote Risse auf Brust (Spider-Web-Pattern)
-	crackOn(torso.Position, torso.Size, "Y", 0.7, Vector3.new(-torsoW * 0.32, 0, -torsoD * 0.55))
-	crackOn(torso.Position, torso.Size, "Y", 0.6, Vector3.new(torsoW * 0.34, 0, -torsoD * 0.55))
-	crackOn(torso.Position, torso.Size, "X", 0.7, Vector3.new(0, -torsoH * 0.3, -torsoD * 0.55))
-	crackOn(torso.Position, torso.Size, "X", 0.55, Vector3.new(0, torsoH * 0.32, -torsoD * 0.55))
-	crackOn(torso.Position, torso.Size, "X", 0.5, Vector3.new(0, torsoH * 0.05, -torsoD * 0.55))
-	-- Stage 3+ schwerer Brustpanzer
-	if stage >= 3 then
-		makePart(model, "CrimsonChestPlate", Vector3.new(torsoW * 0.92, torsoH * 0.85, 0.18), Vector3.new(cx, torsoCenterY, cz - torsoD / 2 - 0.1), bodyDark, Enum.Material.Metal, false)
-	end
+    -- Krone & Optik
+    if isBoss then
+        local crownCount = 8
+        for i = 1, crownCount do
+            local a = (i / crownCount) * math.pi * 2
+            local up = 0.8
+            local fwd = math.cos(a) * 0.5
+            local dir = Vector3.new(fwd, up, math.sin(a) * 0.5).Unit
+            local hornLen = headD * 0.8
+            local hc = Vector3.new(cx, headCenterY + headD * 0.2, cz) + dir * headD * 0.5
+            
+            local horn = makePart(model, "MechaCrownHorn", Vector3.new(0.4, hornLen, 0.4), hc, armorDark, Enum.Material.Metal, false)
+            local upv = if math.abs(dir.Y) > 0.95 then Vector3.new(0, 0, 1) else Vector3.new(0, 1, 0)
+            horn.CFrame = CFrame.lookAt(hc, hc + dir, upv) * CFrame.Angles(math.rad(90), 0, 0)
+            
+            local glowPos = (horn.CFrame * CFrame.new(0, hornLen * 0.4, 0)).Position
+            local hornGlow = makePart(model, "MechaCrownGlow", Vector3.new(0.45, 0.3, 0.45), glowPos, cyanGlow, Enum.Material.Neon, false)
+            hornGlow.CFrame = horn.CFrame * CFrame.new(0, hornLen * 0.4, 0)
+        end
+        
+        -- Gewaltiges zentrales Auge (Hive-Lord)
+        local bossEye = makePart(model, "MechaEye", Vector3.new(headD * 0.45, headD * 0.45, 0.2), Vector3.new(cx, headCenterY, cz - headD * 0.48), coreGlow, Enum.Material.Neon, false)
+        bossEye.Shape = Enum.PartType.Ball
+    else
+        -- Standard Stages (Leuchtende Augen-Punkte)
+        for _, side in ipairs({-1, 1}) do
+            local eye = makePart(model, "MechaEye", Vector3.new(headD * 0.2, headD * 0.1, 0.2), Vector3.new(cx + side * headD * 0.25, headCenterY, cz - headD * 0.45), cyanGlow, Enum.Material.Neon, false)
+            eye.Orientation = Vector3.new(0, 0, side * -20)
+        end
+    end
 
-	-- ---- Sun-Ray-Brust-Core (alle Stages, definierendes Element) -------
-	-- Zentraler roter Glow-Kern + 12 Strahlen radial nach aussen + outer ring.
-	local coreSize = headD * (0.32 + (stage - 1) * 0.06) + (if isBoss then 0.4 else 0)
-	local coreY = torsoCenterY - torsoH * 0.05
-	-- Aeusserer dunkler Ring
-	for k = 0, 11 do
-		local a = (k / 12) * math.pi * 2
-		local rx = cx + math.cos(a) * coreSize * 1.5
-		local ry = coreY + math.sin(a) * coreSize * 1.5
-		-- Strahl als duenner Cylinder zur Mitte hin
-		local rayLen = coreSize * 0.7
-		local rayMidX = cx + math.cos(a) * (coreSize * 1.0 + rayLen * 0.5)
-		local rayMidY = coreY + math.sin(a) * (coreSize * 1.0 + rayLen * 0.5)
-		local ray = makePart(model, "CrimsonCoreRay", Vector3.new(0.18, rayLen, 0.18), Vector3.new(rayMidX, rayMidY, cz - torsoD / 2 - 0.2), crimsonGlow, Enum.Material.Neon, false)
-		ray.Orientation = Vector3.new(0, 0, math.deg(a) + 90)
-		ray.Transparency = 0.2
-	end
-	-- Aeusserer Ring (Cylinder als Scheibe)
-	local outerRing = makePart(model, "CrimsonCoreRing", Vector3.new(0.18, coreSize * 2.6, coreSize * 2.6), Vector3.new(cx, coreY, cz - torsoD / 2 - 0.18), crimsonDeep, Enum.Material.Neon, false)
-	outerRing.Shape = Enum.PartType.Cylinder
-	outerRing.Orientation = Vector3.new(0, 0, 90)
-	outerRing.Transparency = 0.4
-	-- Center-Core (heller Ball)
-	local core = makePart(model, "CrimsonCore", Vector3.new(coreSize, coreSize, coreSize * 0.6), Vector3.new(cx, coreY, cz - torsoD / 2 - 0.24), crimsonGlow, Enum.Material.Neon, false)
-	core.Shape = Enum.PartType.Ball
-	core.Transparency = 0.05
-	local coreOuter = makePart(model, "CrimsonCoreOuter", Vector3.new(coreSize * 1.5, coreSize * 1.5, coreSize * 0.4), Vector3.new(cx, coreY, cz - torsoD / 2 - 0.14), tint(crimsonGlow, Color3.fromRGB(250, 230, 230), 0.3), Enum.Material.Glass, false)
-	coreOuter.Shape = Enum.PartType.Ball
-	coreOuter.Transparency = 0.5
-	local pl = Instance.new("PointLight")
-	pl.Brightness = if isBoss then 4 else 2
-	pl.Range = if isBoss then 28 else 14
-	pl.Color = crimsonGlow
-	pl.Parent = core
+    -- Tentakel-Aufbau
+    local tentConfigs = {}
+    local mainTentLen = totalH * 0.8
+    
+    if isBoss then
+        -- Massive Biomecha-Tentakel in alle Richtungen
+        for k = 1, 10 do
+            local angle = (k - 5.5) / 9 * math.rad(220)
+            local dir = Vector3.new(math.sin(angle), 0.5 + math.cos(angle * 0.4) * 0.4, math.cos(angle) * 0.4 + 0.3).Unit
+            local startX = cx + math.sin(angle) * torsoW * 0.6
+            local startY = torsoCenterY + math.cos(angle * 0.6) * 0.5
+            local startZ = cz + torsoD * 0.2
+            table.insert(tentConfigs, {
+                startPos = Vector3.new(startX, startY, startZ),
+                dir = dir,
+                length = mainTentLen * 1.6,
+                baseR = 0.45,
+                segs = 12,
+                arch = -80 + math.abs(angle) * 20
+            })
+        end
+    else
+        -- Normale Stages (Weniger Tentakel)
+        local count = 2 + stage
+        for k = 1, count do
+            local angle = (k - (count+1)/2) / count * math.rad(120)
+            local dir = Vector3.new(math.sin(angle), 0.6, math.cos(angle) * 0.3 + 0.3).Unit
+            table.insert(tentConfigs, {
+                startPos = Vector3.new(cx + math.sin(angle) * torsoW * 0.5, torsoCenterY, cz),
+                dir = dir,
+                length = mainTentLen,
+                baseR = 0.3,
+                segs = 8,
+                arch = 60
+            })
+        end
+    end
+    
+    for _, t in ipairs(tentConfigs) do
+        buildBiomechaTentacle(model, t.startPos, t.dir, t.length, t.baseR, t.segs, t.arch, isBoss)
+    end
 
-	-- ---- Schulterpads --------------------------------------------------
-	for _, side in ipairs({ -1, 1 }) do
-		local padW = torsoW * 0.32 + (stage - 1) * 0.12 + (if isBoss then 0.7 else 0)
-		local padH = torsoH * 0.4 + (stage - 1) * 0.08
-		local padX = cx + side * (torsoW * 0.5 + padW * 0.3)
-		local padY = torsoCenterY + torsoH * 0.42
-		local pad = makePart(model, "CrimsonShoulderPad", Vector3.new(padW, padH, torsoD * 1.15), Vector3.new(padX, padY, cz), bodyDark, Enum.Material.Metal, false)
-		pad.Orientation = Vector3.new(0, 0, side * -12)
-		-- Glow-Riss auf Schulter
-		crackOn(pad.Position, pad.Size, "X", 0.6, Vector3.new(0, 0, -torsoD * 0.65))
-		-- Spikes Stage 3+
-		if stage >= 3 then
-			local spikeCount = stage - 2 + (if isBoss then 4 else 0)
-			for k = 1, spikeCount do
-				local sx = padX + (k - (spikeCount + 1) / 2) * 0.45
-				local spikeLen = 0.9 + (stage - 3) * 0.3 + (if isBoss then 1.2 else 0)
-				makePart(model, "CrimsonShoulderSpike", Vector3.new(0.38, spikeLen, 0.38), Vector3.new(sx, padY + padH * 0.5 + spikeLen * 0.4, cz), crimsonDeep, Enum.Material.Metal, false)
-				makePart(model, "CrimsonShoulderSpikeTip", Vector3.new(0.42, 0.28, 0.42), Vector3.new(sx, padY + padH * 0.5 + spikeLen * 0.85, cz), crimsonGlow, Enum.Material.Neon, false)
-			end
-		end
-	end
+    -- Konzentrische Ring-Plattformen (ersetzen die einfachen Glow-Pads)
+    if isBoss then
+        for k = 1, 3 do
+            local ringSize = totalH * 1.2 + (k * 4)
+            local name = if k == 1 then "BossPad" else "ConcentricRing" .. k
+            local ring = makePart(model, name, Vector3.new(0.4, ringSize, ringSize), Vector3.new(basePos.X, CHAMBER_TOP + 1.25 - (k * 0.3), basePos.Z), coreGlow, Enum.Material.Neon, false)
+            ring.Shape = Enum.PartType.Cylinder
+            ring.Orientation = Vector3.new(0, 0, 90)
+            ring.Transparency = 0.2 + (k * 0.15)
+        end
+    end
 
-	-- ---- Arme + Haende -------------------------------------------------
-	local armLen = torsoH * 0.95
-	local armW = torsoW * 0.22 + (stage - 1) * 0.05
-	for _, side in ipairs({ -1, 1 }) do
-		local armX = cx + side * (torsoW * 0.55 + armW * 0.3)
-		local armY = torsoCenterY - torsoH * 0.05
-		local arm = makePart(model, "CrimsonArm", Vector3.new(armW, armLen, armW), Vector3.new(armX, armY, cz), bodyBlack, Enum.Material.SmoothPlastic, false)
-		crackOn(arm.Position, arm.Size, "Y", 0.6, Vector3.new(0, 0, -armW * 0.55))
-		local handSize = armW * 1.4
-		local handY = armY - armLen * 0.5 - handSize * 0.3
-		local hand = makePart(model, "CrimsonHand", Vector3.new(handSize, handSize * 0.85, handSize), Vector3.new(armX, handY, cz), bodyBlack, Enum.Material.SmoothPlastic, false)
-		hand.Shape = Enum.PartType.Ball
-		-- Crimson-Klauen ab Stage 2
-		if stage >= 2 then
-			for k = -1, 1 do
-				local cxx = armX + k * handSize * 0.32
-				local clawLen = handSize * (0.95 + (stage - 2) * 0.25)
-				makePart(model, "CrimsonClaw", Vector3.new(0.24, clawLen, 0.24), Vector3.new(cxx, handY - clawLen * 0.5, cz + handSize * 0.1), crimsonDeep, Enum.Material.Metal, false)
-				makePart(model, "CrimsonClawTip", Vector3.new(0.28, 0.22, 0.28), Vector3.new(cxx, handY - clawLen - 0.05, cz + handSize * 0.1), crimsonGlow, Enum.Material.Neon, false)
-			end
-		end
-	end
+    -- Aura Partikel (Tech-Mist)
+    local mist = Instance.new("ParticleEmitter")
+    mist.Name = "BiomechaAura"
+    mist.Texture = "rbxasset://textures/particles/smoke_main.dds"
+    mist.Color = ColorSequence.new(coreGlow, tint(fleshRed, bodyBlack, 0.5))
+    mist.LightEmission = 0.5
+    mist.Rate = if isBoss then 25 else 5 + stage
+    mist.Lifetime = NumberRange.new(1.0, 2.0)
+    mist.Speed = NumberRange.new(1.0, 2.0)
+    mist.Acceleration = Vector3.new(0, 2, 0)
+    mist.SpreadAngle = Vector2.new(45, 45)
+    mist.Size = NumberSequence.new(0.8, 0.1)
+    mist.Parent = torso
 
-	-- ---- Kopf: schwarze Sphaere mit Crimson-Tile-Stacheln -------------
-	local head = makePart(model, "CrimsonHead", Vector3.new(headD, headD, headD), Vector3.new(cx, headCenterY, cz), bodyBlack, Enum.Material.SmoothPlastic, false)
-	head.Shape = Enum.PartType.Ball
-	-- Tile-Lumps mit Glow-Risse
-	local lumpCount = 14 + stage * 2 + (if isBoss then 6 else 0)
-	for i = 1, lumpCount do
-		local t = i / lumpCount
-		local theta = i * 2.4
-		local phi = math.acos(1 - 2 * t)
-		local dir = Vector3.new(math.sin(phi) * math.cos(theta), math.cos(phi), math.sin(phi) * math.sin(theta)).Unit
-		local lumpPos = Vector3.new(cx, headCenterY, cz) + dir * headD * 0.5
-		local lumpSize = headD * 0.18
-		local lump = makePart(model, "CrimsonHeadLump", Vector3.new(lumpSize, lumpSize, lumpSize), lumpPos, bodyDark, Enum.Material.SmoothPlastic, false)
-		lump.Shape = Enum.PartType.Ball
-		-- jede dritte Lump bekommt einen roten Glow drauf
-		if i % 3 == 0 then
-			local g = makePart(model, "CrimsonHeadLumpGlow", Vector3.new(lumpSize * 0.7, lumpSize * 0.7, lumpSize * 0.7), lumpPos + dir * lumpSize * 0.4, crimsonGlow, Enum.Material.Neon, false)
-			g.Shape = Enum.PartType.Ball
-			g.Transparency = 0.3
-		end
-	end
-	-- Crimson-Spike-Krone (mehr je Stage, vornehmlich oben/hinten)
-	local spikeCount = 6 + stage * 2 + (if isBoss then 12 else 0)
-	local spikeLen = headD * 0.4 + (stage - 1) * 0.06
-	for i = 1, spikeCount do
-		local a = (i / spikeCount) * math.pi * 2
-		local up = 0.5 + math.abs(math.sin(i * 0.9)) * 0.5
-		local fwd = math.cos(a) * 0.55
-		local dir = Vector3.new(fwd, up, math.sin(a) * 0.55).Unit
-		local sc = Vector3.new(cx, headCenterY, cz) + dir * headD * 0.52
-		local spike = makePart(model, "CrimsonHeadSpike", Vector3.new(0.36, spikeLen, 0.36), sc, crimsonDeep, Enum.Material.Metal, false)
-		local upv = if math.abs(dir.Y) > 0.95 then Vector3.new(0, 0, 1) else Vector3.new(0, 1, 0)
-		spike.CFrame = CFrame.lookAt(sc, sc + dir, upv) * CFrame.Angles(math.rad(90), 0, 0)
-		-- Heller Tip
-		makePart(model, "CrimsonHeadSpikeTip", Vector3.new(0.4, 0.25, 0.4), sc + dir * (spikeLen * 0.55), crimsonGlow, Enum.Material.Neon, false).Transparency = 0.15
-	end
+    -- ---- Bewegungs-System ---------------------------------------------
+    local arche = ENEMY_ARCHETYPE[def.Shape] or ENEMY_ARCHETYPE.Blob
+    local ranges = {
+        Ground = { rx = 7, rz = 12, sp = 3.2, bob = 0.45 },
+        Sway = { rx = 5, rz = 14, sp = 2.4, bob = 0.3 },
+        Hop = { rx = 6, rz = 11, sp = 3.6, bob = 2.6 },
+        Crawl = { rx = 9, rz = 15, sp = 6.5, bob = 0.25 },
+        Hover = { rx = 8, rz = 14, sp = 3.4, bob = 1.9 },
+        Static = { rx = 0, rz = 0, sp = 0, bob = 0 },
+    }
+    local mv = ranges[arche.move] or ranges.Ground
+    model:SetAttribute("MoveStyle", arche.move)
+    model:SetAttribute("HomeX", cx)
+    model:SetAttribute("HomeY", root.Position.Y)
+    model:SetAttribute("HomeZ", cz)
+    model:SetAttribute("MoveRangeX", mv.rx)
+    model:SetAttribute("MoveRangeZ", mv.rz)
+    model:SetAttribute("MoveSpeed", mv.sp)
+    model:SetAttribute("BobAmp", mv.bob)
+    model:SetAttribute("EnemyKind", "BiomechaHiveLord")
 
-	-- ---- Demon-Maul (das definierende Feature der Crimson Maw) --------
-	-- Riesiges zaehniges Maul vorne am Kopf (alle Stages, groesser bei Boss).
-	local mouthW = headD * (if isBoss then 0.85 else 0.62 + (stage - 1) * 0.04)
-	local mouthH = headD * (if isBoss then 0.55 else 0.36 + (stage - 1) * 0.02)
-	-- Dunkles Inneres
-	local mawBack = makePart(model, "CrimsonMawBack", Vector3.new(mouthW, mouthH, 0.18), Vector3.new(cx, headCenterY - headD * 0.1, cz - headD * 0.46), mawInner, Enum.Material.SmoothPlastic, false)
-	-- Glow-Innenhintergrund
-	local mawGlow = makePart(model, "CrimsonMawGlow", Vector3.new(mouthW * 0.92, mouthH * 0.85, 0.18), Vector3.new(cx, headCenterY - headD * 0.1, cz - headD * 0.5), crimsonGlow, Enum.Material.Neon, false)
-	mawGlow.Transparency = 0.18
-	-- Zaehne oben + unten (zackig)
-	local toothCount = if isBoss then 11 elseif stage >= 3 then 9 else 7
-	for i = 1, toothCount do
-		local t = (i - (toothCount + 1) / 2) / toothCount
-		-- Obere Zaehne
-		local upperH = mouthH * (0.4 + math.abs(t) * 0.3)
-		local upperY = headCenterY - headD * 0.1 + mouthH * 0.5 - upperH * 0.5
-		makePart(model, "CrimsonMawToothUpper", Vector3.new(mouthW * 0.085, upperH, 0.22), Vector3.new(cx + t * mouthW * 0.95, upperY, cz - headD * 0.5), toothCream, Enum.Material.SmoothPlastic, false)
-		-- Untere Zaehne (etwas kuerzer, alternierend)
-		if i % 2 == 1 then
-			local lowerH = mouthH * (0.35 + math.abs(t) * 0.25)
-			local lowerY = headCenterY - headD * 0.1 - mouthH * 0.5 + lowerH * 0.5
-			makePart(model, "CrimsonMawToothLower", Vector3.new(mouthW * 0.085, lowerH, 0.22), Vector3.new(cx + t * mouthW * 0.92, lowerY, cz - headD * 0.5), toothCream, Enum.Material.SmoothPlastic, false)
-		end
-	end
-	-- Maul-Rand (oben/unten dunkel)
-	makePart(model, "CrimsonMawRimTop", Vector3.new(mouthW * 1.05, mouthH * 0.12, 0.22), Vector3.new(cx, headCenterY - headD * 0.1 + mouthH * 0.55, cz - headD * 0.48), bodyBlack, Enum.Material.SmoothPlastic, false)
-	makePart(model, "CrimsonMawRimBottom", Vector3.new(mouthW * 1.05, mouthH * 0.12, 0.22), Vector3.new(cx, headCenterY - headD * 0.1 - mouthH * 0.55, cz - headD * 0.48), bodyBlack, Enum.Material.SmoothPlastic, false)
+    -- ---- Health-Bar ---------------------------------------------------
+    local barScale = if isBoss then 1.9 else 1
+    local barY = groundY + totalH + (if isBoss then 3.6 else 2.0)
+    
+    local barBack = makePart(model, "HealthBarBack", Vector3.new(13 * barScale, 0.8, 0.4), Vector3.new(cx, barY, cz), Color3.fromRGB(16, 20, 26), Enum.Material.SmoothPlastic, false)
+    local barFill = makePart(model, "HealthBarFill", Vector3.new(12.4 * barScale, 0.5, 0.55), Vector3.new(cx, barY + 0.02, cz - 0.06), Color3.fromRGB(95, 255, 125), Enum.Material.Neon, false)
+    barFill.Transparency = 0.12
+    barFill:SetAttribute("MaxWidth", 12.4 * barScale)
+    barFill:SetAttribute("FullCenterX", barFill.Position.X)
 
-	-- ---- Demon-Augen ueber dem Maul -----------------------------------
-	local eyeCount = if isBoss then 4 elseif stage >= 4 then 4 elseif stage >= 3 then 3 else 2
-	if eyeCount == 2 then
-		for _, side in ipairs({ -1, 1 }) do
-			local eye = makePart(model, "CrimsonEye", Vector3.new(headD * 0.20, headD * 0.16, 0.15), Vector3.new(cx + side * headD * 0.20, headCenterY + headD * 0.18, cz - headD * 0.48), crimsonGlow, Enum.Material.Neon, false)
-			eye.Transparency = 0.05
-			eye.Orientation = Vector3.new(0, 0, side * -22)
-			local pll = Instance.new("PointLight"); pll.Brightness = 0.8; pll.Range = 7; pll.Color = crimsonGlow; pll.Parent = eye
-		end
-	else
-		-- Mehrere Augen verteilt (Daemon-Look)
-		for i = 1, eyeCount do
-			local t = (i - (eyeCount + 1) / 2) / eyeCount
-			local side = if t < 0 then -1 else 1
-			local eyeSize = headD * (if isBoss then 0.18 else 0.15)
-			local eye = makePart(model, "CrimsonEye", Vector3.new(eyeSize, eyeSize * 0.7, 0.15), Vector3.new(cx + t * headD * 0.5, headCenterY + headD * (0.16 + math.abs(t) * 0.05), cz - headD * 0.48), crimsonGlow, Enum.Material.Neon, false)
-			eye.Transparency = 0.05
-			eye.Orientation = Vector3.new(0, 0, side * -25)
-			local pll = Instance.new("PointLight"); pll.Brightness = 0.7; pll.Range = 6; pll.Color = crimsonGlow; pll.Parent = eye
-		end
-	end
+    -- ---- AttackClick + Boss-Prompt ------------------------------------
+    local clicker = Instance.new("ClickDetector")
+    clicker.Name = "AttackClick"
+    clicker.MaxActivationDistance = EnemyConfig.AttackDistance
+    clicker.Parent = root
 
-	-- ---- Tentakel aus Schultern/Kopf-Bereich (Stage 3+) ----------------
-	if stage >= 3 then
-		local tentConfigs = {}
-		if stage == 3 then
-			-- 4 Tentakel: 2 von Schultern nach oben/aussen, 2 vom Kopf-Bereich nach oben
-			for _, side in ipairs({ -1, 1 }) do
-				table.insert(tentConfigs, { startPos = Vector3.new(cx + side * torsoW * 0.45, torsoCenterY + torsoH * 0.4, cz + torsoD * 0.3), dir = Vector3.new(side * 0.4, 0.8, 0.3).Unit, length = totalH * 0.6, baseR = 0.28, segs = 8, arch = -80 })
-				table.insert(tentConfigs, { startPos = Vector3.new(cx + side * headD * 0.25, headCenterY + headD * 0.3, cz + headD * 0.2), dir = Vector3.new(side * 0.5, 0.7, 0.4).Unit, length = totalH * 0.45, baseR = 0.22, segs = 6, arch = 90 })
-			end
-		elseif stage == 4 then
-			-- 6 Tentakel
-			for k = 1, 6 do
-				local angle = (k - 3.5) / 5 * math.rad(140)
-				local dir = Vector3.new(math.sin(angle), 0.7 + math.cos(angle * 0.5) * 0.3, math.cos(angle) * 0.3 + 0.4).Unit
-				local startX = cx + math.sin(angle) * torsoW * 0.45
-				local startY = neckY + 0.2 + math.cos(angle * 0.7) * 0.4
-				local startZ = cz + torsoD * 0.3
-				table.insert(tentConfigs, { startPos = Vector3.new(startX, startY, startZ), dir = dir, length = totalH * 0.55, baseR = 0.26, segs = 8, arch = -80 + math.abs(angle) * 25 })
-			end
-		else
-			-- Boss: 12 Tentakel in massiver Wolke
-			for k = 1, 12 do
-				local angle = (k - 6.5) / 11 * math.rad(180)
-				local dir = Vector3.new(math.sin(angle), 0.6 + math.cos(angle * 0.4) * 0.4, math.cos(angle) * 0.4 + 0.3).Unit
-				local startX = cx + math.sin(angle) * torsoW * 0.5
-				local startY = neckY + math.cos(angle * 0.6) * 0.5
-				local startZ = cz + torsoD * 0.3
-				table.insert(tentConfigs, { startPos = Vector3.new(startX, startY, startZ), dir = dir, length = totalH * (0.7 + math.cos(angle) * 0.2), baseR = 0.3, segs = 10, arch = -90 + math.abs(angle) * 30 })
-			end
-		end
-		for _, t in ipairs(tentConfigs) do
-			buildCrimsonTentacle(model, t.startPos, t.dir, t.length, t.baseR, t.segs, t.arch)
-		end
-	end
+    if isBoss then
+        local prompt = Instance.new("ProximityPrompt")
+        prompt.Name = "StartBossFight"
+        prompt.KeyboardKeyCode = Enum.KeyCode.E
+        prompt.HoldDuration = 1
+        prompt.ActionText = "Start Boss Fight"
+        prompt.ObjectText = def.DisplayName
+        prompt.MaxActivationDistance = EnemyConfig.BossPromptDistance
+        prompt.RequiresLineOfSight = false
+        prompt.Parent = root
+    end
 
-	-- ---- BOSS Extras: Krone, Ketten, BossPad --------------------------
-	if isBoss then
-		-- Gigantische Stachelkrone hinter/ueber dem Kopf (Faecher 16 Hoerner)
-		local crownCount = 16
-		for i = 1, crownCount do
-			local a = (i - (crownCount + 1) / 2) / crownCount * math.pi
-			local hornLen = totalH * (0.5 + math.abs(math.sin(a)) * 0.3)
-			local hcx = cx + math.sin(a) * (torsoW * 0.4 + 1.0)
-			local hcy = headCenterY + math.cos(a) * 0.5 + hornLen * 0.5
-			local hcz = cz + torsoD * 0.4 + math.abs(math.sin(a)) * 0.4
-			local horn = makePart(model, "BossCrimsonCrownHorn", Vector3.new(0.55, hornLen, 0.55), Vector3.new(hcx, hcy, hcz), crimsonDeep, Enum.Material.Metal, false)
-			horn.Orientation = Vector3.new(math.deg(a) * 0.4, math.deg(a) * 35, math.deg(a) * 45)
-			makePart(model, "BossCrimsonCrownHornTip", Vector3.new(0.6, 0.4, 0.6), Vector3.new(hcx + math.sin(a) * 0.3, hcy + hornLen * 0.45, hcz), crimsonGlow, Enum.Material.Neon, false).Transparency = 0.15
-		end
-		-- Ketten unten
-		for _, side in ipairs({ -1, 1 }) do
-			for k = 1, 6 do
-				local linkY = torsoCenterY - torsoH * 0.05 - k * 0.55
-				local linkX = cx + side * (torsoW * 0.35 + math.sin(k * 0.5) * 0.2)
-				local linkZ = cz + torsoD / 2 + 0.5
-				local link = makePart(model, "BossCrimsonChain", Vector3.new(0.34, 0.22, 0.34), Vector3.new(linkX, linkY, linkZ), bodyDark, Enum.Material.Metal, false)
-				link.Shape = Enum.PartType.Ball
-			end
-		end
-		-- BossPad
-		local ring = makePart(model, "BossPad", Vector3.new(0.5, totalH * 1.2, totalH * 1.2), Vector3.new(basePos.X, CHAMBER_TOP + 1.25, basePos.Z), crimsonGlow, Enum.Material.Neon, false)
-		ring.Shape = Enum.PartType.Cylinder
-		ring.Orientation = Vector3.new(0, 0, 90)
-		ring.Transparency = 0.3
-		-- Boden-Doppelring (heller innen, dunkler aussen)
-		local floor1 = makePart(model, "BossCrimsonFloorGlow", Vector3.new(0.22, totalH * 1.7, totalH * 1.7), Vector3.new(basePos.X, CHAMBER_TOP + 0.15, basePos.Z), crimsonGlow, Enum.Material.Neon, false)
-		floor1.Shape = Enum.PartType.Cylinder
-		floor1.Orientation = Vector3.new(0, 0, 90)
-		floor1.Transparency = 0.55
-		local floor2 = makePart(model, "BossCrimsonFloorOuter", Vector3.new(0.18, totalH * 2.2, totalH * 2.2), Vector3.new(basePos.X, CHAMBER_TOP + 0.08, basePos.Z), crimsonDeep, Enum.Material.Neon, false)
-		floor2.Shape = Enum.PartType.Cylinder
-		floor2.Orientation = Vector3.new(0, 0, 90)
-		floor2.Transparency = 0.72
-		-- Robe-Fetzen unten (crimson Tatters)
-		for k = 1, 8 do
-			local a = (k / 8) * math.pi * 2
-			local fx = cx + math.cos(a) * (torsoW * 0.45)
-			local fz = cz + math.sin(a) * (torsoD * 0.45)
-			local frag = makePart(model, "BossCrimsonRobe", Vector3.new(0.45, 1.2 + (k % 3) * 0.3, 0.2), Vector3.new(fx, hipY - 0.3 - (k % 3) * 0.2, fz), crimsonGlow, Enum.Material.Neon, false)
-			frag.Transparency = 0.4
-			frag.Orientation = Vector3.new((k % 2) * 14, math.deg(a), 0)
-		end
-	end
+    -- ---- Info-Label ---------------------------------------------------
+    local prefix = if isBoss then "★ BOSS ★\n" else ""
+    label(
+        root,
+        string.format(
+            "%s%s\nHP: %s\nSTR: %s\nDNA: %s",
+            prefix,
+            def.DisplayName,
+            NumberFormatter.format(def.MaxHealth),
+            NumberFormatter.format(def.Strength),
+            NumberFormatter.format(def.DNAReward)
+        ),
+        Color3.fromRGB(255, 255, 255),
+        if isBoss then 60 else 34,
+        UDim2.fromOffset(if isBoss then 280 else 190, if isBoss then 104 else 76),
+        Vector3.new(0, boxH / 2 + 3, 0)
+    )
 
-	-- ---- Crimson-Mist-Partikel ----------------------------------------
-	local mist = Instance.new("ParticleEmitter")
-	mist.Name = "CrimsonMist"
-	mist.Texture = "rbxasset://textures/particles/smoke_main.dds"
-	mist.Color = ColorSequence.new(crimsonGlow, tint(crimsonDeep, bodyBlack, 0.5))
-	mist.LightEmission = 0.3
-	mist.Rate = if isBoss then 20 else 3 + stage
-	mist.Lifetime = NumberRange.new(1.0, 1.8)
-	mist.Speed = NumberRange.new(0.5, 1.4)
-	mist.Acceleration = Vector3.new(0, 1.4, 0)
-	mist.SpreadAngle = Vector2.new(40, 40)
-	mist.Size = NumberSequence.new(0.5, 0.1)
-	mist.Parent = torso
-
-	-- ---- Bewegung -----------------------------------------------------
-	local arche = ENEMY_ARCHETYPE[def.Shape] or ENEMY_ARCHETYPE.Blob
-	local ranges = {
-		Ground = { rx = 7, rz = 12, sp = 3.2, bob = 0.45 },
-		Sway = { rx = 5, rz = 14, sp = 2.4, bob = 0.3 },
-		Hop = { rx = 6, rz = 11, sp = 3.6, bob = 2.6 },
-		Crawl = { rx = 9, rz = 15, sp = 6.5, bob = 0.25 },
-		Hover = { rx = 8, rz = 14, sp = 3.4, bob = 1.9 },
-		Static = { rx = 0, rz = 0, sp = 0, bob = 0 },
-	}
-	local mv = ranges[arche.move] or ranges.Ground
-	model:SetAttribute("MoveStyle", arche.move)
-	model:SetAttribute("HomeX", cx)
-	model:SetAttribute("HomeY", root.Position.Y)
-	model:SetAttribute("HomeZ", cz)
-	model:SetAttribute("MoveRangeX", mv.rx)
-	model:SetAttribute("MoveRangeZ", mv.rz)
-	model:SetAttribute("MoveSpeed", mv.sp)
-	model:SetAttribute("BobAmp", mv.bob)
-	model:SetAttribute("EnemyKind", "CrimsonMaw")
-
-	-- ---- Health-Bar ---------------------------------------------------
-	local barScale = if isBoss then 1.9 else 1
-	local barY = groundY + totalH + (if isBoss then 3.6 else 2.0)
-	local barBack = makePart(model, "HealthBarBack", Vector3.new(13 * barScale, 0.8, 0.4), Vector3.new(cx, barY, cz), Color3.fromRGB(16, 20, 26), Enum.Material.SmoothPlastic, false)
-	local barFill = makePart(model, "HealthBarFill", Vector3.new(12.4 * barScale, 0.5, 0.55), Vector3.new(cx, barY + 0.02, cz - 0.06), Color3.fromRGB(95, 255, 125), Enum.Material.Neon, false)
-	barFill.Transparency = 0.12
-	barFill:SetAttribute("MaxWidth", 12.4 * barScale)
-	barFill:SetAttribute("FullCenterX", barFill.Position.X)
-
-	-- ---- AttackClick + Boss-Prompt ------------------------------------
-	local clicker = Instance.new("ClickDetector")
-	clicker.Name = "AttackClick"
-	clicker.MaxActivationDistance = EnemyConfig.AttackDistance
-	clicker.Parent = root
-
-	if isBoss then
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = "StartBossFight"
-		prompt.KeyboardKeyCode = Enum.KeyCode.E
-		prompt.HoldDuration = 1
-		prompt.ActionText = "Start Boss Fight"
-		prompt.ObjectText = def.DisplayName
-		prompt.MaxActivationDistance = EnemyConfig.BossPromptDistance
-		prompt.RequiresLineOfSight = false
-		prompt.Parent = root
-	end
-
-	-- ---- Info-Label ---------------------------------------------------
-	local prefix = if isBoss then "★ BOSS ★\n" else ""
-	label(
-		root,
-		string.format(
-			"%s%s\nHP: %s\nSTR: %s\nDNA: %s",
-			prefix,
-			def.DisplayName,
-			NumberFormatter.format(def.MaxHealth),
-			NumberFormatter.format(def.Strength),
-			NumberFormatter.format(def.DNAReward)
-		),
-		Color3.fromRGB(255, 255, 255),
-		if isBoss then 60 else 34,
-		UDim2.fromOffset(if isBoss then 280 else 190, if isBoss then 104 else 76),
-		Vector3.new(0, boxH / 2 + 3, 0)
-	)
-
-	return model
+    return model
 end
-
 local function buildEnemyModel(parent, def, basePos, primary, secondary)
 	-- Alle 10 Areas haben eigene Designs.
 	if def.AreaIndex == 1 then
