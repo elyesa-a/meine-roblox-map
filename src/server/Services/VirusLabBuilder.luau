@@ -6815,16 +6815,16 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	buildSpawnFloorDetail(orgFolders.floorDetail, cx)
 	buildLeaderboardZone(orgFolders.hub, cx)
 
-	-- Decken-Stufen-Bulkhead am Übergang Spawn -> Area 1 (X = 0). Die
-	-- Spawn-Shell endet mit Decke auf Y = L.WallHeight (Slab 34..36), die
-	-- Area-Decke liegt nach liftBacteriaLabCeiling 10 Studs höher (Slab
-	-- 44..46). Dazwischen klafft eine senkrechte 8-Stud-Lücke (36..44),
-	-- durch die der Himmel scheint. Der Bulkhead sitzt EXAKT in dieser
-	-- Lücke (Y = 36..44) -- bündig zwischen den beiden Decken-Slabs, ohne
-	-- mit ihnen zu überlappen (kein Z-Fighting wie beim Boden-Bug).
+	-- Decken-Stufen-Bulkhead am Übergang Spawn -> Area 1. Die Spawn-Shell
+	-- endet bei spawnEndX (Decke auf Y = L.WallHeight, Slab 34..36), die
+	-- Area-1-Decke liegt nach liftBacteriaLabCeiling 10 Studs höher (Slab
+	-- 44..46). Dazwischen klafft eine senkrechte Lücke, durch die der Himmel
+	-- scheint. Der Bulkhead sitzt EXAKT an der Naht (spawnEndX) -- frueher
+	-- stand er faelschlich bei X=0, also 60 Studs in Area 1 hinein, wodurch
+	-- die echte Luecke bei spawnEndX offen blieb (Sky-Leak).
 	buildCeilingStepBulkhead(
 		model,
-		0,
+		spawnEndX,
 		FLOOR_Y + L.WallHeight + 2,
 		FLOOR_Y + L.WallHeight + BACTERIA_CEILING_LIFT
 	)
