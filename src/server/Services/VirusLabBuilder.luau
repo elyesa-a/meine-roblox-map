@@ -4859,6 +4859,56 @@ end
 
 -- ---- Pet-Egg-Station ------------------------------------------------------
 
+local function buildMajesticEggThrone(parent, prefix, pos, accent, wide, platformColor, stepColor)
+	local width = if wide then 38 else 28
+	local depth = if wide then 28 else 22
+	local trim = tint(accent, LAB_CYAN, 0.28)
+	local baseColor = platformColor or Color3.fromRGB(112, 32, 32)
+	local lowerColor = stepColor or Color3.fromRGB(78, 22, 22)
+	local topColor = tint(baseColor, accent, 0.1)
+	local glassColor = tint(accent, Color3.fromRGB(205, 245, 245), 0.42)
+
+	local foundation = makePart(parent, prefix .. "Foundation", Vector3.new(width, 0.55, depth), pos + Vector3.new(0, 0.28, 0), baseColor, Enum.Material.Metal, true)
+	foundation.Transparency = 0.02
+	local topPlate = makePart(parent, prefix .. "TopPlate", Vector3.new(width - 3.2, 0.22, depth - 3.2), pos + Vector3.new(0, 0.7, 0), topColor, Enum.Material.SmoothPlastic, true)
+	topPlate.Transparency = 0.04
+
+	makePart(parent, prefix .. "FrontStepA", Vector3.new(width + 2.5, 0.34, 5.2), pos + Vector3.new(0, 0.17, -depth / 2 - 2.0), lowerColor, Enum.Material.Metal, true)
+	makePart(parent, prefix .. "FrontStepB", Vector3.new(width - 6, 0.24, 4.3), pos + Vector3.new(0, 0.9, -depth / 2 + 1.8), tint(lowerColor, accent, 0.08), Enum.Material.SmoothPlastic, true)
+
+	for _, side in ipairs({ -1, 1 }) do
+		local rail = makePart(parent, prefix .. "RoyalSideRail", Vector3.new(0.42, 0.2, depth - 5.5), pos + Vector3.new(side * (width / 2 - 1.6), 1.02, 0.5), trim, Enum.Material.SmoothPlastic, false)
+		rail.Transparency = 0.16
+
+		local pillar = makePart(parent, prefix .. "ContainmentPillar", Vector3.new(1.45, 8.8, 1.45), pos + Vector3.new(side * (width / 2 - 3.0), 4.6, depth / 2 - 2.6), tint(LAB_TRIM, accent, 0.15), Enum.Material.Metal, false)
+		pillar.Shape = Enum.PartType.Cylinder
+		local cap = makePart(parent, prefix .. "PillarBeacon", Vector3.new(1.65, 1.65, 1.65), pillar.Position + Vector3.new(0, 4.85, 0), accent, Enum.Material.Neon, false)
+		cap.Shape = Enum.PartType.Ball
+		cap.Transparency = 0.28
+
+		local glassWing = makePart(parent, prefix .. "AngledGlassWing", Vector3.new(0.42, 6.2, 8.8), pos + Vector3.new(side * (width / 2 - 5.2), 4.1, depth / 2 - 5.8), glassColor, Enum.Material.Glass, false)
+		glassWing.Transparency = 0.68
+		glassWing.Orientation = Vector3.new(0, side * 12, 0)
+	end
+
+	local backCrown = makePart(parent, prefix .. "BackCrownPanel", Vector3.new(width - 8, 4.2, 0.5), pos + Vector3.new(0, 4.0, depth / 2 - 1.2), tint(LAB_DARK, accent, 0.1), Enum.Material.Metal, false)
+	backCrown.Transparency = 0.04
+	neonStrip(parent, Vector3.new(width - 12, 0.2, 0.4), backCrown.Position + Vector3.new(0, 1.45, -0.36), accent, 0.28)
+	neonStrip(parent, Vector3.new(width - 16, 0.16, 0.4), backCrown.Position + Vector3.new(0, -1.45, -0.36), trim, 0.36)
+
+	local scannerDisc = makePart(parent, prefix .. "ScannerDisc", Vector3.new(0.16, if wide then 21 else 15, if wide then 21 else 15), pos + Vector3.new(0, 1.1, 0), accent, Enum.Material.Neon, false)
+	scannerDisc.Shape = Enum.PartType.Cylinder
+	scannerDisc.Orientation = Vector3.new(0, 0, 90)
+	scannerDisc.Transparency = 0.78
+
+	for i = 0, 5 do
+		local a = i * math.pi * 2 / 6
+		local node = makePart(parent, prefix .. "ScannerNode", Vector3.new(0.85, 0.85, 0.85), pos + Vector3.new(math.cos(a) * (if wide then 12 else 8.6), 1.45, math.sin(a) * (if wide then 8.8 else 6.4)), trim, Enum.Material.Neon, false)
+		node.Shape = Enum.PartType.Ball
+		node.Transparency = 0.35
+	end
+end
+
 -- Pet-Egg-Station als Labor-Inkubator (Side-Bay). Jede Area bekommt genau
 -- eine Station fuer ihr Stage-Egg. Vertrag mit EggCatchService/PetService:
 -- Model-Attribute (AreaIndex/EggId/EggCost) + ClickDetector/Prompt "OpenEgg".
@@ -4870,10 +4920,11 @@ local function buildEggStation(parent, areaIndex, stationIndex, eggDef, pos)
 	local eggName = eggDef.displayName
 	local accent = eggDef.color
 	local isAreaShop = areaIndex >= 2
+	local platformColor = tint(Color3.fromRGB(112, 32, 32), accent, 0.32)
+	local stepColor = tint(Color3.fromRGB(78, 22, 22), accent, 0.22)
+	buildMajesticEggThrone(model, "EggA" .. tostring(areaIndex), pos, accent, true, platformColor, stepColor)
 
 	if isAreaShop then
-		local platformColor = tint(Color3.fromRGB(112, 32, 32), accent, 0.32)
-		local stepColor = tint(Color3.fromRGB(78, 22, 22), accent, 0.22)
 		local signColor = tint(Color3.fromRGB(40, 45, 46), accent, 0.12)
 
 		local thronePad = makePart(model, "PetEggThronePedestal", Vector3.new(32, 1.1, 22), pos + Vector3.new(0, 0.55, 0), platformColor, Enum.Material.Metal, true)
@@ -6820,6 +6871,7 @@ local function buildSpawnLab(parent, bedsFolder, orgFolders)
 	local starterEggName = if starterEgg then starterEgg.displayName else "Beginner Virus Egg"
 	local starterEggCost = if starterEgg then starterEgg.cost else PetConfig.EggCost
 	local starterEggColor = if starterEgg then starterEgg.color else Color3.fromRGB(52, 210, 92)
+	buildMajesticEggThrone(model, "SpawnEgg", shopEggPos, starterEggColor, true, Color3.fromRGB(112, 32, 32), Color3.fromRGB(78, 22, 22))
 	local thronePad = makePart(model, "PetEggThronePedestal", Vector3.new(32, 1.1, 22), shopEggPos + Vector3.new(0, 0.55, 0), Color3.fromRGB(112, 32, 32), Enum.Material.Metal, true)
 	thronePad.Transparency = 0.03
 	makePart(model, "PetEggThroneFrontStep", Vector3.new(34, 0.35, 5.5), shopEggPos + Vector3.new(0, 0.18, -13.8), Color3.fromRGB(78, 22, 22), Enum.Material.SmoothPlastic, true)
