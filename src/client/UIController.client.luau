@@ -13,6 +13,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local UpdateClientData = Remotes:WaitForChild("UpdateClientData") :: RemoteEvent
+local RequestOpenEggStation = Remotes:WaitForChild("RequestOpenEggStation") :: RemoteEvent
 
 local UI = script.Parent:WaitForChild("UI")
 local Theme = require(UI:WaitForChild("Theme"))
@@ -92,6 +93,8 @@ local menuController = MenuController.new({
 
 local STATION_OPEN_RADIUS = 8
 local STATION_CLOSE_RADIUS = 12
+local EGG_OPEN_RADIUS = 10
+local EGG_CLOSE_RADIUS = 14
 local STATION_REOPEN_COOLDOWN = 5
 local SPAWN_CENTER_X = -180
 local STATION_TRIGGER_Z = 77
@@ -102,9 +105,13 @@ local AUTO_STATION_ZONES = {
 	{ menu = "Daily", modelName = "DailyRewardStation", fallback = Vector3.new(SPAWN_CENTER_X + 56, 4, STATION_TRIGGER_Z) },
 }
 local stationTriggers: { BasePart } = {}
+local eggStations: { Instance } = {}
 local autoOpenedMenu: string? = nil
+local autoOpenedEggStation: Instance? = nil
 local suppressedStationMenus: { [string]: boolean } = {}
 local stationReopenAt: { [string]: number } = {}
+local suppressedEggStation: Instance? = nil
+local eggReopenAt = 0
 
 local function isStationMenuTarget(target: any): boolean
 	return target == "Shop" or target == "Skills" or target == "Auras" or target == "Daily"
@@ -155,6 +162,44 @@ local function refreshStationTriggers(): { BasePart }
 	return stationTriggers
 end
 
+local function findEggStation(instance: Instance): Instance?
+	local current: Instance? = instance
+	while current do
+		if (current:IsA("Model") or current:IsA("BasePart"))
+			and current:GetAttribute("AreaIndex") ~= nil
+			and current:GetAttribute("EggId") ~= nil then
+			return current
+		end
+		current = current.Parent
+	end
+	return nil
+end
+
+local function refreshEggStations(): { Instance }
+	local seen: { [Instance]: boolean } = {}
+	local valid: { Instance } = {}
+	for _, station in ipairs(eggStations) do
+		if station.Parent and findEggStation(station) == station and not seen[station] then
+			seen[station] = true
+			table.insert(valid, station)
+		end
+	end
+	if #valid > 0 then
+		eggStations = valid
+		return eggStations
+	end
+
+	for _, inst in ipairs(Workspace:GetDescendants()) do
+		local station = findEggStation(inst)
+		if station and not seen[station] then
+			seen[station] = true
+			table.insert(valid, station)
+		end
+	end
+	eggStations = valid
+	return eggStations
+end
+
 local function getRootPart(): BasePart?
 	local character = player.Character
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -169,6 +214,38 @@ local function getDistanceToPartBounds(part: BasePart, worldPosition: Vector3): 
 		math.max(math.abs(localPosition.Z) - halfSize.Z, 0)
 	)
 	return outside.Magnitude
+end
+
+local function getEggStationCenter(station: Instance): Vector3?
+	if station:IsA("BasePart") then
+		return station.Position
+	end
+	if station:IsA("Model") then
+		local capsule = station:FindFirstChild("EggCapsule", true)
+		if capsule and capsule:IsA("BasePart") then
+			return capsule.Position
+		end
+		local petEgg = station:FindFirstChild("PetEgg", true)
+		if petEgg and petEgg:IsA("BasePart") then
+			return petEgg.Position
+		end
+		return station:GetPivot().Position
+	end
+	local part = station:FindFirstChildWhichIsA("BasePart", true)
+	return part and part.Position or nil
+end
+
+local function getDistanceToEggStation(station: Instance, worldPosition: Vector3): number
+	if station:IsA("BasePart") then
+		return getDistanceToPartBounds(station, worldPosition)
+	end
+	local center = getEggStationCenter(station)
+	if not center then
+		return math.huge
+	end
+	local dx = center.X - worldPosition.X
+	local dz = center.Z - worldPosition.Z
+	return math.sqrt(dx * dx + dz * dz)
 end
 
 local function getFlatDistance(a: Vector3, b: Vector3): number
@@ -239,6 +316,16 @@ local function closeAutoOpenedMenu()
 	UIAnimator.framePopOut(refs.backdrop, refs.root)
 end
 
+local function closeAutoOpenedEggShop()
+	if not autoOpenedEggStation then
+		return
+	end
+	autoOpenedEggStation = nil
+	if petRefs.backdrop.Visible and PetFrame.isEggOnlyMode(petRefs) then
+		UIAnimator.framePopOut(petRefs.backdrop, petRefs.root)
+	end
+end
+
 ProximityPromptService.PromptTriggered:Connect(function(prompt)
 	local target = prompt:GetAttribute("MenuTarget")
 	if type(target) ~= "string" then
@@ -270,6 +357,7 @@ LeftButtons.create(screen, function(id)
 		toggleSidebarMenu("Settings")
 	elseif id == "Pets" then
 		autoOpenedMenu = nil
+		autoOpenedEggStation = nil
 		if petRefs.backdrop.Visible and not PetFrame.isEggOnlyMode(petRefs) then
 			UIAnimator.framePopOut(petRefs.backdrop, petRefs.root)
 		else
@@ -411,6 +499,19 @@ RunService.Heartbeat:Connect(function(dt)
 				considerStation(zone.menu, distance, zone.auraTier)
 			end
 
+			local nearestEgg: Instance? = nil
+			local nearestEggDistance = math.huge
+			for _, station in ipairs(refreshEggStations()) do
+				local distance = getDistanceToEggStation(station, rootPart.Position)
+				if distance > EGG_CLOSE_RADIUS and suppressedEggStation == station then
+					suppressedEggStation = nil
+				end
+				if distance < nearestEggDistance then
+					nearestEggDistance = distance
+					nearestEgg = station
+				end
+			end
+
 			if autoOpenedMenu then
 				local refs = menuController.menus[autoOpenedMenu]
 				if not refs or not refs.backdrop.Visible then
@@ -421,6 +522,19 @@ RunService.Heartbeat:Connect(function(dt)
 					autoOpenedMenu = nil
 				elseif activeMenuDistance > STATION_CLOSE_RADIUS then
 					closeAutoOpenedMenu()
+				end
+			end
+
+			if autoOpenedEggStation then
+				local activeDistance = getDistanceToEggStation(autoOpenedEggStation, rootPart.Position)
+				if not petRefs.backdrop.Visible or not PetFrame.isEggOnlyMode(petRefs) then
+					if activeDistance <= EGG_CLOSE_RADIUS then
+						suppressedEggStation = autoOpenedEggStation
+						eggReopenAt = os.clock() + STATION_REOPEN_COOLDOWN
+					end
+					autoOpenedEggStation = nil
+				elseif activeDistance > EGG_CLOSE_RADIUS then
+					closeAutoOpenedEggShop()
 				end
 			end
 
@@ -439,6 +553,18 @@ RunService.Heartbeat:Connect(function(dt)
 					end
 					menuController:openMenu(nearestTarget)
 				end
+			end
+
+			if nearestEgg
+				and nearestEggDistance <= EGG_OPEN_RADIUS
+				and not autoOpenedEggStation
+				and suppressedEggStation ~= nearestEgg
+				and os.clock() >= eggReopenAt
+				and not isAnyMenuOpenExcept("Pets")
+				and (not petRefs.backdrop.Visible or PetFrame.isEggOnlyMode(petRefs))
+			then
+				autoOpenedEggStation = nearestEgg
+				RequestOpenEggStation:FireServer(nearestEgg)
 			end
 		end
 	end

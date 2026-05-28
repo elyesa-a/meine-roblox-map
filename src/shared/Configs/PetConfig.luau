@@ -6,6 +6,7 @@
 -- legacy definitions so existing inventories still render and equip.
 
 local AreaConfig = require(script.Parent:WaitForChild("AreaConfig"))
+local EnemyConfig = require(script.Parent:WaitForChild("EnemyConfig"))
 
 export type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Mythic"
 export type EggTier = "Stage" | "Common" | "Rare" | "Epic"
@@ -97,18 +98,44 @@ PetConfig.StageOnePowerMultipliers = {
 	Mythic = 3.0,
 } :: { [Rarity]: number }
 
-PetConfig.StageEggCosts = {
-	[1] = 1000,
-	[2] = 50000,
-	[3] = 250000,
-	[4] = 1250000,
-	[5] = 6250000,
-	[6] = 31250000,
-	[7] = 156250000,
-	[8] = 781250000,
-	[9] = 3906250000,
-	[10] = 19531250000,
-} :: { [number]: number }
+local function roundToCleanEggPrice(value: number): number
+	if value <= 0 then
+		return 0
+	end
+
+	local scale = 1
+	while value / scale >= 10 do
+		scale *= 10
+	end
+
+	local scaled = value / scale
+	local roundedHalfStep = math.floor(scaled * 2 + 0.5) / 2
+	return math.max(1, math.floor(roundedHalfStep * scale + 0.5))
+end
+
+local function getBossDnaReward(areaIndex: number): number?
+	for _, enemy in ipairs(EnemyConfig.Enemies) do
+		if enemy.AreaIndex == areaIndex and enemy.IsBoss then
+			return enemy.DNAReward
+		end
+	end
+	return nil
+end
+
+local function buildStageEggCosts(): { [number]: number }
+	local costs = {} :: { [number]: number }
+	for _, area in ipairs(AreaConfig.Areas) do
+		local bossReward = getBossDnaReward(area.index)
+		local fallback = 1000 * (5 ^ (area.index - 1))
+		costs[area.index] = roundToCleanEggPrice(bossReward or fallback)
+	end
+	return costs
+end
+
+-- Stage-Egg Preise orientieren sich am Boss-DNA-Reward der jeweiligen Area,
+-- aber werden auf saubere Simulator-Zahlen gerundet:
+-- z.B. 1.1K -> 1K, 1.4K -> 1.5K, 1.9K -> 2K.
+PetConfig.StageEggCosts = buildStageEggCosts()
 
 local stageEggNames = {
 	[1] = "Beginner Virus Egg",
