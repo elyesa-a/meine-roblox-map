@@ -41,8 +41,6 @@ local ClickHandler = require(UI:WaitForChild("ClickHandler"))
 local SoundController = require(UI:WaitForChild("SoundController"))
 local TrainingPadVisuals = require(UI:WaitForChild("TrainingPadVisuals"))
 local CombatVisualController = require(UI:WaitForChild("CombatVisualController"))
--- DEV: temporaerer Unlock-All-Button rechts (siehe DevUnlockButton.luau Header).
-local DevUnlockButton = require(UI:WaitForChild("DevUnlockButton"))
 local UIAnimator = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UIAnimator"))
 
 SoundController.start()
@@ -59,8 +57,6 @@ screen.Parent = playerGui
 
 -- Layout-Elemente.
 local bottomRefs = BottomStats.create(screen)
--- DEV: temporaerer Unlock-All-Button rechts (vor Release wieder entfernen).
-DevUnlockButton.create(screen)
 
 -- Fenster (zunaechst unsichtbar) -- vorab anlegen, damit Top/Left-Buttons sie
 -- referenzieren koennen.
